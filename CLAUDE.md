@@ -18,13 +18,14 @@ Guía para Claude Code al trabajar en este repositorio.
   - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.
   - `Tablero.aspx?id=N` — vista Kanban: listas, tarjetas, comentarios y miembros. Un único modal (`pnlDetalle`) sirve para crear tarjetas ("+ Añadir una tarjeta", estado en `ListaNuevaId`) y para editarlas (`TarjetaAbiertaId`).
   - `Default.aspx` — redirige a `Tableros.aspx`.
-- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`). Las páginas no contienen SQL.
-- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro).
+- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`). Las páginas no contienen SQL.
+- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta).
 - `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas).
 - `Utilidades/` — helpers de presentación (`Formato`).
 - `Content/site.css` — estilos.
 - `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc.
 - `Scripts/markdown.js` — editor markdown propio sin dependencias (barra, Escribir/Vista previa). El renderizador escapa todo el HTML antes de aplicar marcas y solo permite enlaces `http(s)`/`mailto`; mantener esa garantía si se amplía.
+- CSS/JS se enlazan con `Formato.UrlConVersion("~/...")` (añade `?v=<fecha del archivo>`) para que el navegador no use versiones en caché tras un cambio.
 - **Codificación**: `.aspx`/`.Master` en UTF-8 **con BOM** (y `fileEncoding="utf-8"` en Web.config); sin ello ASP.NET los lee como Windows-1252 y los acentos salen mal.
 - **No usar `App_Code/`**: en un proyecto *Web Application* el código ahí se compila dos veces (en la DLL y en tiempo de ejecución).
 - Al añadir archivos, registrarlos en `TaskManager.vbproj` (`Compile` / `Content`) y mantener los `.designer.vb` al día con los controles con `ID`.
@@ -39,7 +40,7 @@ Guía para Claude Code al trabajar en este repositorio.
 - Al modificar tablas, columnas o procedimientos, en el mismo cambio:
   1. Actualizar `database/TaskManager.sql` (esquema completo para instalaciones nuevas).
   2. Añadir una migración **idempotente** en `database/migraciones/NNN_descripcion.sql` (`IF COL_LENGTH(...) IS NULL`, `IF OBJECT_ID(...) IS NULL`) para bases ya existentes.
-- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`.
+- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`, `002_modificacion_historial.sql`.
 
 ### Esquema (nombres en español)
 
@@ -49,8 +50,9 @@ Guía para Claude Code al trabajar en este repositorio.
 | `Tableros` | Tableros | `PropietarioId` → Usuarios |
 | `MiembrosTablero` | Miembros de un tablero; `Rol` = `Admin` / `Miembro` | PK (TableroId, UsuarioId); cascada desde Tableros |
 | `Listas` | Columnas de un tablero, ordenadas por `Posicion` | → Tableros (cascada) |
-| `Tarjetas` | Tarjetas de una lista, ordenadas por `Posicion`; `FechaLimite`, `AsignadoA` opcionales; `Caso` (NVARCHAR(20), solo dígitos, `CK_Tarjetas_Caso`); `Codigo` (markdown, NVARCHAR(MAX)) | → Listas (cascada), `AsignadoA` → Usuarios |
+| `Tarjetas` | Tarjetas de una lista, ordenadas por `Posicion`; `FechaLimite`, `AsignadoA` opcionales; `Caso` (NVARCHAR(20), solo dígitos, `CK_Tarjetas_Caso`); `Codigo` (markdown, NVARCHAR(MAX)); `FechaModificacion` + `ModificadoPor` (última modificación) | → Listas (cascada), `AsignadoA` → Usuarios |
 | `Subtareas` | Checklist de una tarjeta (`Texto`, `Completada`), ordenada por `Posicion` | → Tarjetas (cascada) |
+| `HistorialTarjeta` | Un cambio por fila: `Accion`, `Campo`, `ValorAnterior`, `ValorNuevo`, quién y cuándo | → Tarjetas (cascada), → Usuarios |
 | `Etiquetas` | Etiquetas por tablero; `Color` hex `#rrggbb` | → Tableros (cascada) |
 | `TarjetaEtiquetas` | N:M tarjetas–etiquetas | → Tarjetas (cascada), → Etiquetas (sin cascada) |
 | `Comentarios` | Comentarios en tarjetas | → Tarjetas (cascada), → Usuarios |
@@ -63,6 +65,9 @@ Notas:
 - Comprobar en cada operación que el usuario es propietario o miembro del tablero.
 - `Caso` es texto para conservar ceros a la izquierda; validar con `[0-9]` (no `\d`, que en .NET acepta dígitos de otros alfabetos y la restricción CHECK los rechaza).
 - `Codigo` no se recorta al guardar (la sangría importa). En el tablero solo se carga `TieneCodigo`; el texto completo, al abrir la tarjeta.
+- **Historial**: toda operación que modifique una tarjeta debe llamar a `HistorialDatos.Registrar` dentro de su misma transacción; eso inserta las filas y actualiza `FechaModificacion`/`ModificadoPor`. Solo se registran cambios reales (`TarjetasDatos.Actualizar` compara campo a campo; guardar sin cambios no deja rastro). Reordenar dentro de la misma lista no se registra. Descripción y código se normalizan a `
+` antes de guardar para no detectar cambios falsos por `
+`. Las acciones/campos están en `Models/HistorialTarjeta.vb` y el texto se genera en `TableroPagina.DescribirCambio` (que codifica los valores).
 - Subtareas: al editar una tarjeta se guardan al momento; al crearla se acumulan en ViewState (`SubtareasPendientes`) y se insertan con la tarjeta en una transacción.
 
 ## Reglas obligatorias

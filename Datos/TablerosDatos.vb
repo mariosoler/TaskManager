@@ -141,8 +141,11 @@ END"
             End Using
         End Function
 
-        ''' <summary>Quita un miembro (nunca al propietario) y desasigna sus tarjetas del tablero.</summary>
-        Public Shared Sub QuitarMiembro(tableroId As Integer, usuarioId As Integer)
+        ''' <summary>
+        ''' Quita un miembro (nunca al propietario) y desasigna sus tarjetas del tablero,
+        ''' dejando constancia en el historial de cada tarjeta a nombre de <paramref name="actorId"/>.
+        ''' </summary>
+        Public Shared Sub QuitarMiembro(tableroId As Integer, usuarioId As Integer, actorId As Integer)
             Const sql = "
 SET XACT_ABORT ON;
 BEGIN TRAN;
@@ -150,14 +153,26 @@ DELETE m FROM MiembrosTablero m
 JOIN Tableros t ON t.Id = m.TableroId
 WHERE m.TableroId = @TableroId AND m.UsuarioId = @UsuarioId AND t.PropietarioId <> @UsuarioId;
 IF @@ROWCOUNT > 0
-    UPDATE c SET AsignadoA = NULL
-    FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
+BEGIN
+    DECLARE @Ahora DATETIME2 = SYSUTCDATETIME();
+    DECLARE @Afectadas TABLE (Id INT PRIMARY KEY);
+    INSERT INTO @Afectadas
+    SELECT c.Id FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
     WHERE l.TableroId = @TableroId AND c.AsignadoA = @UsuarioId;
+
+    INSERT INTO HistorialTarjeta (TarjetaId, UsuarioId, Fecha, Accion, Campo, ValorAnterior, ValorNuevo)
+    SELECT a.Id, @ActorId, @Ahora, N'Editada', N'AsignadoA', u.Nombre, NULL
+    FROM @Afectadas a CROSS JOIN Usuarios u WHERE u.Id = @UsuarioId;
+
+    UPDATE c SET AsignadoA = NULL, FechaModificacion = @Ahora, ModificadoPor = @ActorId
+    FROM Tarjetas c JOIN @Afectadas a ON a.Id = c.Id;
+END
 COMMIT;"
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cmd.Parameters.Add("@ActorId", SqlDbType.Int).Value = actorId
                 cn.Open()
                 cmd.ExecuteNonQuery()
             End Using

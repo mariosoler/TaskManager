@@ -68,6 +68,7 @@
                                         <asp:PlaceHolder runat="server" Visible='<%# CBool(Eval("TieneCodigo")) %>'>
                                             <span class="info info-codigo" title="Tiene código">&lt;/&gt;</span>
                                         </asp:PlaceHolder>
+                                        <span class="info info-modificada" title='<%#: TextoModificacion(Eval("FechaModificacion"), Eval("NombreModificador")) %>'>&#9998; <%#: Formato.FechaCorta(Eval("FechaModificacion")) %></span>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumComentarios")) > 0 %>'>
                                             <span class="info" title="Comentarios">&#128172; <%# Eval("NumComentarios") %></span>
                                         </asp:PlaceHolder>
@@ -105,7 +106,8 @@
                 <h2 id="tituloDetalle"><asp:Literal ID="litTituloModal" runat="server" /></h2>
                 <asp:LinkButton ID="btnCerrarDetalle" runat="server" CssClass="modal-cerrar" ToolTip="Cerrar (Esc)" CausesValidation="false">&times;</asp:LinkButton>
             </div>
-            <p class="modal-subtitulo">En la lista <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong></p>
+            <p class="modal-subtitulo">En la lista <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
+                <asp:Literal ID="litFechasTarjeta" runat="server" Mode="Encode" /></p>
 
             <div class="campos-fila">
                 <div class="campo campo-caso">
@@ -213,6 +215,25 @@
                     </div>
                 </ItemTemplate>
             </asp:Repeater>
+
+            <details class="historial" open="open">
+                <summary><h3>Historial de cambios <span class="seccion-nota"><asp:Literal ID="litNumCambios" runat="server" /></span></h3></summary>
+                <asp:Repeater ID="rptHistorial" runat="server">
+                    <HeaderTemplate><ol class="historial-lista"></HeaderTemplate>
+                    <ItemTemplate>
+                        <li class="historial-item">
+                            <span class="avatar avatar-pequeno"><%#: Formato.Iniciales(Eval("NombreUsuario")) %></span>
+                            <span class="historial-texto">
+                                <strong><%#: Eval("NombreUsuario") %></strong>
+                                <%-- DescribirCambio devuelve HTML con todos los valores del usuario ya codificados --%>
+                                <%# DescribirCambio(CType(Container.DataItem, TaskManager.Models.HistorialTarjeta)) %>
+                                <span class="fecha"><%#: Formato.FechaLocal(Eval("Fecha")) %></span>
+                            </span>
+                        </li>
+                    </ItemTemplate>
+                    <FooterTemplate></ol></FooterTemplate>
+                </asp:Repeater>
+            </details>
             </asp:PlaceHolder>
         </div>
     </asp:Panel>
@@ -229,6 +250,6 @@
             cerrar: '<%= btnCerrarDetalle.ClientID %>'
         };
     </script>
-    <script src="<%= ResolveUrl("~/Scripts/markdown.js") %>"></script>
-    <script src="<%= ResolveUrl("~/Scripts/tablero.js") %>"></script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
 </asp:Content>

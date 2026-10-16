@@ -1,4 +1,5 @@
 Imports System.Data.SqlClient
+Imports System.Globalization
 Imports TaskManager.Models
 
 Namespace Datos
@@ -15,13 +16,15 @@ Namespace Datos
         Friend Const SqlSelectTarjetas As String = "
 SELECT c.Id, c.ListaId, l.Titulo AS NombreLista, c.Titulo, c.Descripcion, c.Posicion, c.FechaLimite,
        c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.Caso,
+       c.FechaModificacion, um.Nombre AS NombreModificador,
        CAST(CASE WHEN c.Codigo IS NULL OR c.Codigo = N'' THEN 0 ELSE 1 END AS BIT) AS TieneCodigo,
        (SELECT COUNT(*) FROM Comentarios co WHERE co.TarjetaId = c.Id) AS NumComentarios,
        (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id) AS SubtareasTotal,
        (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id AND s.Completada = 1) AS SubtareasHechas
 FROM Tarjetas c
 JOIN Listas l ON l.Id = c.ListaId
-LEFT JOIN Usuarios u ON u.Id = c.AsignadoA"
+LEFT JOIN Usuarios u ON u.Id = c.AsignadoA
+LEFT JOIN Usuarios um ON um.Id = c.ModificadoPor"
 
         ''' <summary>Tarjeta completa (incluido Codigo) si pertenece al tablero; Nothing en caso contrario.</summary>
         Public Shared Function Obtener(tarjetaId As Integer, tableroId As Integer) As Tarjeta
@@ -54,41 +57,60 @@ SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;"
         ''' Crea la tarjeta al final de la lista (si la lista pertenece al tablero) junto con sus subtareas,
         ''' en una transacción. Usa Titulo, Descripcion, FechaLimite, AsignadoA, Caso y Codigo de <paramref name="datos"/>.
         ''' </summary>
-        Public Shared Sub Crear(listaId As Integer, tableroId As Integer, datos As Tarjeta, subtareas As IEnumerable(Of Subtarea))
+        Public Shared Sub Crear(listaId As Integer, tableroId As Integer, datos As Tarjeta, subtareas As IEnumerable(Of Subtarea),
+                                usuarioId As Integer)
             Dim sql = "
+DECLARE @Nueva TABLE (Id INT);
 INSERT INTO Tarjetas (ListaId, Titulo, Descripcion, Posicion, FechaLimite, AsignadoA, Caso, Codigo)
-OUTPUT INSERTED.Id
+OUTPUT INSERTED.Id INTO @Nueva
 SELECT l.Id, @Titulo, @Descripcion,
        ISNULL((SELECT MAX(Posicion) + 1 FROM Tarjetas WHERE ListaId = l.Id), 0),
        @FechaLimite," & SqlAsignadoValido & ", @Caso, @Codigo
 FROM Listas l
-WHERE l.Id = @ListaId AND l.TableroId = @TableroId"
+WHERE l.Id = @ListaId AND l.TableroId = @TableroId;
+SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
 
             Using cn = Db.CrearConexion()
                 cn.Open()
                 Using tx = cn.BeginTransaction()
-                    Dim tarjetaId As Object
+                    Dim tarjetaId As Integer
+                    Dim nombreLista As String
                     Using cmd As New SqlCommand(sql, cn, tx)
                         cmd.Parameters.Add("@ListaId", SqlDbType.Int).Value = listaId
                         cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                         AgregarCampos(cmd, datos)
-                        tarjetaId = cmd.ExecuteScalar()
+                        Using rd = cmd.ExecuteReader()
+                            If Not rd.Read() Then Return  ' la lista no es de este tablero (rollback al salir)
+                            tarjetaId = rd.GetInt32(0)
+                            nombreLista = rd.GetString(1)
+                        End Using
                     End Using
-                    If tarjetaId Is Nothing Then Return  ' la lista no es de este tablero (rollback al salir)
 
                     Dim posicion = 0
                     For Each subtarea In subtareas
-                        SubtareasDatos.Insertar(cn, tx, CInt(tarjetaId), subtarea.Texto, subtarea.Completada, posicion)
+                        SubtareasDatos.Insertar(cn, tx, tarjetaId, subtarea.Texto, subtarea.Completada, posicion)
                         posicion += 1
                     Next
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
+                                             HistorialTarjeta.Nuevo(HistorialTarjeta.Creada, valorNuevo:=nombreLista))
                     tx.Commit()
                 End Using
             End Using
         End Sub
 
-        ''' <summary>Actualiza los datos editables. Solo se asigna a usuarios con acceso al tablero.</summary>
-        Public Shared Sub Actualizar(tarjetaId As Integer, tableroId As Integer, datos As Tarjeta)
-            Dim sql = "
+        ''' <summary>
+        ''' Actualiza los datos editables y registra en el historial cada campo que cambie
+        ''' (nada si no cambia ninguno). Solo se asigna a usuarios con acceso al tablero.
+        ''' </summary>
+        Public Shared Sub Actualizar(tarjetaId As Integer, tableroId As Integer, datos As Tarjeta, usuarioId As Integer)
+            Const sqlActual = "
+SELECT c.Titulo, c.Descripcion, c.FechaLimite, c.AsignadoA, u.Nombre AS NombreAsignado, c.Caso, c.Codigo
+FROM Tarjetas c WITH (UPDLOCK)
+JOIN Listas l ON l.Id = c.ListaId
+LEFT JOIN Usuarios u ON u.Id = c.AsignadoA
+WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
+
+            Dim sqlActualizar = "
 UPDATE c SET
     Titulo = @Titulo,
     Descripcion = @Descripcion,
@@ -98,16 +120,81 @@ UPDATE c SET
     AsignadoA =" & SqlAsignadoValido & "
 FROM Tarjetas c
 JOIN Listas l ON l.Id = c.ListaId
-WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
+WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId;
+SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuarios u ON u.Id = c.AsignadoA WHERE c.Id = @TarjetaId;"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                AgregarCampos(cmd, datos)
+            Using cn = Db.CrearConexion()
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Using tx = cn.BeginTransaction()
+                    Dim antes As Tarjeta
+                    Using cmd As New SqlCommand(sqlActual, cn, tx)
+                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        Using rd = cmd.ExecuteReader()
+                            If Not rd.Read() Then Return  ' no es de este tablero
+                            antes = New Tarjeta With {
+                                .Titulo = rd.GetString(0),
+                                .Descripcion = Db.Texto(rd, "Descripcion"),
+                                .FechaLimite = Db.Fecha(rd, "FechaLimite"),
+                                .AsignadoA = Db.Entero(rd, "AsignadoA"),
+                                .NombreAsignado = Db.Texto(rd, "NombreAsignado"),
+                                .Caso = Db.Texto(rd, "Caso"),
+                                .Codigo = Db.Texto(rd, "Codigo")
+                            }
+                        End Using
+                    End Using
+
+                    ' El asignado final puede diferir del pedido (si no tiene acceso se guarda NULL).
+                    Dim despues = New Tarjeta With {
+                        .Titulo = datos.Titulo, .Descripcion = datos.Descripcion, .FechaLimite = datos.FechaLimite,
+                        .Caso = datos.Caso, .Codigo = datos.Codigo
+                    }
+                    Using cmd As New SqlCommand(sqlActualizar, cn, tx)
+                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        AgregarCampos(cmd, datos)
+                        Using rd = cmd.ExecuteReader()
+                            If rd.Read() Then
+                                despues.AsignadoA = Db.Entero(rd, "AsignadoA")
+                                despues.NombreAsignado = Db.Texto(rd, "NombreAsignado")
+                            End If
+                        End Using
+                    End Using
+
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId, Diferencias(antes, despues))
+                    tx.Commit()
+                End Using
             End Using
         End Sub
+
+        ''' <summary>Un cambio "Editada" por cada campo distinto entre las dos versiones.</summary>
+        Private Shared Function Diferencias(antes As Tarjeta, despues As Tarjeta) As List(Of HistorialTarjeta)
+            Dim cambios As New List(Of HistorialTarjeta)
+
+            Dim comparar = Sub(campo As String, anterior As String, nuevo As String, valorAnterior As String, valorNuevo As String)
+                               If Not String.Equals(If(anterior, ""), If(nuevo, ""), StringComparison.Ordinal) Then
+                                   cambios.Add(HistorialTarjeta.Nuevo(HistorialTarjeta.Editada, campo, valorAnterior, valorNuevo))
+                               End If
+                           End Sub
+
+            comparar(HistorialTarjeta.CampoTitulo, antes.Titulo, despues.Titulo, antes.Titulo, despues.Titulo)
+            comparar(HistorialTarjeta.CampoCaso, antes.Caso, despues.Caso, antes.Caso, despues.Caso)
+            comparar(HistorialTarjeta.CampoDescripcion, antes.Descripcion, despues.Descripcion,
+                     HistorialDatos.Extracto(antes.Descripcion), HistorialDatos.Extracto(despues.Descripcion))
+            comparar(HistorialTarjeta.CampoFechaLimite, FechaIso(antes.FechaLimite), FechaIso(despues.FechaLimite),
+                     FechaIso(antes.FechaLimite), FechaIso(despues.FechaLimite))
+            If Not Nullable.Equals(antes.AsignadoA, despues.AsignadoA) Then
+                cambios.Add(HistorialTarjeta.Nuevo(HistorialTarjeta.Editada, HistorialTarjeta.CampoAsignado,
+                                                   antes.NombreAsignado, despues.NombreAsignado))
+            End If
+            comparar(HistorialTarjeta.CampoCodigo, antes.Codigo, despues.Codigo,
+                     HistorialDatos.Extracto(antes.Codigo), HistorialDatos.Extracto(despues.Codigo))
+            Return cambios
+        End Function
+
+        Private Shared Function FechaIso(fecha As DateTime?) As String
+            Return If(fecha.HasValue, fecha.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), Nothing)
+        End Function
 
         Private Shared Sub AgregarCampos(cmd As SqlCommand, datos As Tarjeta)
             cmd.Parameters.Add("@Titulo", SqlDbType.NVarChar, 200).Value = datos.Titulo
@@ -139,18 +226,17 @@ COMMIT;"
         ''' <summary>
         ''' Mueve la tarjeta a la lista destino, en la posición <paramref name="indice"/> (0 = primera),
         ''' contando solo las demás tarjetas de esa lista. Renumera origen y destino en una transacción.
+        ''' Solo el cambio de lista se registra en el historial (reordenar dentro de la lista, no).
         ''' </summary>
-        Public Shared Sub Mover(tarjetaId As Integer, listaDestinoId As Integer, indice As Integer, tableroId As Integer)
+        Public Shared Sub Mover(tarjetaId As Integer, listaDestinoId As Integer, indice As Integer, tableroId As Integer,
+                                usuarioId As Integer)
+            ' Se ejecuta dentro de la transacción del cliente; devuelve los nombres de origen y destino.
             Const sql = "
 SET XACT_ABORT ON;
-BEGIN TRAN;
 DECLARE @Origen INT = (SELECT c.ListaId FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
                        WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId);
 IF @Origen IS NULL OR NOT EXISTS (SELECT 1 FROM Listas WHERE Id = @ListaDestinoId AND TableroId = @TableroId)
-BEGIN
-    ROLLBACK;
     RETURN;
-END;
 DECLARE @Total INT = (SELECT COUNT(*) FROM Tarjetas WHERE ListaId = @ListaDestinoId AND Id <> @TarjetaId);
 DECLARE @Pos INT = CASE WHEN @Indice < 0 THEN 0 WHEN @Indice > @Total THEN @Total ELSE @Indice END;
 WITH o AS (SELECT Posicion, ROW_NUMBER() OVER (ORDER BY Posicion, Id) - 1 AS N
@@ -160,15 +246,34 @@ UPDATE Tarjetas SET ListaId = @ListaDestinoId, Posicion = @Pos WHERE Id = @Tarje
 WITH o AS (SELECT Posicion, ROW_NUMBER() OVER (ORDER BY Posicion, Id) - 1 AS N
            FROM Tarjetas WHERE ListaId = @Origen)
 UPDATE o SET Posicion = N;
-COMMIT;"
+SELECT (SELECT Titulo FROM Listas WHERE Id = @Origen) AS Origen,
+       (SELECT Titulo FROM Listas WHERE Id = @ListaDestinoId) AS Destino,
+       CAST(CASE WHEN @Origen <> @ListaDestinoId THEN 1 ELSE 0 END AS BIT) AS CambioDeLista;"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
-                cmd.Parameters.Add("@ListaDestinoId", SqlDbType.Int).Value = listaDestinoId
-                cmd.Parameters.Add("@Indice", SqlDbType.Int).Value = indice
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+            Using cn = Db.CrearConexion()
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Using tx = cn.BeginTransaction()
+                    Dim origen As String = Nothing, destino As String = Nothing
+                    Dim cambioDeLista = False
+                    Using cmd As New SqlCommand(sql, cn, tx)
+                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                        cmd.Parameters.Add("@ListaDestinoId", SqlDbType.Int).Value = listaDestinoId
+                        cmd.Parameters.Add("@Indice", SqlDbType.Int).Value = indice
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        Using rd = cmd.ExecuteReader()
+                            If Not rd.Read() Then Return   ' tarjeta o lista de otro tablero
+                            origen = rd.GetString(0)
+                            destino = rd.GetString(1)
+                            cambioDeLista = rd.GetBoolean(2)
+                        End Using
+                    End Using
+
+                    If cambioDeLista Then
+                        HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
+                                                 HistorialTarjeta.Nuevo(HistorialTarjeta.Movida, valorAnterior:=origen, valorNuevo:=destino))
+                    End If
+                    tx.Commit()
+                End Using
             End Using
         End Sub
 
@@ -188,7 +293,9 @@ COMMIT;"
                 .TieneCodigo = rd.GetBoolean(rd.GetOrdinal("TieneCodigo")),
                 .NumComentarios = rd.GetInt32(rd.GetOrdinal("NumComentarios")),
                 .SubtareasTotal = rd.GetInt32(rd.GetOrdinal("SubtareasTotal")),
-                .SubtareasHechas = rd.GetInt32(rd.GetOrdinal("SubtareasHechas"))
+                .SubtareasHechas = rd.GetInt32(rd.GetOrdinal("SubtareasHechas")),
+                .FechaModificacion = rd.GetDateTime(rd.GetOrdinal("FechaModificacion")),
+                .NombreModificador = Db.Texto(rd, "NombreModificador")
             }
         End Function
 

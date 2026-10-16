@@ -349,6 +349,42 @@ textarea { resize: vertical; }
 .markdown hr { border: 0; border-top: 1px solid var(--borde); }
 .md-vacio { color: var(--texto-suave); font-style: italic; }
 
+/* ----- Historial ----- */
+.historial { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--borde); }
+.historial summary { cursor: pointer; list-style: none; }
+.historial summary::-webkit-details-marker { display: none; }
+.historial summary h3 { display: inline-block; margin: 0 0 8px; padding: 0; border: 0; }
+/* Triángulo con bordes CSS (no depende de que la fuente tenga el glifo) */
+.historial summary h3::before {
+    content: "";
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-left: 6px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform .15s;
+}
+.historial[open] summary h3::before { transform: rotate(90deg); }
+.historial-lista { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--borde); }
+.historial-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0 6px 0; margin-left: -21px; }
+.historial-texto { flex: 1; line-height: 1.5; word-break: break-word; }
+.historial-texto .fecha { display: block; color: var(--texto-suave); font-size: 12px; }
+.historial-valor { font-weight: 600; }
+.historial-extracto {
+    display: block;
+    margin-top: 2px;
+    padding: 2px 8px;
+    border-left: 3px solid var(--borde);
+    color: var(--texto-suave);
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 4.5em;
+    overflow: hidden;
+}
+.info-modificada { margin-left: auto; font-size: 11px; }
+.tarjeta-info .avatar { margin-left: 0; }
+
 .comentario { margin-bottom: 12px; }
 .comentario-cabecera { display: flex; align-items: center; gap: 6px; }
 .comentario .fecha { color: var(--texto-suave); font-size: 12px; }

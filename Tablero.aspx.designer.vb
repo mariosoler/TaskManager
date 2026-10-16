@@ -53,6 +53,8 @@ Partial Public Class TableroPagina
 
     Protected WithEvents litDetalleLista As Global.System.Web.UI.WebControls.Literal
 
+    Protected WithEvents litFechasTarjeta As Global.System.Web.UI.WebControls.Literal
+
     Protected WithEvents txtCaso As Global.System.Web.UI.WebControls.TextBox
 
     Protected WithEvents revCaso As Global.System.Web.UI.WebControls.RegularExpressionValidator
@@ -90,4 +92,8 @@ Partial Public Class TableroPagina
     Protected WithEvents btnComentar As Global.System.Web.UI.WebControls.Button
 
     Protected WithEvents rptComentarios As Global.System.Web.UI.WebControls.Repeater
+
+    Protected WithEvents litNumCambios As Global.System.Web.UI.WebControls.Literal
+
+    Protected WithEvents rptHistorial As Global.System.Web.UI.WebControls.Repeater
 End Class

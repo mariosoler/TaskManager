@@ -22,6 +22,10 @@ Namespace Models
 
         Public Property SubtareasTotal As Integer
         Public Property SubtareasHechas As Integer
+
+        ''' <summary>Última modificación (UTC) y quién la hizo (Nothing en tarjetas anteriores al historial).</summary>
+        Public Property FechaModificacion As DateTime
+        Public Property NombreModificador As String
     End Class
 
 End Namespace

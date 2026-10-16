@@ -114,6 +114,7 @@
     </Compile>
     <Compile Include="Datos\ComentariosDatos.vb" />
     <Compile Include="Datos\Db.vb" />
+    <Compile Include="Datos\HistorialDatos.vb" />
     <Compile Include="Datos\ListasDatos.vb" />
     <Compile Include="Datos\SubtareasDatos.vb" />
     <Compile Include="Datos\TablerosDatos.vb" />
@@ -127,6 +128,7 @@
       <SubType>ASPXCodebehind</SubType>
     </Compile>
     <Compile Include="Models\Comentario.vb" />
+    <Compile Include="Models\HistorialTarjeta.vb" />
     <Compile Include="Models\Lista.vb" />
     <Compile Include="Models\Miembro.vb" />
     <Compile Include="Models\Subtarea.vb" />

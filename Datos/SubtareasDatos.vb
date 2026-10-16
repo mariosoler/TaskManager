@@ -42,19 +42,27 @@ ORDER BY s.Posicion, s.Id"
         End Function
 
         ''' <summary>Añade la subtarea al final si la tarjeta pertenece al tablero.</summary>
-        Public Shared Sub Crear(tarjetaId As Integer, tableroId As Integer, texto As String)
+        Public Shared Sub Crear(tarjetaId As Integer, tableroId As Integer, texto As String, usuarioId As Integer)
             Const sql = "
 INSERT INTO Subtareas (TarjetaId, Texto, Posicion)
+OUTPUT INSERTED.Id
 SELECT c.Id, @Texto, ISNULL((SELECT MAX(Posicion) + 1 FROM Subtareas WHERE TarjetaId = c.Id), 0)
 FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
 WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, 300).Value = texto
+            Using cn = Db.CrearConexion()
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Using tx = cn.BeginTransaction()
+                    Using cmd As New SqlCommand(sql, cn, tx)
+                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, 300).Value = texto
+                        If cmd.ExecuteScalar() Is Nothing Then Return
+                    End Using
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
+                                             HistorialTarjeta.Nuevo(HistorialTarjeta.SubtareaAgregada, valorNuevo:=texto))
+                    tx.Commit()
+                End Using
             End Using
         End Sub
 
@@ -72,36 +80,54 @@ WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
             End Using
         End Sub
 
-        Public Shared Sub CambiarEstado(subtareaId As Integer, tableroId As Integer, completada As Boolean)
+        ''' <summary>Marca o desmarca la subtarea; solo registra historial si el estado cambia de verdad.</summary>
+        Public Shared Sub CambiarEstado(subtareaId As Integer, tableroId As Integer, completada As Boolean, usuarioId As Integer)
             Const sql = "
 UPDATE s SET Completada = @Completada
+OUTPUT INSERTED.TarjetaId, INSERTED.Texto
 FROM Subtareas s
 JOIN Tarjetas c ON c.Id = s.TarjetaId
 JOIN Listas l ON l.Id = c.ListaId
-WHERE s.Id = @SubtareaId AND l.TableroId = @TableroId"
+WHERE s.Id = @SubtareaId AND l.TableroId = @TableroId AND s.Completada <> @Completada"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@SubtareaId", SqlDbType.Int).Value = subtareaId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                cmd.Parameters.Add("@Completada", SqlDbType.Bit).Value = completada
-                cn.Open()
-                cmd.ExecuteNonQuery()
-            End Using
+            Dim accion = If(completada, HistorialTarjeta.SubtareaCompletada, HistorialTarjeta.SubtareaReabierta)
+            EjecutarYRegistrar(sql, subtareaId, tableroId, usuarioId, accion,
+                               Sub(cmd) cmd.Parameters.Add("@Completada", SqlDbType.Bit).Value = completada)
         End Sub
 
-        Public Shared Sub Eliminar(subtareaId As Integer, tableroId As Integer)
+        Public Shared Sub Eliminar(subtareaId As Integer, tableroId As Integer, usuarioId As Integer)
             Const sql = "
 DELETE s
+OUTPUT DELETED.TarjetaId, DELETED.Texto
 FROM Subtareas s
 JOIN Tarjetas c ON c.Id = s.TarjetaId
 JOIN Listas l ON l.Id = c.ListaId
 WHERE s.Id = @SubtareaId AND l.TableroId = @TableroId"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@SubtareaId", SqlDbType.Int).Value = subtareaId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+            EjecutarYRegistrar(sql, subtareaId, tableroId, usuarioId, HistorialTarjeta.SubtareaEliminada, Nothing)
+        End Sub
+
+        ' Ejecuta una sentencia con OUTPUT (TarjetaId, Texto) y, si afectó a una fila, registra la acción.
+        Private Shared Sub EjecutarYRegistrar(sql As String, subtareaId As Integer, tableroId As Integer, usuarioId As Integer,
+                                              accion As String, parametrosExtra As Action(Of SqlCommand))
+            Using cn = Db.CrearConexion()
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Using tx = cn.BeginTransaction()
+                    Dim tarjetaId As Integer
+                    Dim texto As String
+                    Using cmd As New SqlCommand(sql, cn, tx)
+                        cmd.Parameters.Add("@SubtareaId", SqlDbType.Int).Value = subtareaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        parametrosExtra?.Invoke(cmd)
+                        Using rd = cmd.ExecuteReader()
+                            If Not rd.Read() Then Return
+                            tarjetaId = rd.GetInt32(0)
+                            texto = rd.GetString(1)
+                        End Using
+                    End Using
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId, HistorialTarjeta.Nuevo(accion, valorNuevo:=texto))
+                    tx.Commit()
+                End Using
             End Using
         End Sub
 

@@ -42,7 +42,21 @@ CREATE TABLE Tarjetas (
     FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     Caso          NVARCHAR(20) NULL,      -- número de caso, solo dígitos
     Codigo        NVARCHAR(MAX) NULL,     -- apartado de código (markdown)
+    FechaModificacion DATETIME2 NOT NULL CONSTRAINT DF_Tarjetas_FechaModificacion DEFAULT SYSUTCDATETIME(),
+    ModificadoPor INT NULL CONSTRAINT FK_Tarjetas_ModificadoPor REFERENCES Usuarios(Id),
     CONSTRAINT CK_Tarjetas_Caso CHECK (Caso IS NULL OR (Caso <> N'' AND Caso NOT LIKE N'%[^0-9]%'))
+);
+
+-- Una fila por cambio en una tarjeta (quién, cuándo, qué).
+CREATE TABLE HistorialTarjeta (
+    Id            INT IDENTITY(1,1) PRIMARY KEY,
+    TarjetaId     INT NOT NULL REFERENCES Tarjetas(Id) ON DELETE CASCADE,
+    UsuarioId     INT NOT NULL REFERENCES Usuarios(Id),
+    Fecha         DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    Accion        NVARCHAR(30)  NOT NULL,  -- Creada, Editada, Movida, Subtarea*, Comentario
+    Campo         NVARCHAR(30)  NULL,      -- solo en Editada: Titulo, Caso, Descripcion, ...
+    ValorAnterior NVARCHAR(500) NULL,
+    ValorNuevo    NVARCHAR(500) NULL
 );
 
 CREATE TABLE Subtareas (
@@ -77,4 +91,5 @@ CREATE TABLE Comentarios (
 CREATE INDEX IX_Listas_Tablero   ON Listas(TableroId, Posicion);
 CREATE INDEX IX_Tarjetas_Lista   ON Tarjetas(ListaId, Posicion);
 CREATE INDEX IX_Subtareas_Tarjeta ON Subtareas(TarjetaId, Posicion);
+CREATE INDEX IX_HistorialTarjeta_Tarjeta ON HistorialTarjeta(TarjetaId, Fecha DESC);
 GO

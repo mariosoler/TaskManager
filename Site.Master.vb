@@ -5,6 +5,7 @@ Public Class SiteMaster
     Inherits System.Web.UI.MasterPage
 
     Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+        lnkEstilos.Href = Formato.UrlConVersion("~/Content/site.css")
         Dim autenticado = Page.User IsNot Nothing AndAlso Page.User.Identity.IsAuthenticated
         phUsuario.Visible = autenticado
         If autenticado Then

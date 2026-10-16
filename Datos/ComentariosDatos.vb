@@ -43,17 +43,25 @@ ORDER BY co.Fecha DESC, co.Id DESC"
         Public Shared Sub Crear(tarjetaId As Integer, tableroId As Integer, usuarioId As Integer, texto As String)
             Const sql = "
 INSERT INTO Comentarios (TarjetaId, UsuarioId, Texto)
+OUTPUT INSERTED.Id
 SELECT c.Id, @UsuarioId, @Texto
 FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
 WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
 
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
-                cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, -1).Value = texto
+            Using cn = Db.CrearConexion()
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Using tx = cn.BeginTransaction()
+                    Using cmd As New SqlCommand(sql, cn, tx)
+                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                        cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, -1).Value = texto
+                        If cmd.ExecuteScalar() Is Nothing Then Return
+                    End Using
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
+                                             HistorialTarjeta.Nuevo(HistorialTarjeta.Comentada, valorNuevo:=HistorialDatos.Extracto(texto)))
+                    tx.Commit()
+                End Using
             End Using
         End Sub
 

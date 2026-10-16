@@ -1,7 +1,8 @@
-Imports System.Globalization
+﻿Imports System.Globalization
 Imports TaskManager.Datos
 Imports TaskManager.Models
 Imports TaskManager.Seguridad
+Imports TaskManager.Utilidades
 
 Public Class TableroPagina
     Inherits PaginaBase
@@ -84,7 +85,7 @@ Public Class TableroPagina
         If Integer.TryParse(hfTarjetaId.Value, tarjetaId) AndAlso
            Integer.TryParse(hfListaDestino.Value, listaId) AndAlso
            Integer.TryParse(hfIndice.Value, indice) Then
-            TarjetasDatos.Mover(tarjetaId, listaId, indice, TableroId)
+            TarjetasDatos.Mover(tarjetaId, listaId, indice, TableroId, UsuarioId)
         End If
         CargarTablero()
     End Sub
@@ -113,16 +114,16 @@ Public Class TableroPagina
         Dim usuario As Integer
         If Integer.TryParse(ddlAsignado.SelectedValue, usuario) Then datos.AsignadoA = usuario
 
-        datos.Descripcion = Texto(txtDescripcionTarjeta.Text, 20000)
+        datos.Descripcion = Texto(txtDescripcionTarjeta.Text, 20000).Replace(vbCrLf, vbLf)
         ' El código no se recorta: los espacios iniciales (sangría) son significativos.
-        Dim codigo = If(txtCodigo.Text, "")
+        Dim codigo = If(txtCodigo.Text, "").Replace(vbCrLf, vbLf)
         If codigo.Length > LongitudMaximaCodigo Then codigo = codigo.Substring(0, LongitudMaximaCodigo)
         datos.Codigo = If(codigo.Trim().Length = 0, Nothing, codigo)
 
         If ListaNuevaId > 0 Then
-            TarjetasDatos.Crear(ListaNuevaId, TableroId, datos, SubtareasPendientes)
+            TarjetasDatos.Crear(ListaNuevaId, TableroId, datos, SubtareasPendientes, UsuarioId)
         Else
-            TarjetasDatos.Actualizar(TarjetaAbiertaId, TableroId, datos)
+            TarjetasDatos.Actualizar(TarjetaAbiertaId, TableroId, datos, UsuarioId)
         End If
         CerrarDetalle()
         CargarTablero()
@@ -144,6 +145,7 @@ Public Class TableroPagina
             ComentariosDatos.Crear(TarjetaAbiertaId, TableroId, UsuarioId, comentario)
             txtComentario.Text = ""
             CargarComentarios()
+            CargarActividad()
             CargarTablero()
         End If
     End Sub
@@ -159,6 +161,7 @@ Public Class TableroPagina
         ListaNuevaId = 0
         MostrarDetalle(tarjeta, esNueva:=False)
         CargarComentarios()
+        CargarActividad(tarjeta)
     End Sub
 
     Private Sub AbrirNuevaTarjeta(listaId As Integer)
@@ -182,6 +185,7 @@ Public Class TableroPagina
         phComentarios.Visible = Not esNueva
 
         litDetalleLista.Text = tarjeta.NombreLista
+        litFechasTarjeta.Text = ""
         txtCaso.Text = If(tarjeta.Caso, "")
         txtTituloTarjeta.Text = tarjeta.Titulo
         txtDescripcionTarjeta.Text = If(tarjeta.Descripcion, "")
@@ -210,6 +214,114 @@ Public Class TableroPagina
         rptComentarios.DataSource = ComentariosDatos.Listar(TarjetaAbiertaId, TableroId)
         rptComentarios.DataBind()
     End Sub
+
+    ' ----- Fechas e historial -----
+
+    ''' <summary>Fechas de creación/modificación e historial de la tarjeta abierta.</summary>
+    Private Sub CargarActividad(Optional tarjeta As Tarjeta = Nothing)
+        If tarjeta Is Nothing Then tarjeta = TarjetasDatos.Obtener(TarjetaAbiertaId, TableroId)
+        If tarjeta Is Nothing Then Return
+
+        litFechasTarjeta.Text = String.Format(CultureInfo.CurrentCulture, " · Creada el {0} · {1}",
+                                              Formato.FechaLocal(tarjeta.FechaCreacion),
+                                              TextoModificacion(tarjeta.FechaModificacion, tarjeta.NombreModificador))
+
+        Dim historial = HistorialDatos.Listar(TarjetaAbiertaId, TableroId)
+        rptHistorial.DataSource = historial
+        rptHistorial.DataBind()
+        litNumCambios.Text = historial.Count.ToString(CultureInfo.InvariantCulture)
+    End Sub
+
+    ''' <summary>"Modificada el 17/10/2026 14:32 por Ana" (texto plano: codificar al mostrar).</summary>
+    Protected Function TextoModificacion(fecha As Object, nombre As Object) As String
+        Dim texto = "Modificada el " & Formato.FechaLocal(fecha)
+        Dim quien = TryCast(nombre, String)
+        Return If(String.IsNullOrEmpty(quien), texto, texto & " por " & quien)
+    End Function
+
+    ''' <summary>
+    ''' Frase HTML que describe un cambio del historial ("cambió el título de «a» a «b»").
+    ''' Todos los valores procedentes de la base de datos se codifican aquí.
+    ''' </summary>
+    Protected Function DescribirCambio(cambio As HistorialTarjeta) As String
+        Dim antes = cambio.ValorAnterior
+        Dim despues = cambio.ValorNuevo
+
+        Select Case cambio.Accion
+            Case HistorialTarjeta.Creada
+                Return "creó la tarjeta en " & Valor(despues)
+            Case HistorialTarjeta.Movida
+                Return "movió la tarjeta de " & Valor(antes) & " a " & Valor(despues)
+            Case HistorialTarjeta.SubtareaAgregada
+                Return "añadió la subtarea " & Valor(despues)
+            Case HistorialTarjeta.SubtareaCompletada
+                Return "completó la subtarea " & Valor(despues)
+            Case HistorialTarjeta.SubtareaReabierta
+                Return "desmarcó la subtarea " & Valor(despues)
+            Case HistorialTarjeta.SubtareaEliminada
+                Return "eliminó la subtarea " & Valor(despues)
+            Case HistorialTarjeta.Comentada
+                Return "comentó " & Valor(despues)
+            Case HistorialTarjeta.Editada
+                Return DescribirEdicion(cambio.Campo, antes, despues)
+            Case Else
+                Return HttpUtility.HtmlEncode(cambio.Accion)
+        End Select
+    End Function
+
+    Private Shared Function DescribirEdicion(campo As String, antes As String, despues As String) As String
+        Select Case campo
+            Case HistorialTarjeta.CampoTitulo
+                Return "cambió el título de " & Valor(antes) & " a " & Valor(despues)
+            Case HistorialTarjeta.CampoCaso
+                Return Variante(antes, despues,
+                                "puso el caso " & Valor("#" & despues),
+                                "quitó el caso " & Valor("#" & antes),
+                                "cambió el caso de " & Valor("#" & antes) & " a " & Valor("#" & despues))
+            Case HistorialTarjeta.CampoFechaLimite
+                Return Variante(antes, despues,
+                                "puso la fecha límite el " & Valor(FechaLegible(despues)),
+                                "quitó la fecha límite (era el " & Valor(FechaLegible(antes)) & ")",
+                                "cambió la fecha límite del " & Valor(FechaLegible(antes)) & " al " & Valor(FechaLegible(despues)))
+            Case HistorialTarjeta.CampoAsignado
+                Return Variante(antes, despues,
+                                "asignó la tarjeta a " & Valor(despues),
+                                "quitó la asignación a " & Valor(antes),
+                                "reasignó la tarjeta de " & Valor(antes) & " a " & Valor(despues))
+            Case HistorialTarjeta.CampoDescripcion
+                Return Variante(antes, despues, "añadió una descripción", "eliminó la descripción", "editó la descripción") &
+                       Extracto(despues)
+            Case HistorialTarjeta.CampoCodigo
+                Return Variante(antes, despues, "añadió código", "eliminó el código", "editó el código") &
+                       Extracto(despues)
+            Case Else
+                Return "editó " & HttpUtility.HtmlEncode(campo)
+        End Select
+    End Function
+
+    ' Elige la frase según se haya puesto un valor, quitado o cambiado.
+    Private Shared Function Variante(antes As String, despues As String, puesto As String, quitado As String, cambiado As String) As String
+        If String.IsNullOrEmpty(antes) Then Return puesto
+        If String.IsNullOrEmpty(despues) Then Return quitado
+        Return cambiado
+    End Function
+
+    Private Shared Function Valor(texto As String) As String
+        Return "<span class=""historial-valor"">«" & HttpUtility.HtmlEncode(If(texto, "")) & "»</span>"
+    End Function
+
+    Private Shared Function Extracto(texto As String) As String
+        If String.IsNullOrEmpty(texto) Then Return ""
+        Return "<span class=""historial-extracto"">" & HttpUtility.HtmlEncode(texto) & "</span>"
+    End Function
+
+    Private Shared Function FechaLegible(iso As String) As String
+        Dim fecha As DateTime
+        If DateTime.TryParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, fecha) Then
+            Return fecha.ToString("d MMM yyyy", CultureInfo.CurrentCulture)
+        End If
+        Return iso
+    End Function
 
     Private Sub CerrarDetalle()
         TarjetaAbiertaId = 0
@@ -250,8 +362,9 @@ Public Class TableroPagina
                 pendientes.Add(New Subtarea With {.Texto = textoSubtarea})
                 SubtareasPendientes = pendientes
             Else
-                SubtareasDatos.Crear(TarjetaAbiertaId, TableroId, textoSubtarea)
+                SubtareasDatos.Crear(TarjetaAbiertaId, TableroId, textoSubtarea, UsuarioId)
                 CargarTablero()
+                CargarActividad()
             End If
             txtNuevaSubtarea.Text = ""
         End If
@@ -268,8 +381,9 @@ Public Class TableroPagina
             If id >= 0 AndAlso id < pendientes.Count Then pendientes.RemoveAt(id)
             SubtareasPendientes = pendientes
         Else
-            SubtareasDatos.Eliminar(id, TableroId)
+            SubtareasDatos.Eliminar(id, TableroId, UsuarioId)
             CargarTablero()
+            CargarActividad()
         End If
         CargarSubtareas()
     End Sub
@@ -285,8 +399,9 @@ Public Class TableroPagina
             If id >= 0 AndAlso id < pendientes.Count Then pendientes(id).Completada = chk.Checked
             SubtareasPendientes = pendientes
         Else
-            SubtareasDatos.CambiarEstado(id, TableroId, chk.Checked)
+            SubtareasDatos.CambiarEstado(id, TableroId, chk.Checked, UsuarioId)
             CargarTablero()
+            CargarActividad()
         End If
         CargarSubtareas()
     End Sub
@@ -331,7 +446,7 @@ Public Class TableroPagina
         If e.CommandName <> "Quitar" OrElse Not PuedeGestionarMiembros OrElse
            Not Integer.TryParse(CStr(e.CommandArgument), miembroId) Then Return
 
-        TablerosDatos.QuitarMiembro(TableroId, miembroId)
+        TablerosDatos.QuitarMiembro(TableroId, miembroId, UsuarioId)
         If miembroId = UsuarioId Then Response.Redirect("~/Tableros.aspx")
         CargarTablero()
     End Sub
