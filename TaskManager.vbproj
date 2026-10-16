@@ -92,8 +92,16 @@
     <Import Include="System.Web.UI.HtmlControls" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\site.css" />
     <Content Include="Default.aspx" />
     <Content Include="Global.asax" />
+    <Content Include="Login.aspx" />
+    <Content Include="Registro.aspx" />
+    <Content Include="Scripts\markdown.js" />
+    <Content Include="Scripts\tablero.js" />
+    <Content Include="Site.Master" />
+    <Content Include="Tablero.aspx" />
+    <Content Include="Tableros.aspx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -104,6 +112,59 @@
       <DependentUpon>Default.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Datos\ComentariosDatos.vb" />
+    <Compile Include="Datos\Db.vb" />
+    <Compile Include="Datos\ListasDatos.vb" />
+    <Compile Include="Datos\SubtareasDatos.vb" />
+    <Compile Include="Datos\TablerosDatos.vb" />
+    <Compile Include="Datos\TarjetasDatos.vb" />
+    <Compile Include="Datos\UsuariosDatos.vb" />
+    <Compile Include="Login.aspx.designer.vb">
+      <DependentUpon>Login.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Login.aspx.vb">
+      <DependentUpon>Login.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Models\Comentario.vb" />
+    <Compile Include="Models\Lista.vb" />
+    <Compile Include="Models\Miembro.vb" />
+    <Compile Include="Models\Subtarea.vb" />
+    <Compile Include="Models\Tablero.vb" />
+    <Compile Include="Models\Tarjeta.vb" />
+    <Compile Include="Models\Usuario.vb" />
+    <Compile Include="Registro.aspx.designer.vb">
+      <DependentUpon>Registro.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Registro.aspx.vb">
+      <DependentUpon>Registro.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Seguridad\Autenticacion.vb" />
+    <Compile Include="Seguridad\PaginaBase.vb" />
+    <Compile Include="Seguridad\PasswordHasher.vb" />
+    <Compile Include="Site.Master.designer.vb">
+      <DependentUpon>Site.Master</DependentUpon>
+    </Compile>
+    <Compile Include="Site.Master.vb">
+      <DependentUpon>Site.Master</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Tablero.aspx.designer.vb">
+      <DependentUpon>Tablero.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Tablero.aspx.vb">
+      <DependentUpon>Tablero.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Tableros.aspx.designer.vb">
+      <DependentUpon>Tableros.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Tableros.aspx.vb">
+      <DependentUpon>Tableros.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Utilidades\Formato.vb" />
     <Compile Include="Global.asax.vb">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -154,9 +215,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="App_Code\" />
     <Folder Include="App_Data\" />
-    <Folder Include="Models\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

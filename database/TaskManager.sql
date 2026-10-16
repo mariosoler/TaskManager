@@ -39,7 +39,18 @@ CREATE TABLE Tarjetas (
     Posicion      INT NOT NULL DEFAULT 0,
     FechaLimite   DATETIME2 NULL,
     AsignadoA     INT NULL REFERENCES Usuarios(Id),
-    FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    Caso          NVARCHAR(20) NULL,      -- número de caso, solo dígitos
+    Codigo        NVARCHAR(MAX) NULL,     -- apartado de código (markdown)
+    CONSTRAINT CK_Tarjetas_Caso CHECK (Caso IS NULL OR (Caso <> N'' AND Caso NOT LIKE N'%[^0-9]%'))
+);
+
+CREATE TABLE Subtareas (
+    Id         INT IDENTITY(1,1) PRIMARY KEY,
+    TarjetaId  INT NOT NULL REFERENCES Tarjetas(Id) ON DELETE CASCADE,
+    Texto      NVARCHAR(300) NOT NULL,
+    Completada BIT NOT NULL DEFAULT 0,
+    Posicion   INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE Etiquetas (
@@ -65,4 +76,5 @@ CREATE TABLE Comentarios (
 
 CREATE INDEX IX_Listas_Tablero   ON Listas(TableroId, Posicion);
 CREATE INDEX IX_Tarjetas_Lista   ON Tarjetas(ListaId, Posicion);
+CREATE INDEX IX_Subtareas_Tarjeta ON Subtareas(TarjetaId, Posicion);
 GO

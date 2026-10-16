@@ -1,0 +1,29 @@
+﻿<%@ Master Language="VB" AutoEventWireup="false" CodeBehind="Site.Master.vb" Inherits="TaskManager.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="es">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskManager</title>
+    <link href="~/Content/site.css" rel="stylesheet" />
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="barra">
+            <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo">&#9638; TaskManager</a>
+            <asp:PlaceHolder ID="phUsuario" runat="server" Visible="false">
+                <div class="barra-usuario">
+                    <span class="avatar"><asp:Literal ID="litIniciales" runat="server" Mode="Encode" /></span>
+                    <span class="barra-nombre"><asp:Literal ID="litNombreUsuario" runat="server" Mode="Encode" /></span>
+                    <asp:LinkButton ID="lnkSalir" runat="server" CssClass="boton boton-claro" CausesValidation="false">Cerrar sesión</asp:LinkButton>
+                </div>
+            </asp:PlaceHolder>
+        </header>
+        <main class="contenido">
+            <asp:ContentPlaceHolder ID="Contenido" runat="server" />
+        </main>
+    </form>
+    <asp:ContentPlaceHolder ID="Scripts" runat="server" />
+</body>
+</html>

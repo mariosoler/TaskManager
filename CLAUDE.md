@@ -12,9 +12,22 @@ Guía para Claude Code al trabajar en este repositorio.
 
 ## Estructura
 
-- `Default.aspx` / `*.aspx.vb` — páginas Web Forms y su code-behind.
-- `App_Code/` — clases compartidas (acceso a datos, utilidades).
-- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Etiqueta, Comentario…).
+- `Site.Master` — página maestra (barra superior, cerrar sesión).
+- Páginas (`*.aspx` + `.aspx.vb` + `.aspx.designer.vb`; las clases se llaman `XxxPagina`):
+  - `Login.aspx`, `Registro.aspx` — acceso (únicas páginas públicas).
+  - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.
+  - `Tablero.aspx?id=N` — vista Kanban: listas, tarjetas, comentarios y miembros. Un único modal (`pnlDetalle`) sirve para crear tarjetas ("+ Añadir una tarjeta", estado en `ListaNuevaId`) y para editarlas (`TarjetaAbiertaId`).
+  - `Default.aspx` — redirige a `Tableros.aspx`.
+- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`). Las páginas no contienen SQL.
+- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro).
+- `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas).
+- `Utilidades/` — helpers de presentación (`Formato`).
+- `Content/site.css` — estilos.
+- `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc.
+- `Scripts/markdown.js` — editor markdown propio sin dependencias (barra, Escribir/Vista previa). El renderizador escapa todo el HTML antes de aplicar marcas y solo permite enlaces `http(s)`/`mailto`; mantener esa garantía si se amplía.
+- **Codificación**: `.aspx`/`.Master` en UTF-8 **con BOM** (y `fileEncoding="utf-8"` en Web.config); sin ello ASP.NET los lee como Windows-1252 y los acentos salen mal.
+- **No usar `App_Code/`**: en un proyecto *Web Application* el código ahí se compila dos veces (en la DLL y en tiempo de ejecución).
+- Al añadir archivos, registrarlos en `TaskManager.vbproj` (`Compile` / `Content`) y mantener los `.designer.vb` al día con los controles con `ID`.
 - `App_Data/` — datos locales; los `.mdf`/`.ldf` están ignorados por git.
 - `database/` — script(s) SQL de la base de datos **TaskManager** (creación de esquema y datos iniciales). Cualquier cambio de esquema debe reflejarse aquí.
 - `Web.config` — configuración versionada (sin secretos).
@@ -23,7 +36,10 @@ Guía para Claude Code al trabajar en este repositorio.
 
 - Nombre: **TaskManager** (SQL Server).
 - Script del esquema: `database/TaskManager.sql`. Para montar el entorno local, crear la base TaskManager y ejecutarlo sobre ella (SSMS o `sqlcmd -S <servidor> -d TaskManager -E -i database\TaskManager.sql`).
-- Al modificar tablas, columnas o procedimientos, actualizar el script en `database/` en el mismo cambio.
+- Al modificar tablas, columnas o procedimientos, en el mismo cambio:
+  1. Actualizar `database/TaskManager.sql` (esquema completo para instalaciones nuevas).
+  2. Añadir una migración **idempotente** en `database/migraciones/NNN_descripcion.sql` (`IF COL_LENGTH(...) IS NULL`, `IF OBJECT_ID(...) IS NULL`) para bases ya existentes.
+- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`.
 
 ### Esquema (nombres en español)
 
@@ -33,7 +49,8 @@ Guía para Claude Code al trabajar en este repositorio.
 | `Tableros` | Tableros | `PropietarioId` → Usuarios |
 | `MiembrosTablero` | Miembros de un tablero; `Rol` = `Admin` / `Miembro` | PK (TableroId, UsuarioId); cascada desde Tableros |
 | `Listas` | Columnas de un tablero, ordenadas por `Posicion` | → Tableros (cascada) |
-| `Tarjetas` | Tarjetas de una lista, ordenadas por `Posicion`; `FechaLimite`, `AsignadoA` opcionales | → Listas (cascada), `AsignadoA` → Usuarios |
+| `Tarjetas` | Tarjetas de una lista, ordenadas por `Posicion`; `FechaLimite`, `AsignadoA` opcionales; `Caso` (NVARCHAR(20), solo dígitos, `CK_Tarjetas_Caso`); `Codigo` (markdown, NVARCHAR(MAX)) | → Listas (cascada), `AsignadoA` → Usuarios |
+| `Subtareas` | Checklist de una tarjeta (`Texto`, `Completada`), ordenada por `Posicion` | → Tarjetas (cascada) |
 | `Etiquetas` | Etiquetas por tablero; `Color` hex `#rrggbb` | → Tableros (cascada) |
 | `TarjetaEtiquetas` | N:M tarjetas–etiquetas | → Tarjetas (cascada), → Etiquetas (sin cascada) |
 | `Comentarios` | Comentarios en tarjetas | → Tarjetas (cascada), → Usuarios |
@@ -44,6 +61,9 @@ Notas:
 - Borrar una etiqueta asignada a tarjetas falla por la FK sin cascada: eliminar antes sus filas en `TarjetaEtiquetas`.
 - Al mover tarjetas/listas, actualizar `Posicion` de los elementos afectados dentro de una transacción.
 - Comprobar en cada operación que el usuario es propietario o miembro del tablero.
+- `Caso` es texto para conservar ceros a la izquierda; validar con `[0-9]` (no `\d`, que en .NET acepta dígitos de otros alfabetos y la restricción CHECK los rechaza).
+- `Codigo` no se recorta al guardar (la sangría importa). En el tablero solo se carga `TieneCodigo`; el texto completo, al abrir la tarjeta.
+- Subtareas: al editar una tarjeta se guardan al momento; al crearla se acumulan en ViewState (`SubtareasPendientes`) y se insertan con la tarjeta en una transacción.
 
 ## Reglas obligatorias
 
@@ -99,11 +119,26 @@ Contenido de `connectionStrings.config` (local, **no versionar**):
 - Leer la cadena siempre mediante `ConfigurationManager.ConnectionStrings("TaskManager")`; no codificarla en el código.
 - No eliminar entradas de seguridad del `.gitignore`.
 
+### 4. Autenticación y autorización
+
+- Forms Authentication (`Web.config`): todo exige sesión salvo `Login.aspx`, `Registro.aspx`, `Content/` y `Scripts/`. Cookie solo HTTPS y HttpOnly.
+- El nombre del ticket es el **Id del usuario** (`PaginaBase.UsuarioId`); `UserData` guarda su nombre.
+- Contraseñas: solo `PasswordHasher.Hash` / `Verificar` (PBKDF2-SHA256, sal aleatoria, comparación en tiempo constante).
+- Todas las páginas heredan de `Seguridad.PaginaBase`, que fija `ViewStateUserKey` (protección CSRF de los postbacks).
+- `Tablero.aspx` carga el tablero con `TablerosDatos.Obtener(id, UsuarioId)` en **cada** petición; si devuelve `Nothing` no hay acceso.
+- Los métodos de `Datos/` reciben el `tableroId` autorizado y lo incluyen en el `WHERE` (vía `Listas.TableroId`), así un Id manipulado de otro tablero no tiene efecto. Mantener este patrón en métodos nuevos.
+- Gestionar miembros: propietario o rol `Admin`. Eliminar tablero: solo el propietario.
+
+### 5. Codificar siempre la salida
+
+- La validación de peticiones de ASP.NET está desactivada en las páginas (`ValidateRequestMode="Disabled"`) para permitir textos con `<` en títulos, comentarios o contraseñas. Por tanto **toda** salida de datos del usuario debe codificarse: `<%#: %>` / `<%: %>`, `Literal Mode="Encode"` o `HttpUtility.HtmlEncode`. `Label.Text` y `Page.Title` **no** codifican solos.
+
 ## Convenciones de código
 
 - `Option Explicit On` (ya activo en `Web.config`); escribir código compatible con `Option Strict On` cuando sea posible.
-- Separar acceso a datos (clases en `App_Code/`) de la lógica de las páginas; el code-behind no debe contener SQL.
-- Codificar la salida HTML de datos del usuario (`HttpUtility.HtmlEncode` / `<%: %>`) para evitar XSS.
+- Separar acceso a datos (clases en `Datos/`) de la lógica de las páginas; el code-behind no debe contener SQL.
+- Operaciones de varias sentencias (mover/eliminar con renumeración de `Posicion`) en un único lote con `SET XACT_ABORT ON; BEGIN TRAN; … COMMIT;`.
+- En VB, para leer columnas nulas usar `Db.Texto/Fecha/Entero` (evita el `If(cond, Nothing, valor)` que convierte `Nothing` en `DateTime.MinValue`/`0`).
 - Comentarios y textos de la interfaz en español.
 
 ## Compilar y ejecutar

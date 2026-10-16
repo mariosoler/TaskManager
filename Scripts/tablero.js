@@ -1,0 +1,113 @@
+/*
+ * Tablero: arrastrar y soltar tarjetas entre listas y abrir su detalle.
+ * Las acciones se envían al servidor con __doPostBack sobre LinkButtons ocultos
+ * (ver window.TaskManagerTablero en Tablero.aspx).
+ */
+(function () {
+    'use strict';
+
+    var cfg = window.TaskManagerTablero;
+    if (!cfg) { return; }
+
+    var arrastrada = null;
+    var origen = null;      // { padre, siguiente, indice } para restaurar si no se suelta en una lista
+    var soltada = false;
+
+    function elemento(nodo) {
+        return nodo && nodo.nodeType === 3 ? nodo.parentElement : nodo;
+    }
+
+    function cercano(nodo, selector) {
+        var el = elemento(nodo);
+        return el && el.closest ? el.closest(selector) : null;
+    }
+
+    function indiceEn(contenedor, tarjeta) {
+        return Array.prototype.indexOf.call(contenedor.querySelectorAll('.tarjeta'), tarjeta);
+    }
+
+    function abrir(tarjeta) {
+        document.getElementById(cfg.tarjeta).value = tarjeta.getAttribute('data-tarjeta-id');
+        window.__doPostBack(cfg.abrir, '');
+    }
+
+    // Tarjeta delante de la cual insertar según la posición vertical del cursor.
+    function tarjetaSiguiente(contenedor, y) {
+        var tarjetas = contenedor.querySelectorAll('.tarjeta');
+        for (var i = 0; i < tarjetas.length; i++) {
+            if (tarjetas[i] === arrastrada) { continue; }
+            var r = tarjetas[i].getBoundingClientRect();
+            if (y < r.top + r.height / 2) { return tarjetas[i]; }
+        }
+        return null;
+    }
+
+    document.addEventListener('dragstart', function (e) {
+        var tarjeta = cercano(e.target, '.tarjeta');
+        if (!tarjeta) { return; }
+        arrastrada = tarjeta;
+        soltada = false;
+        origen = { padre: tarjeta.parentNode, siguiente: tarjeta.nextSibling, indice: indiceEn(tarjeta.parentNode, tarjeta) };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tarjeta.getAttribute('data-tarjeta-id'));
+        setTimeout(function () { tarjeta.classList.add('arrastrando'); }, 0);
+    });
+
+    document.addEventListener('dragover', function (e) {
+        if (!arrastrada) { return; }
+        var contenedor = cercano(e.target, '.tarjetas');
+        if (!contenedor) { return; }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        var siguiente = tarjetaSiguiente(contenedor, e.clientY);
+        if (siguiente) {
+            if (arrastrada.nextElementSibling !== siguiente) { contenedor.insertBefore(arrastrada, siguiente); }
+        } else if (contenedor.lastElementChild !== arrastrada) {
+            contenedor.appendChild(arrastrada);
+        }
+    });
+
+    document.addEventListener('drop', function (e) {
+        if (!arrastrada) { return; }
+        var contenedor = cercano(e.target, '.tarjetas');
+        if (!contenedor) { return; }
+        e.preventDefault();
+        soltada = true;
+
+        var indice = indiceEn(contenedor, arrastrada);
+        if (contenedor === origen.padre && indice === origen.indice) { return; }   // no ha cambiado
+
+        document.getElementById(cfg.tarjeta).value = arrastrada.getAttribute('data-tarjeta-id');
+        document.getElementById(cfg.lista).value = contenedor.getAttribute('data-lista-id');
+        document.getElementById(cfg.indice).value = String(indice);
+        window.__doPostBack(cfg.mover, '');
+    });
+
+    document.addEventListener('dragend', function () {
+        if (!arrastrada) { return; }
+        arrastrada.classList.remove('arrastrando');
+        if (!soltada && origen) { origen.padre.insertBefore(arrastrada, origen.siguiente); }
+        arrastrada = null;
+        origen = null;
+    });
+
+    document.addEventListener('click', function (e) {
+        var tarjeta = cercano(e.target, '.tarjeta');
+        if (tarjeta) { abrir(tarjeta); }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            // Dentro de un campo, Esc no cierra el detalle (se perderían los cambios sin guardar).
+            if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
+            var cerrar = document.getElementById(cfg.cerrar);
+            if (cerrar) { cerrar.click(); }
+            return;
+        }
+        if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('tarjeta')) {
+            e.preventDefault();
+            abrir(e.target);
+        }
+    });
+}());
