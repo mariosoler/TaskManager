@@ -1,0 +1,60 @@
+# ===== Visual Studio =====
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vbproj.user
+
+# ===== Compilación =====
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+publish/
+*.log
+
+# ===== NuGet =====
+packages/
+*.nupkg
+!.nuget/packages.config
+
+# ===== Pruebas y análisis =====
+TestResults/
+*.coverage
+*.VisualState.xml
+
+# ===== Secretos y configuración local (NO SUBIR) =====
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.pfx
+*.key
+.env
+.env.*
+Web.Local.config
+connectionStrings.config
+
+# ===== Base de datos local =====
+*.mdf
+*.ldf
+*.bak
+App_Data/*.mdf
+App_Data/*.ldf
+
+# ===== Frontend (solo si usas React/Vue) =====
+node_modules/
+dist/
+build/
+npm-debug.log*
+
+# ===== Sistema y editores =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===== Claude Code (configuración personal) =====
+.claude/settings.local.json
