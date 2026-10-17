@@ -71,9 +71,15 @@
                     </span>
                 </ItemTemplate>
             </asp:Repeater>
-            <asp:Panel ID="pnlAgregarMiembro" runat="server" CssClass="form-linea" DefaultButton="btnAgregarMiembro">
-                <asp:TextBox ID="txtEmailMiembro" runat="server" MaxLength="200" placeholder="Email del nuevo miembro" />
-                <asp:Button ID="btnAgregarMiembro" runat="server" Text="Añadir" CssClass="boton boton-claro" CausesValidation="false" />
+            <%-- Añadir miembro: sugerencias de usuarios mientras se escribe (Scripts/miembros.js + Usuarios.ashx) --%>
+            <asp:Panel ID="pnlAgregarMiembro" runat="server" CssClass="agregar-miembro" DefaultButton="btnAgregarMiembro">
+                <span class="agregar-miembro-icono" aria-hidden="true">&#128100;</span>
+                <asp:TextBox ID="txtEmailMiembro" runat="server" MaxLength="200" CssClass="agregar-miembro-campo"
+                    placeholder="Añadir miembro: nombre o email" aria-label="Añadir miembro: nombre o email"
+                    autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list"
+                    aria-expanded="false" aria-controls="miembroSugerencias" />
+                <asp:Button ID="btnAgregarMiembro" runat="server" Text="Añadir" CssClass="boton agregar-miembro-boton" CausesValidation="false" />
+                <ul id="miembroSugerencias" class="miembro-sugerencias" role="listbox" aria-label="Usuarios sugeridos" hidden="hidden"></ul>
             </asp:Panel>
         </div>
     </div>
@@ -364,6 +370,18 @@
     <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
     <script>window.TaskManagerBusquedaRapida = { campo: 'busquedaRapida', resultado: 'busquedaRapidaResultado', tablero: <%= TableroIdTexto %> };</script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/busqueda-rapida.js") %>"></script>
+    <asp:PlaceHolder ID="phScriptMiembros" runat="server">
+    <script>
+        window.TaskManagerMiembros = {
+            url: '<%= ResolveUrl("~/Usuarios.ashx") %>',
+            tablero: <%= TableroIdTexto %>,
+            campo: '<%= txtEmailMiembro.ClientID %>',
+            boton: '<%= btnAgregarMiembro.ClientID %>',
+            lista: 'miembroSugerencias'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/miembros.js") %>"></script>
+    </asp:PlaceHolder>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
     <asp:PlaceHolder ID="phScriptDetalle" runat="server" Visible="false">

@@ -636,6 +636,7 @@ Public Class TableroPagina
         rptMiembros.DataSource = TablerosDatos.ListarMiembros(TableroId)
         rptMiembros.DataBind()
         pnlAgregarMiembro.Visible = PuedeGestionarMiembros
+        phScriptMiembros.Visible = PuedeGestionarMiembros
         phFondo.Visible = PuedeGestionarMiembros
         If PuedeGestionarMiembros Then
             rptFondos.DataSource = FondosTablero.Predefinidos

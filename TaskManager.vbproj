@@ -118,6 +118,7 @@
     <Content Include="Content\fuentes\Outfit-OFL.txt" />
     <Content Include="Fondo.ashx" />
     <Content Include="Tarjeta.ashx" />
+    <Content Include="Usuarios.ashx" />
     <!-- Scripts de la base de datos: se copian al publicar (bloqueados por HTTP en Web.config) -->
     <Content Include="database\LEEME.txt" />
     <Content Include="database\TaskManager.sql" />
@@ -139,6 +140,7 @@
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
+    <Content Include="Scripts\miembros.js" />
     <Content Include="Scripts\tablero.js" />
     <Content Include="Site.Master" />
     <Content Include="Tablero.aspx" />
@@ -168,6 +170,9 @@
     </Compile>
     <Compile Include="Tarjeta.ashx.vb">
       <DependentUpon>Tarjeta.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Usuarios.ashx.vb">
+      <DependentUpon>Usuarios.ashx</DependentUpon>
     </Compile>
     <Compile Include="Datos\BusquedaDatos.vb" />
     <Compile Include="Datos\BusquedasGuardadasDatos.vb" />

@@ -57,6 +57,40 @@ ORDER BY u.Nombre"
             Return usuarios
         End Function
 
+        ''' <summary>
+        ''' Usuarios que se pueden añadir al tablero cuyo nombre o email contiene <paramref name="texto"/>
+        ''' (sin distinguir mayúsculas ni acentos); primero los que empiezan por él. Excluye al propietario
+        ''' y a los miembros actuales. La autorización (propietario o Admin) la comprueba quien llama.
+        ''' </summary>
+        Public Shared Function SugerirParaTablero(tableroId As Integer, texto As String, maximo As Integer) As List(Of Miembro)
+            Const sql = "
+SELECT TOP (@Maximo) u.Id, u.Nombre, u.Email
+FROM Usuarios u
+WHERE (u.Nombre COLLATE Latin1_General_CI_AI LIKE @Contiene ESCAPE '\'
+       OR u.Email COLLATE Latin1_General_CI_AI LIKE @Contiene ESCAPE '\')
+  AND NOT EXISTS (SELECT 1 FROM Tableros t WHERE t.Id = @TableroId AND t.PropietarioId = u.Id)
+  AND NOT EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = @TableroId AND m.UsuarioId = u.Id)
+ORDER BY CASE WHEN u.Nombre COLLATE Latin1_General_CI_AI LIKE @Empieza ESCAPE '\'
+                OR u.Email COLLATE Latin1_General_CI_AI LIKE @Empieza ESCAPE '\' THEN 0 ELSE 1 END,
+         u.Nombre, u.Email"
+
+            Dim patron = BusquedaDatos.EscaparLike(texto)
+            Dim usuarios As New List(Of Miembro)
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@Maximo", SqlDbType.Int).Value = maximo
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@Contiene", SqlDbType.NVarChar, 210).Value = "%" & patron & "%"
+                cmd.Parameters.Add("@Empieza", SqlDbType.NVarChar, 210).Value = patron & "%"
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    While rd.Read()
+                        usuarios.Add(New Miembro With {.UsuarioId = rd.GetInt32(0), .Nombre = rd.GetString(1), .Email = rd.GetString(2)})
+                    End While
+                End Using
+            End Using
+            Return usuarios
+        End Function
+
         ''' <summary>Crea el usuario y devuelve su Id, o Nothing si el email ya está registrado.</summary>
         Public Shared Function Crear(nombre As String, email As String, passwordHash As String) As Integer?
             Const sql = "INSERT INTO Usuarios (Nombre, Email, PasswordHash) OUTPUT INSERTED.Id VALUES (@Nombre, @Email, @PasswordHash)"

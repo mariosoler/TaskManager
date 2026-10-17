@@ -399,6 +399,57 @@ textarea { resize: vertical; }
 .miembro-quitar { color: #fff; text-decoration: none; font-size: 16px; opacity: .7; }
 .miembro-quitar:hover { opacity: 1; }
 .form-linea { display: flex; gap: 6px; }
+/* «Añadir miembro»: mismo aspecto que la búsqueda rápida; el texto en tinta (la cabecera es blanca sobre evergreen) */
+.agregar-miembro {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 300px;
+    max-width: 100%;
+    padding: 0 4px 0 10px;
+    border-radius: var(--radio);
+    background: rgba(255, 255, 255, .94);
+    color: var(--texto);
+    box-shadow: 0 1px 2px rgba(0, 40, 41, .2);
+    transition: box-shadow var(--transicion);
+}
+.agregar-miembro:focus-within { box-shadow: 0 0 0 2px var(--acento), 0 1px 2px rgba(0, 40, 41, .2); }
+.agregar-miembro-icono { font-size: 13px; opacity: .7; }
+.tablero-cabecera input.agregar-miembro-campo {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    padding: 7px 0;
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+    background: transparent;
+    color: var(--texto);
+}
+.tablero-cabecera input.agregar-miembro-campo::placeholder { color: var(--texto-suave); }
+.agregar-miembro .agregar-miembro-boton { padding: 4px 10px; font-size: 12px; box-shadow: none; }
+.miembro-sugerencias {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: #fff;
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-3);
+    animation: subir .14s ease-out;
+}
+.miembro-sugerencias[hidden] { display: none; }
+.miembro-sugerencias li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.miembro-sugerencias li.activa { background: var(--primario-claro); }
+.miembro-sugerencias .miembro-sugerencias-vacio { color: var(--texto-suave); cursor: default; font-size: 12px; }
+.miembro-sugerencia-textos { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.miembro-sugerencia-nombre { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.miembro-sugerencia-email { font-size: 12px; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .form-linea input[type=text] { width: 220px; }
 .tablero-cabecera .boton-claro { background: rgba(255, 255, 255, .85); }
 .tablero-cabecera .tablero-fondo-panel .boton-claro { background: rgba(0, 40, 41, .08); }
