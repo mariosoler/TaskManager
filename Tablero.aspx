@@ -108,6 +108,11 @@
                                         </asp:PlaceHolder>
                                         <%#: Eval("Titulo") %>
                                     </span>
+                                    <asp:Repeater ID="rptEtiquetasTarjeta" runat="server" DataSource='<%# Eval("Etiquetas") %>'>
+                                        <HeaderTemplate><span class="tarjeta-etiquetas"></HeaderTemplate>
+                                        <ItemTemplate><span class="etiqueta-tag" style='<%#: EstiloEtiqueta(Container.DataItem) %>'>#<%#: Eval("Nombre") %></span></ItemTemplate>
+                                        <FooterTemplate></span></FooterTemplate>
+                                    </asp:Repeater>
                                     <span class="tarjeta-info">
                                         <%# Formato.HtmlPrioridad(Eval("Prioridad")) %>
                                         <%# Formato.HtmlFechaLimite(Eval("FechaLimite")) %>
@@ -200,6 +205,14 @@
                     <asp:Label runat="server" AssociatedControlID="ddlAsignado" Text="Asignada a" />
                     <asp:DropDownList ID="ddlAsignado" runat="server" />
                 </div>
+            </div>
+
+            <%-- Etiquetas: sugerencias mientras se escribe y vista previa en Scripts/etiquetas.js --%>
+            <div class="campo campo-etiquetas">
+                <asp:Label runat="server" AssociatedControlID="txtEtiquetas" Text="Etiquetas" />
+                <asp:TextBox ID="txtEtiquetas" runat="server" MaxLength="600" autocomplete="off" spellcheck="false"
+                    placeholder="#PLANIFICADOR_CABINAS #urgente" aria-describedby="ayudaEtiquetas" />
+                <small id="ayudaEtiquetas" class="campo-ayuda">Escribe # para ver las etiquetas ya creadas. Separa con espacios; letras, números, _ y -. Máximo 10.</small>
             </div>
 
             <div class="seccion">
@@ -332,6 +345,10 @@
             tituloGuardar: '<%= btnGuardarTitulo.ClientID %>'
         };
     </script>
+    <%-- Etiquetas para las sugerencias (solo con el detalle abierto); "<", ">" y "&" van escapados --%>
+    <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
+    <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetas.ClientID %>', datos: 'etiquetas-datos' };</script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
     <script>

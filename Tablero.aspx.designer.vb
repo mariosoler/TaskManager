@@ -437,6 +437,15 @@ Partial Public Class TableroPagina
     Protected WithEvents txtFechaLimite As Global.System.Web.UI.WebControls.TextBox
 
     '''<summary>
+    '''Control txtEtiquetas.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents txtEtiquetas As Global.System.Web.UI.WebControls.TextBox
+
+    '''<summary>
     '''Control ddlAsignado.
     '''</summary>
     '''<remarks>

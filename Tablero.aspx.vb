@@ -1,4 +1,5 @@
 ﻿Imports System.Globalization
+Imports System.Web.Script.Serialization
 Imports TaskManager.Datos
 Imports TaskManager.Models
 Imports TaskManager.Seguridad
@@ -134,6 +135,14 @@ Public Class TableroPagina
         If codigo.Length > LongitudMaximaCodigo Then codigo = codigo.Substring(0, LongitudMaximaCodigo)
         datos.Codigo = If(codigo.Trim().Length = 0, Nothing, codigo)
 
+        Dim ignoradas As List(Of String) = Nothing
+        datos.Etiquetas = Etiqueta.Analizar(txtEtiquetas.Text, ignoradas).Select(Function(n) New Etiqueta With {.Nombre = n}).ToList()
+        If ignoradas.Count > 0 Then
+            MostrarMensaje("No se han guardado estas etiquetas (solo letras, números, _ y -, hasta " &
+                           Etiqueta.LongitudMaxima & " caracteres y " & Etiqueta.MaximoPorTarjeta & " por tarjeta): " &
+                           String.Join(" ", ignoradas), True)
+        End If
+
         If ListaNuevaId > 0 Then
             TarjetasDatos.Crear(ListaNuevaId, TableroId, datos, SubtareasPendientes, UsuarioId)
         Else
@@ -163,6 +172,30 @@ Public Class TableroPagina
             CargarTablero()
         End If
     End Sub
+
+    ' ----- Etiquetas -----
+
+    ''' <summary>
+    ''' Etiquetas para las sugerencias de Scripts/etiquetas.js: las del tablero (n, c = color, t = tinta, u = usos)
+    ''' y las de otros tableros del usuario (o = 1). Vacío si el detalle está cerrado.
+    ''' </summary>
+    Protected ReadOnly Property EtiquetasJson As String
+        Get
+            If Not pnlDetalle.Visible Then Return "[]"
+            Dim propias = EtiquetasDatos.ListarDeTablero(TableroId).Select(
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos, .o = 0})
+            Dim otras = EtiquetasDatos.ListarDeOtrosTableros(UsuarioId, TableroId).Select(
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = 0, .o = 1})
+            Dim json = New JavaScriptSerializer().Serialize(propias.Concat(otras).ToList())
+            Return json.Replace("<", "<").Replace(">", ">").Replace("&", "&")
+        End Get
+    End Property
+
+    ''' <summary>Atributo style de una etiqueta (colores ya validados por Etiqueta.ColorSeguro).</summary>
+    Protected Shared Function EstiloEtiqueta(dato As Object) As String
+        Dim etiqueta = CType(dato, Etiqueta)
+        Return "background-color: " & etiqueta.ColorSeguro & "; color: " & etiqueta.Tinta
+    End Function
 
     ' ----- Chat (configuración para Scripts/chat.js) -----
 
@@ -238,6 +271,7 @@ Public Class TableroPagina
         txtFechaLimite.Text = If(tarjeta.FechaLimite.HasValue,
                                  tarjeta.FechaLimite.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "")
         txtCodigo.Text = If(tarjeta.Codigo, "")
+        txtEtiquetas.Text = Etiqueta.ATexto(tarjeta.Etiquetas)
         txtNuevaSubtarea.Text = ""
         txtComentario.Text = ""
 
@@ -345,9 +379,25 @@ Public Class TableroPagina
                                 "puso la prioridad " & Valor(despues),
                                 "quitó la prioridad " & Valor(antes),
                                 "cambió la prioridad de " & Valor(antes) & " a " & Valor(despues))
+            Case HistorialTarjeta.CampoEtiquetas
+                Return DescribirEtiquetas(antes, despues)
             Case Else
                 Return "editó " & HttpUtility.HtmlEncode(campo)
         End Select
+    End Function
+
+    ''' <summary>"añadió la etiqueta #A y quitó #B" a partir de los valores "#A #B" del historial.</summary>
+    Private Shared Function DescribirEtiquetas(antes As String, despues As String) As String
+        Dim separar = Function(valor As String) If(valor, "").Split({" "c}, StringSplitOptions.RemoveEmptyEntries)
+        Dim anteriores = separar(antes), nuevas = separar(despues)
+        Dim anadidas = nuevas.Except(anteriores, StringComparer.CurrentCultureIgnoreCase).ToList()
+        Dim quitadas = anteriores.Except(nuevas, StringComparer.CurrentCultureIgnoreCase).ToList()
+        Dim lista = Function(etiquetas As List(Of String)) String.Join(", ", etiquetas.Select(Function(e) Valor(e)))
+
+        Dim partes As New List(Of String)
+        If anadidas.Count > 0 Then partes.Add(If(anadidas.Count = 1, "añadió la etiqueta ", "añadió las etiquetas ") & lista(anadidas))
+        If quitadas.Count > 0 Then partes.Add(If(quitadas.Count = 1, "quitó la etiqueta ", "quitó las etiquetas ") & lista(quitadas))
+        Return If(partes.Count = 0, "cambió las etiquetas", String.Join(" y ", partes))
     End Function
 
     ' Elige la frase según se haya puesto un valor, quitado o cambiado.

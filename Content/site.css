@@ -339,6 +339,49 @@ textarea { resize: vertical; }
 }
 .info-subtareas.completas { padding: 1px 6px; border-radius: 4px; background: var(--verde); color: #fff; }
 .info-codigo { font-family: Consolas, "Courier New", monospace; font-weight: 700; }
+/* Etiquetas (#tags): colores de Etiqueta.Paleta con su tinta (contraste AA); el texto siempre se ve. */
+.tarjeta-etiquetas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.etiqueta-tag {
+    display: inline-block;
+    max-width: 100%;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: var(--lista);
+    color: var(--texto);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.etiqueta-tag.nueva { background: transparent; box-shadow: inset 0 0 0 1px var(--texto-suave); color: var(--texto-suave); border-style: dashed; }
+.etiqueta-tag.nueva::after { content: " · nueva"; font-weight: normal; }
+.etiqueta-tag.invalida { background: #fbeceb; color: #a11b12; text-decoration: line-through; }
+.campo-etiquetas { position: relative; }
+.campo-ayuda { display: block; margin-top: 4px; font-size: 11px; color: var(--texto-suave); }
+.etiquetas-vista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.etiquetas-vista:empty { display: none; }
+.etiquetas-sugerencias {
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    margin: 2px 0 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 8px 24px rgba(0, 40, 41, .2);
+}
+.etiquetas-sugerencias li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.etiquetas-sugerencias li small { color: var(--texto-suave); white-space: nowrap; }
+.etiquetas-sugerencias li.activa, .etiquetas-sugerencias li:hover { background: var(--primario-claro); }
+.etiquetas-sugerencias .etiqueta-tag { font-size: 12px; }
+
 .tarjeta-info { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 .tarjeta-info:empty { display: none; }
 .info { font-size: 12px; color: var(--texto-suave); }

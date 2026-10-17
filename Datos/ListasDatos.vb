@@ -15,10 +15,12 @@ Namespace Datos
         ''' <summary>Listas del tablero ordenadas por posición, cada una con sus tarjetas.</summary>
         Public Shared Function ListarConTarjetas(tableroId As Integer) As List(Of Lista)
             Dim sql = "SELECT Id, TableroId, Titulo, Posicion FROM Listas WHERE TableroId = @TableroId ORDER BY Posicion, Id;" &
-                      TarjetasDatos.SqlSelectTarjetas & " WHERE l.TableroId = @TableroId ORDER BY c.ListaId, c.Posicion, c.Id;"
+                      TarjetasDatos.SqlSelectTarjetas & " WHERE l.TableroId = @TableroId ORDER BY c.ListaId, c.Posicion, c.Id;" &
+                      EtiquetasDatos.SqlEtiquetasDeTarjetas & " ORDER BY e.Nombre;"
 
             Dim listas As New List(Of Lista)
             Dim porId As New Dictionary(Of Integer, Lista)
+            Dim tarjetas As New Dictionary(Of Integer, Tarjeta)
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
@@ -38,9 +40,13 @@ Namespace Datos
                     rd.NextResult()
                     While rd.Read()
                         Dim tarjeta = TarjetasDatos.LeerTarjeta(rd)
+                        tarjetas(tarjeta.Id) = tarjeta
                         Dim lista As Lista = Nothing
                         If porId.TryGetValue(tarjeta.ListaId, lista) Then lista.Tarjetas.Add(tarjeta)
                     End While
+
+                    rd.NextResult()
+                    EtiquetasDatos.LeerEnTarjetas(rd, tarjetas)
                 End Using
             End Using
             Return listas

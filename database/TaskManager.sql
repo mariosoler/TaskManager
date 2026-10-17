@@ -70,12 +70,16 @@ CREATE TABLE Subtareas (
     Posicion   INT NOT NULL DEFAULT 0
 );
 
+-- Etiquetas (#tags) de un tablero. Nombre sin "#", único por tablero (sin distinguir mayúsculas).
+-- Color asignado automáticamente de Etiqueta.Paleta.
 CREATE TABLE Etiquetas (
     Id        INT IDENTITY(1,1) PRIMARY KEY,
     TableroId INT NOT NULL REFERENCES Tableros(Id) ON DELETE CASCADE,
     Nombre    NVARCHAR(50) NOT NULL,
-    Color     NVARCHAR(7)  NOT NULL DEFAULT '#3b82f6'
+    Color     NVARCHAR(7)  NOT NULL DEFAULT '#3b82f6',
+    CONSTRAINT CK_Etiquetas_Color CHECK (Color LIKE '#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]')
 );
+CREATE UNIQUE INDEX UX_Etiquetas_Tablero_Nombre ON Etiquetas (TableroId, Nombre);
 
 CREATE TABLE TarjetaEtiquetas (
     TarjetaId  INT NOT NULL REFERENCES Tarjetas(Id) ON DELETE CASCADE,
@@ -107,4 +111,5 @@ CREATE INDEX IX_Listas_Tablero  ON Listas(TableroId, Posicion);
 CREATE INDEX IX_Tarjetas_Lista   ON Tarjetas(ListaId, Posicion);
 CREATE INDEX IX_Subtareas_Tarjeta ON Subtareas(TarjetaId, Posicion);
 CREATE INDEX IX_HistorialTarjeta_Tarjeta ON HistorialTarjeta(TarjetaId, Fecha DESC);
+CREATE INDEX IX_TarjetaEtiquetas_Etiqueta ON TarjetaEtiquetas(EtiquetaId);
 GO

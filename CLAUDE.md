@@ -23,13 +23,14 @@ Guía para Claude Code al trabajar en este repositorio.
   - `Chat.ashx` — endpoint JSON del chat de cada tarjeta (GET mensajes nuevos / POST publicar).
   - `Fondo.ashx?id=N` — sirve la imagen de fondo del tablero N (solo a propietario/miembros).
   - `Default.aspx` — redirige a `Tableros.aspx`.
-- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`, `BusquedaDatos`, `BusquedasGuardadasDatos`, `EstadisticasDatos`). Las páginas no contienen SQL.
-- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta, FiltroBusqueda, BusquedaGuardada, Estadisticas).
+- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`, `EtiquetasDatos`, `BusquedaDatos`, `BusquedasGuardadasDatos`, `EstadisticasDatos`). Las páginas no contienen SQL.
+- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta, Etiqueta, FiltroBusqueda, BusquedaGuardada, Estadisticas).
 - `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas).
 - `Utilidades/` — `Formato` (presentación), `LibroExcel` (genera .xlsx sin librerías, con `System.IO.Compression`), `ExportacionExcel` (hojas comunes de las exportaciones).
 - `Content/site.css` — estilos. **Colores de GE Vernova** (variables en `:root`): base evergreen `--primario` `#005e60` (hover `#004746`, fondo claro `#e4f1f1`), acento verde `--acento` `#c8ff08` solo sobre fondo evergreen (barra superior), tinta `#212121`. `Content/logo.svg` — icono del logo (barra superior, login/registro y favicon); junto a él va el texto «Task**Manager**» (`.logo-texto`) con la fuente **Outfit** incluida en `Content/fuentes/` (licencia OFL, solo para la marca; `Web.config` declara el MIME de `.woff2`).
 - `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc, edición del nombre del tablero al pulsar el título.
 - `Scripts/chat.js` — chat del detalle de tarjeta: envío por fetch (Enter) y sondeo cada 4 s de los mensajes nuevos; si falla, recurre al postback del botón Enviar.
+- `Scripts/etiquetas.js` — cuadro de etiquetas del detalle: sugerencias al escribir `#` (las del tablero y las de otros tableros del usuario) y vista previa con colores.
 - `Scripts/graficas.js` — gráficas de estadísticas en HTML/CSS, sin librerías (ver «Gráficas» más abajo).
 - `Scripts/markdown.js` — editor markdown propio sin dependencias (barra, Escribir/Vista previa). El renderizador escapa todo el HTML antes de aplicar marcas y solo permite enlaces `http(s)`/`mailto`; mantener esa garantía si se amplía.
 - CSS/JS se enlazan con `Formato.UrlConVersion("~/...")` (añade `?v=<fecha del archivo>`) para que el navegador no use versiones en caché tras un cambio.
@@ -47,7 +48,8 @@ Guía para Claude Code al trabajar en este repositorio.
 - Al modificar tablas, columnas o procedimientos, en el mismo cambio:
   1. Actualizar `database/TaskManager.sql` (esquema completo para instalaciones nuevas).
   2. Añadir una migración **idempotente** en `database/migraciones/NNN_descripcion.sql` (`IF COL_LENGTH(...) IS NULL`, `IF OBJECT_ID(...) IS NULL`) para bases ya existentes.
-- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`, `002_modificacion_historial.sql`, `003_prioridad.sql`, `004_fondo_tableros.sql`, `005_busquedas_guardadas.sql`.
+- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`, `002_modificacion_historial.sql`, `003_prioridad.sql`, `004_fondo_tableros.sql`, `005_busquedas_guardadas.sql`, `006_etiquetas.sql`.
+- `database/demo/tablero_demo_aplicaciones.sql` — tablero de demostración (etiquetas PLANIFICADOR_CABINAS, GESTOR_CABINAS, IT_CASES); no es parte del esquema. Uso: `sqlcmd ... -i database\demo\tablero_demo_aplicaciones.sql -v EmailPropietario="usuario@ejemplo.com"`.
 
 ### Esquema (nombres en español)
 
@@ -60,7 +62,7 @@ Guía para Claude Code al trabajar en este repositorio.
 | `Tarjetas` | Tarjetas de una lista, ordenadas por `Posicion`; `FechaLimite`, `AsignadoA` opcionales; `Caso` (NVARCHAR(20), solo dígitos, `CK_Tarjetas_Caso`); `Codigo` (markdown, NVARCHAR(MAX)); `FechaModificacion` + `ModificadoPor` (última modificación) | → Listas (cascada), `AsignadoA` → Usuarios |
 | `Subtareas` | Checklist de una tarjeta (`Texto`, `Completada`), ordenada por `Posicion` | → Tarjetas (cascada) |
 | `HistorialTarjeta` | Un cambio por fila: `Accion`, `Campo`, `ValorAnterior`, `ValorNuevo`, quién y cuándo | → Tarjetas (cascada), → Usuarios |
-| `Etiquetas` | Etiquetas por tablero; `Color` hex `#rrggbb` | → Tableros (cascada) |
+| `Etiquetas` | Etiquetas (#tags) por tablero; `Nombre` sin `#`, único por tablero sin distinguir mayúsculas (`UX_Etiquetas_Tablero_Nombre`); `Color` hex `#rrggbb` (`CK_Etiquetas_Color`) | → Tableros (cascada) |
 | `TarjetaEtiquetas` | N:M tarjetas–etiquetas | → Tarjetas (cascada), → Etiquetas (sin cascada) |
 | `Comentarios` | Mensajes del chat de cada tarjeta | → Tarjetas (cascada), → Usuarios |
 | `BusquedasGuardadas` | Búsquedas del buscador: `Nombre` (único por usuario), `Criterios` (filtro serializado), `Compartida` | `UsuarioId` → Usuarios (cascada) |
@@ -79,6 +81,7 @@ Notas:
 - **Fondos de tablero**: la carpeta se configura en `Web.config` → `appSettings` `RutaFondosTableros` (ruta absoluta o `~/...`; por defecto `~/App_Data/Fondos`, ignorada por git). `Utilidades/FondosTablero` guarda el archivo con un nombre generado (`<tableroId>_<guid>.<ext>`), acepta solo JPG/PNG/GIF/WebP comprobando la firma del contenido (nunca SVG) y hasta 5 MB. Nunca construir rutas con texto del usuario; `Fondo.ashx` busca el archivo por el nombre guardado en la base de datos. Cambiar el fondo: propietario o `Admin`. Al cambiarlo, quitarlo o eliminar el tablero se borra el archivo anterior. **Fondos predeterminados** (15: 7 degradados y 8 fotos de `Content/fondos/`, licencia Unsplash en `LICENCIA.txt`): se guardan como `predef:<clave>` en `Tableros.Fondo` y solo se aceptan las claves de la lista blanca `FondosTablero.Predefinidos`; el CSS lo genera `FondosTablero.ImagenCss` (las fichas de «Mis tableros» usan la miniatura `*-mini.jpg`). Para añadir uno: entrada en `Predefinidos` y, si es foto, `<clave>.jpg` (1920×1080) + `<clave>-mini.jpg` (480×270) registrados en el `.vbproj`.
 - **Nombre del tablero**: lo cambian (con la descripción) el propietario o un `Admin` desde «✏ Editar» en la cabecera (`TablerosDatos.CambiarNombre`). El nombre también se edita pulsando el título: `Scripts/tablero.js` lo cambia por un cuadro de texto (Enter o salir del cuadro guarda con el botón oculto `btnGuardarTitulo`; Esc cancela). El servidor solo envía el cuadro de texto a propietario/`Admin` y vuelve a comprobar el permiso al guardar.
 - **Búsquedas guardadas**: `FiltroBusqueda.ACriterios`/`DesdeCriterios` serializan el filtro (formato clave=valor con claves fijas). Cada usuario ve las suyas y las compartidas por sus compañeros (usuarios con algún tablero en común); solo el autor las borra, y guardar con un nombre existente la sustituye. Al aplicarla, cada valor se valida contra las opciones del usuario (sus tableros, listas, compañeros) y se avisa si alguno no se aplica; los resultados siguen limitados a los tableros de quien busca, así que compartir no da acceso a nada.
+- **Etiquetas (#tags)**: se escriben en el detalle de la tarjeta (`#PLANIFICADOR_CABINAS #urgente`; `#` opcional, separadas por espacios/comas; letras, números, `_` y `-`, ≤ 50 caracteres, ≤ 10 por tarjeta: `Etiqueta.Analizar`). Al guardar, `EtiquetasDatos.Asignar` (en la transacción de `TarjetasDatos.Crear/Actualizar`) crea las que no existan en el tablero con el siguiente color de `Etiqueta.Paleta` (11 colores con contraste AA frente a su tinta, `Etiqueta.TintaPara`) y deja en la tarjeta exactamente las indicadas; el cambio va al historial (`CampoEtiquetas`, valores `#A #B`). Las etiquetas sin uso se conservan como sugerencias. En el HTML los colores salen de `Etiqueta.ColorSeguro`/`Tinta` (validados), nunca tal cual de la base de datos.
 - Subtareas: al editar una tarjeta se guardan al momento; al crearla se acumulan en ViewState (`SubtareasPendientes`) y se insertan con la tarjeta en una transacción.
 
 ## Reglas obligatorias

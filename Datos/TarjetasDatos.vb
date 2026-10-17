@@ -33,7 +33,8 @@ LEFT JOIN Usuarios um ON um.Id = c.ModificadoPor"
         ''' <summary>Tarjeta completa (incluido Codigo) si pertenece al tablero; Nothing en caso contrario.</summary>
         Public Shared Function Obtener(tarjetaId As Integer, tableroId As Integer) As Tarjeta
             Dim sql = SqlSelectTarjetas & " WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId;
-SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;"
+SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;" &
+                      EtiquetasDatos.SqlEtiquetasDeTarjetas & " AND c.Id = @TarjetaId ORDER BY e.Nombre;"
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
@@ -44,6 +45,8 @@ SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;"
                     Dim tarjeta = LeerTarjeta(rd)
                     rd.NextResult()
                     If rd.Read() Then tarjeta.Codigo = Db.Texto(rd, "Codigo")
+                    rd.NextResult()
+                    EtiquetasDatos.LeerEnTarjetas(rd, New Dictionary(Of Integer, Tarjeta) From {{tarjeta.Id, tarjeta}})
                     Return tarjeta
                 End Using
             End Using
@@ -59,7 +62,8 @@ SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;"
 
         ''' <summary>
         ''' Crea la tarjeta al final de la lista (si la lista pertenece al tablero) junto con sus subtareas,
-        ''' en una transacción. Usa Titulo, Descripcion, FechaLimite, AsignadoA, Caso y Codigo de <paramref name="datos"/>.
+        ''' y sus etiquetas, en una transacción. Usa Titulo, Descripcion, FechaLimite, AsignadoA, Caso, Codigo,
+        ''' Prioridad y Etiquetas de <paramref name="datos"/>.
         ''' </summary>
         Public Shared Sub Crear(listaId As Integer, tableroId As Integer, datos As Tarjeta, subtareas As IEnumerable(Of Subtarea),
                                 usuarioId As Integer)
@@ -95,6 +99,7 @@ SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
                         SubtareasDatos.Insertar(cn, tx, tarjetaId, subtarea.Texto, subtarea.Completada, posicion)
                         posicion += 1
                     Next
+                    EtiquetasDatos.Asignar(cn, tx, tarjetaId, tableroId, NombresEtiquetas(datos))
                     HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
                                              HistorialTarjeta.Nuevo(HistorialTarjeta.Creada, valorNuevo:=nombreLista))
                     tx.Commit()
@@ -168,7 +173,10 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
                         End Using
                     End Using
 
-                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId, Diferencias(antes, despues))
+                    Dim cambios = Diferencias(antes, despues)
+                    Dim cambioEtiquetas = EtiquetasDatos.Asignar(cn, tx, tarjetaId, tableroId, NombresEtiquetas(datos))
+                    If cambioEtiquetas IsNot Nothing Then cambios.Add(cambioEtiquetas)
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId, cambios)
                     tx.Commit()
                 End Using
             End Using
@@ -199,6 +207,10 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
             comparar(HistorialTarjeta.CampoCodigo, antes.Codigo, despues.Codigo,
                      HistorialDatos.Extracto(antes.Codigo), HistorialDatos.Extracto(despues.Codigo))
             Return cambios
+        End Function
+
+        Private Shared Function NombresEtiquetas(datos As Tarjeta) As IEnumerable(Of String)
+            Return If(datos.Etiquetas, New List(Of Etiqueta)).Select(Function(e) e.Nombre)
         End Function
 
         Private Shared Function FechaIso(fecha As DateTime?) As String

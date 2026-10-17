@@ -20,6 +20,7 @@ Namespace Models
         Public Const CampoAsignado As String = "AsignadoA"       ' valores = nombre del usuario
         Public Const CampoCodigo As String = "Codigo"
         Public Const CampoPrioridad As String = "Prioridad"     ' valores = nombre ("Alta", "Media", "Baja")
+        Public Const CampoEtiquetas As String = "Etiquetas"     ' valores = "#A #B" (ordenadas por nombre)
 
         Public Property Id As Integer
         Public Property TarjetaId As Integer

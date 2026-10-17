@@ -29,6 +29,12 @@ Namespace Models
         ''' <summary>Última modificación (UTC) y quién la hizo (Nothing en tarjetas anteriores al historial).</summary>
         Public Property FechaModificacion As DateTime
         Public Property NombreModificador As String
+
+        ''' <summary>
+        ''' Etiquetas (#tags) de la tarjeta, por nombre. Al guardar (TarjetasDatos.Crear/Actualizar) solo se usa
+        ''' el Nombre y la lista sustituye a las que tuviera.
+        ''' </summary>
+        Public Property Etiquetas As New List(Of Etiqueta)
     End Class
 
 End Namespace
