@@ -30,7 +30,17 @@
                 <asp:PlaceHolder ID="phFondo" runat="server">
                     <details class="tablero-fondo">
                         <summary>&#128444; Fondo</summary>
-                        <div class="tablero-fondo-panel">
+                        <div class="tablero-fondo-panel tablero-fondo-panel-ancho">
+                            <span class="fondo-seccion">Colores y fotos</span>
+                            <div class="fondos-predef">
+                                <asp:Repeater ID="rptFondos" runat="server">
+                                    <ItemTemplate>
+                                        <asp:LinkButton ID="lnkFondo" runat="server" CommandName="Elegir" CommandArgument='<%# Eval("Clave") %>'
+                                            CausesValidation="false" ToolTip='<%# Eval("Nombre") %>'><span class="solo-lectores"><%#: Eval("Nombre") %></span></asp:LinkButton>
+                                    </ItemTemplate>
+                                </asp:Repeater>
+                            </div>
+                            <span class="fondo-seccion">O sube tu imagen</span>
                             <asp:FileUpload ID="fuFondo" runat="server" accept="image/jpeg,image/png,image/gif,image/webp" />
                             <small>JPG, PNG, GIF o WebP. Máximo 5 MB.</small>
                             <div class="form-linea">

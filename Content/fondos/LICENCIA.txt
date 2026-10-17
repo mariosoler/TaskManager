@@ -1,0 +1,17 @@
+Fondos de tablero predeterminados (fotos)
+=========================================
+
+Fotos de Unsplash, publicadas con la licencia de Unsplash (https://unsplash.com/license):
+se pueden usar gratis, también con fines comerciales, sin pedir permiso ni citar al autor
+(aunque se agradece). Obtenidas a través de Lorem Picsum (https://picsum.photos) a 1920x1080,
+con miniaturas de 480x270 (*-mini.jpg).
+
+Archivo           Autor               Original
+bosque-lago.jpg   Paul Jarvis         https://unsplash.com/photos/6J--NXulQCs
+bosque.jpg        Jerry Adney         https://unsplash.com/photos/_WiFMBRT7Aw
+montanas.jpg      Go Wild             https://unsplash.com/photos/V0yAek6BgGk
+cascada.jpg       Paul Jarvis         https://unsplash.com/photos/NYDo21ssGao
+atardecer.jpg     Kenneth Thewissen   https://unsplash.com/photos/D76DklsG-5U
+desierto.jpg      Tim de Groot        https://unsplash.com/photos/yNGQ830uFB4
+costa.jpg         Margaret Barley     https://unsplash.com/photos/Qo51KwK1dKg
+ciudad-noche.jpg  Vadim Sherbakov     https://unsplash.com/photos/xS_RzdD5CFE

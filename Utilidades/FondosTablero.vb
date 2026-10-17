@@ -14,6 +14,38 @@ Namespace Utilidades
         Public Const ClaveConfiguracion As String = "RutaFondosTableros"
         Public Const TamanoMaximo As Integer = 5 * 1024 * 1024
 
+        ''' <summary>Tableros.Fondo de un fondo predeterminado: "predef:&lt;clave&gt;" (si no, es un archivo subido).</summary>
+        Public Const PrefijoPredefinido As String = "predef:"
+
+        ''' <summary>
+        ''' Fondos predeterminados: degradados de color y fotos genéricas de Content/fondos (ver LICENCIA.txt).
+        ''' Lista blanca: solo se aceptan estas claves, y el CSS sale de aquí, nunca del usuario.
+        ''' </summary>
+        Public Shared ReadOnly Predefinidos As IReadOnlyList(Of FondoPredefinido) = New List(Of FondoPredefinido) From {
+            FondoPredefinido.Color("evergreen", "Evergreen", "#004746", "#287f82"),
+            FondoPredefinido.Color("oceano", "Océano", "#0b3d91", "#1f8fd6"),
+            FondoPredefinido.Color("lavanda", "Lavanda", "#3f2b96", "#a06cd5"),
+            FondoPredefinido.Color("naranja", "Naranja", "#b23a1d", "#f39c34"),
+            FondoPredefinido.Color("frambuesa", "Frambuesa", "#8e1d55", "#e2557c"),
+            FondoPredefinido.Color("pizarra", "Pizarra", "#1f2933", "#52606d"),
+            FondoPredefinido.Color("pradera", "Pradera", "#2f5d1e", "#7fb33a"),
+            FondoPredefinido.Foto("bosque-lago", "Bosque y lago"),
+            FondoPredefinido.Foto("bosque", "Bosque"),
+            FondoPredefinido.Foto("montanas", "Montañas"),
+            FondoPredefinido.Foto("cascada", "Cascada"),
+            FondoPredefinido.Foto("atardecer", "Atardecer"),
+            FondoPredefinido.Foto("desierto", "Desierto"),
+            FondoPredefinido.Foto("costa", "Costa"),
+            FondoPredefinido.Foto("ciudad-noche", "Ciudad de noche")
+        }.AsReadOnly()
+
+        ''' <summary>Fondo predeterminado guardado en Tableros.Fondo, o Nothing si no es uno de la lista.</summary>
+        Public Shared Function BuscarPredefinido(fondo As String) As FondoPredefinido
+            If fondo Is Nothing OrElse Not fondo.StartsWith(PrefijoPredefinido, StringComparison.Ordinal) Then Return Nothing
+            Dim clave = fondo.Substring(PrefijoPredefinido.Length)
+            Return Predefinidos.FirstOrDefault(Function(f) f.Clave = clave)
+        End Function
+
         ' Nombres que genera Guardar: <tableroId>_<guid>.<ext>. Cualquier otro se rechaza (evita rutas ../).
         Private Shared ReadOnly NombreValido As New Regex("^[0-9]+_[0-9a-f]{32}\.(jpg|png|gif|webp)$")
 
@@ -79,10 +111,22 @@ Namespace Utilidades
                    "&v=" & HttpUtility.UrlEncode(Path.GetFileNameWithoutExtension(nombre))
         End Function
 
-        ''' <summary>Atributo style con el fondo, o vacío. La URL la genera el código (solo caracteres seguros).</summary>
-        Public Shared Function Estilo(tableroId As Integer, nombre As String) As String
+        ''' <summary>
+        ''' Valor CSS de background-image del fondo (predeterminado o subido), o vacío si no tiene.
+        ''' Con <paramref name="miniatura"/>, las fotos predeterminadas usan su versión reducida (fichas de "Mis tableros").
+        ''' Todo lo genera el código (solo caracteres seguros).
+        ''' </summary>
+        Public Shared Function ImagenCss(tableroId As Integer, nombre As String, Optional miniatura As Boolean = False) As String
+            Dim predefinido = BuscarPredefinido(nombre)
+            If predefinido IsNot Nothing Then Return predefinido.ImagenCss(miniatura)
             Dim direccion = Url(tableroId, nombre)
-            Return If(direccion.Length = 0, "", "background-image: url('" & direccion & "')")
+            Return If(direccion.Length = 0, "", "url('" & direccion & "')")
+        End Function
+
+        ''' <summary>Atributo style con el fondo, o vacío.</summary>
+        Public Shared Function Estilo(tableroId As Integer, nombre As String, Optional miniatura As Boolean = False) As String
+            Dim imagen = ImagenCss(tableroId, nombre, miniatura)
+            Return If(imagen.Length = 0, "", "background-image: " & imagen)
         End Function
 
         ' Firma de los formatos admitidos. SVG no: puede llevar scripts.
@@ -95,6 +139,44 @@ Namespace Utilidades
             If b(0) = &H52 AndAlso b(1) = &H49 AndAlso b(2) = &H46 AndAlso b(3) = &H46 AndAlso
                b(8) = &H57 AndAlso b(9) = &H45 AndAlso b(10) = &H42 AndAlso b(11) = &H50 Then Return "webp"
             Return Nothing
+        End Function
+
+    End Class
+
+    ''' <summary>Fondo predeterminado: un degradado de dos colores o una foto de Content/fondos.</summary>
+    Public NotInheritable Class FondoPredefinido
+
+        Public ReadOnly Property Clave As String
+        Public ReadOnly Property Nombre As String
+        Public ReadOnly Property EsFoto As Boolean
+        Private ReadOnly _degradado As String
+
+        Private Sub New(clave As String, nombre As String, esFoto As Boolean, degradado As String)
+            Me.Clave = clave
+            Me.Nombre = nombre
+            Me.EsFoto = esFoto
+            _degradado = degradado
+        End Sub
+
+        Friend Shared Function Color(clave As String, nombre As String, desde As String, hasta As String) As FondoPredefinido
+            Return New FondoPredefinido(clave, nombre, False, "linear-gradient(135deg, " & desde & ", " & hasta & ")")
+        End Function
+
+        Friend Shared Function Foto(clave As String, nombre As String) As FondoPredefinido
+            Return New FondoPredefinido(clave, nombre, True, Nothing)
+        End Function
+
+        ''' <summary>Valor que se guarda en Tableros.Fondo.</summary>
+        Public ReadOnly Property Valor As String
+            Get
+                Return FondosTablero.PrefijoPredefinido & Clave
+            End Get
+        End Property
+
+        ''' <summary>Valor CSS de background-image.</summary>
+        Public Function ImagenCss(Optional miniatura As Boolean = False) As String
+            If Not EsFoto Then Return _degradado
+            Return "url('" & VirtualPathUtility.ToAbsolute("~/Content/fondos/" & Clave & If(miniatura, "-mini", "") & ".jpg") & "')"
         End Function
 
     End Class

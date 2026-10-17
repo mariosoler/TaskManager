@@ -149,6 +149,15 @@ Partial Public Class TableroPagina
     Protected WithEvents lnkQuitarFondo As Global.System.Web.UI.WebControls.LinkButton
 
     '''<summary>
+    '''Control rptFondos.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents rptFondos As Global.System.Web.UI.WebControls.Repeater
+
+    '''<summary>
     '''Control rptMiembros.
     '''</summary>
     '''<remarks>

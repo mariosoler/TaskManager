@@ -11,7 +11,7 @@
             <asp:Repeater ID="rptTableros" runat="server">
                 <ItemTemplate>
                     <div class='<%# If(Eval("Fondo") Is Nothing, "tablero-ficha", "tablero-ficha con-fondo") %>'
-                        style='<%#: FondosTablero.Estilo(CInt(Eval("Id")), CStr(Eval("Fondo"))) %>'>
+                        style='<%#: FondosTablero.Estilo(CInt(Eval("Id")), CStr(Eval("Fondo")), miniatura:=True) %>'>
                         <a class="tablero-ficha-enlace" href='<%# "Tablero.aspx?id=" & Eval("Id").ToString() %>'>
                             <h2><%#: Eval("Nombre") %></h2>
                             <p><%#: Eval("Descripcion") %></p>

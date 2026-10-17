@@ -525,6 +525,25 @@ Public Class TableroPagina
 
     ' ----- Fondo del tablero (propietario o Admin) -----
 
+    Protected Sub rptFondos_ItemCommand(source As Object, e As RepeaterCommandEventArgs) Handles rptFondos.ItemCommand
+        If e.CommandName = "Elegir" AndAlso PuedeGestionarMiembros Then
+            ' Solo claves de la lista blanca de FondosTablero.
+            Dim fondo = FondosTablero.BuscarPredefinido(FondosTablero.PrefijoPredefinido & CStr(e.CommandArgument))
+            If fondo IsNot Nothing AndAlso fondo.Valor <> _tablero.Fondo Then AplicarFondo(fondo.Valor)
+        End If
+        CargarTablero()
+    End Sub
+
+    Protected Sub rptFondos_ItemDataBound(sender As Object, e As RepeaterItemEventArgs) Handles rptFondos.ItemDataBound
+        Dim fondo = TryCast(e.Item.DataItem, FondoPredefinido)
+        If fondo Is Nothing Then Return
+        Dim enlace = CType(e.Item.FindControl("lnkFondo"), LinkButton)
+        enlace.Style("background-image") = fondo.ImagenCss(miniatura:=True)
+        Dim activo = fondo.Valor = _tablero.Fondo
+        enlace.CssClass = If(activo, "fondo-opcion activo", "fondo-opcion")
+        enlace.Attributes("aria-pressed") = If(activo, "true", "false")
+    End Sub
+
     Protected Sub btnSubirFondo_Click(sender As Object, e As EventArgs) Handles btnSubirFondo.Click
         If Not PuedeGestionarMiembros Then Return
         If Not fuFondo.HasFile Then
@@ -571,6 +590,10 @@ Public Class TableroPagina
         rptMiembros.DataBind()
         pnlAgregarMiembro.Visible = PuedeGestionarMiembros
         phFondo.Visible = PuedeGestionarMiembros
+        If PuedeGestionarMiembros Then
+            rptFondos.DataSource = FondosTablero.Predefinidos
+            rptFondos.DataBind()
+        End If
         phEditarTablero.Visible = PuedeGestionarMiembros
         txtNombreTablero.Text = _tablero.Nombre
         txtDescripcionTablero.Text = If(_tablero.Descripcion, "")
@@ -581,7 +604,7 @@ Public Class TableroPagina
     Protected Overrides Sub OnPreRender(e As EventArgs)
         MyBase.OnPreRender(e)
         If _tablero Is Nothing OrElse _tablero.Fondo Is Nothing Then Return
-        pnlTablero.Style("background-image") = "url('" & FondosTablero.Url(TableroId, _tablero.Fondo) & "')"
+        pnlTablero.Style("background-image") = FondosTablero.ImagenCss(TableroId, _tablero.Fondo)
         pnlTablero.CssClass = "tablero-pagina con-fondo"
     End Sub
 

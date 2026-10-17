@@ -15,7 +15,7 @@ CREATE TABLE Tableros (
     Descripcion   NVARCHAR(500) NULL,
     PropietarioId INT NOT NULL REFERENCES Usuarios(Id),
     FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    Fondo         NVARCHAR(100) NULL -- archivo de fondo en la carpeta RutaFondosTableros
+    Fondo         NVARCHAR(100) NULL -- archivo subido (carpeta RutaFondosTableros) o "predef:<clave>" (FondosTablero.Predefinidos)
 );
 
 CREATE TABLE MiembrosTablero (

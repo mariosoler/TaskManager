@@ -211,6 +211,30 @@ textarea { resize: vertical; }
     box-shadow: 0 8px 24px rgba(0, 40, 41, .25);
 }
 .tablero-fondo-panel small { color: var(--texto-suave); }
+.tablero-fondo-panel-ancho { width: 360px; }
+.fondo-seccion { font-size: 12px; font-weight: 600; color: var(--texto-suave); }
+/* Fondos predeterminados: rejilla de 5 x 3 muestras (FondosTablero.Predefinidos). */
+.fondos-predef { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.fondo-opcion {
+    display: block;
+    aspect-ratio: 16 / 10;
+    border-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(0, 40, 41, .15);
+}
+.fondo-opcion:hover { filter: brightness(1.1); }
+.fondo-opcion:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+.fondo-opcion.activo { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primario); }
+/* Texto solo para lectores de pantalla */
+.solo-lectores {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
 .tablero-cabecera {
     display: flex;
     flex-wrap: wrap;
@@ -240,6 +264,8 @@ textarea { resize: vertical; }
 .form-linea { display: flex; gap: 6px; }
 .form-linea input[type=text] { width: 220px; }
 .tablero-cabecera .boton-claro { background: rgba(255, 255, 255, .85); }
+.tablero-cabecera .tablero-fondo-panel .boton-claro { background: rgba(0, 40, 41, .08); }
+.tablero-cabecera .tablero-fondo-panel .boton-claro:hover { background: rgba(0, 40, 41, .16); }
 
 .contenido > .mensaje { margin: 12px 16px 0; }
 
@@ -459,8 +485,8 @@ textarea { resize: vertical; }
 .barra-nav a { padding: 6px 10px; border-radius: 6px; color: #fff; text-decoration: none; font-weight: 600; }
 .barra-nav a:hover { background: rgba(255, 255, 255, .14); }
 .tablero-enlaces { display: flex; gap: 6px; margin-top: 6px; }
-.tablero-enlaces a { padding: 3px 10px; border-radius: 12px; background: rgba(255, 255, 255, .18); color: #fff; text-decoration: none; font-size: 12px; }
-.tablero-enlaces a:hover { background: rgba(255, 255, 255, .3); }
+.tablero-enlaces > a { padding: 3px 10px; border-radius: 12px; background: rgba(255, 255, 255, .18); color: #fff; text-decoration: none; font-size: 12px; }
+.tablero-enlaces > a:hover { background: rgba(255, 255, 255, .3); }
 
 /* ===== Páginas anchas (buscador, estadísticas) ===== */
 .pagina-ancha { max-width: 1280px; }
