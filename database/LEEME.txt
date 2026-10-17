@@ -1,0 +1,28 @@
+﻿Scripts de la base de datos TaskManager (SQL Server)
+===================================================
+
+Esta carpeta se copia al publicar la aplicación. El sitio web la bloquea (Web.config,
+hiddenSegments): no se puede descargar desde el navegador.
+
+Instalación nueva
+-----------------
+1. Crear una base de datos vacía llamada TaskManager.
+2. Ejecutar sobre ella TaskManager.sql (esquema completo, ya incluye todas las migraciones):
+
+   sqlcmd -S <servidor> -d TaskManager -E -i TaskManager.sql
+
+Actualizar una base ya existente
+--------------------------------
+Ejecutar en orden las migraciones de la carpeta "migraciones" (001, 002, ...) que falten.
+Son idempotentes: se pueden repetir sin problema, así que en caso de duda se pueden ejecutar todas.
+
+   sqlcmd -S <servidor> -d TaskManager -E -i migraciones\006_etiquetas.sql
+
+Datos de demostración (opcional)
+--------------------------------
+demo\tablero_demo_aplicaciones.sql crea un tablero de ejemplo para un usuario ya registrado:
+
+   sqlcmd -S <servidor> -d TaskManager -E -i demo\tablero_demo_aplicaciones.sql -v EmailPropietario="usuario@ejemplo.com"
+
+Ninguno de estos scripts crea inicios de sesión ni contiene contraseñas. El acceso de la aplicación
+(identidad del grupo de aplicaciones de IIS) se configura aparte: ver README.md del proyecto.

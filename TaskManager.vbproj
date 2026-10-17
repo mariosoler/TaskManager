@@ -118,6 +118,16 @@
     <Content Include="Content\fuentes\Outfit-OFL.txt" />
     <Content Include="Fondo.ashx" />
     <Content Include="Tarjeta.ashx" />
+    <!-- Scripts de la base de datos: se copian al publicar (bloqueados por HTTP en Web.config) -->
+    <Content Include="database\LEEME.txt" />
+    <Content Include="database\TaskManager.sql" />
+    <Content Include="database\migraciones\001_caso_codigo_subtareas.sql" />
+    <Content Include="database\migraciones\002_modificacion_historial.sql" />
+    <Content Include="database\migraciones\003_prioridad.sql" />
+    <Content Include="database\migraciones\004_fondo_tableros.sql" />
+    <Content Include="database\migraciones\005_busquedas_guardadas.sql" />
+    <Content Include="database\migraciones\006_etiquetas.sql" />
+    <Content Include="database\demo\tablero_demo_aplicaciones.sql" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
     <Content Include="Global.asax" />

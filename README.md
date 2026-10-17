@@ -7,6 +7,8 @@ Gestor de tareas tipo Trello (tableros, listas y tarjetas) en ASP.NET Web Forms 
 1. **Base de datos.** En el SQL Server de destino, crear la base `TaskManager` y ejecutar `database/TaskManager.sql`.
    Si la base ya existía, ejecutar en orden las migraciones de `database/migraciones/` que falten
    (son idempotentes: se pueden repetir sin problema).
+   La carpeta `database/` (con su `LEEME.txt`) también se copia en la publicación, para tener los scripts a mano
+   en el servidor; `Web.config` la oculta, así que no se puede descargar desde el navegador.
 2. **Publicar.** En Visual Studio: clic derecho en el proyecto → *Publicar* → perfil de carpeta (configuración Release).
    El `Web.config` publicado lleva dentro, con su explicación, dos marcadores para sustituir en el servidor:
    - `[SERVIDOR_SQL]` en la cadena de conexión `TaskManager` (conexión a la base de datos).

@@ -41,7 +41,7 @@ Guía para Claude Code al trabajar en este repositorio.
 - **No usar `App_Code/`**: en un proyecto *Web Application* el código ahí se compila dos veces (en la DLL y en tiempo de ejecución).
 - Al añadir archivos, registrarlos en `TaskManager.vbproj` (`Compile` / `Content`) y mantener los `.designer.vb` al día con los controles con `ID`.
 - `App_Data/` — datos locales; los `.mdf`/`.ldf` están ignorados por git.
-- `database/` — script(s) SQL de la base de datos **TaskManager** (creación de esquema y datos iniciales). Cualquier cambio de esquema debe reflejarse aquí.
+- `database/` — script(s) SQL de la base de datos **TaskManager** (creación de esquema y datos iniciales). Cualquier cambio de esquema debe reflejarse aquí. La carpeta se **publica** (cada `.sql` y `LEEME.txt` registrados como `Content` en el `.vbproj`: al añadir una migración, registrarla también) y `Web.config` la oculta por HTTP (`hiddenSegments`).
 - `Web.config` — configuración versionada (sin secretos).
 
 ## Base de datos
