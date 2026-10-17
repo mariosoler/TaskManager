@@ -7,6 +7,10 @@
             <a href="Tableros.aspx" class="volver">&larr; Mis tableros</a>
             <h1><asp:Literal ID="litNombre" runat="server" Mode="Encode" /></h1>
             <p class="tablero-descripcion"><asp:Literal ID="litDescripcion" runat="server" Mode="Encode" /></p>
+            <div class="tablero-enlaces">
+                <a id="lnkBuscarTablero" runat="server">&#128269; Buscar en este tablero</a>
+                <a id="lnkEstadisticas" runat="server">&#128202; Estadísticas</a>
+            </div>
         </div>
 
         <div class="miembros">
@@ -60,7 +64,7 @@
                                         <%#: Eval("Titulo") %>
                                     </span>
                                     <span class="tarjeta-info">
-                                        <%# HtmlFechaLimite(Eval("FechaLimite")) %>
+                                        <%# Formato.HtmlFechaLimite(Eval("FechaLimite")) %>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("SubtareasTotal")) > 0 %>'>
                                             <span class='<%# If(CInt(Eval("SubtareasHechas")) = CInt(Eval("SubtareasTotal")), "info info-subtareas completas", "info info-subtareas") %>'
                                                 title="Subtareas completadas">&#9745; <%# Eval("SubtareasHechas") %>/<%# Eval("SubtareasTotal") %></span>

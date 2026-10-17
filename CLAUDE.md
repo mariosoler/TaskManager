@@ -17,13 +17,17 @@ Guía para Claude Code al trabajar en este repositorio.
   - `Login.aspx`, `Registro.aspx` — acceso (únicas páginas públicas).
   - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.
   - `Tablero.aspx?id=N` — vista Kanban: listas, tarjetas, comentarios y miembros. Un único modal (`pnlDetalle`) sirve para crear tarjetas ("+ Añadir una tarjeta", estado en `ListaNuevaId`) y para editarlas (`TarjetaAbiertaId`).
+  - `Buscar.aspx[?tablero=N]` — buscador con filtros básicos y búsqueda avanzada; exporta a Excel.
+  - `Estadisticas.aspx?id=N[&dias=7|30|90]` — indicadores y gráficas del tablero; exporta a Excel.
+  - `Tablero.aspx?id=N&tarjeta=M` abre directamente la tarjeta M (lo usan los enlaces del buscador).
   - `Default.aspx` — redirige a `Tableros.aspx`.
-- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`). Las páginas no contienen SQL.
-- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta).
+- `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`, `BusquedaDatos`, `EstadisticasDatos`). Las páginas no contienen SQL.
+- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta, FiltroBusqueda, Estadisticas).
 - `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas).
-- `Utilidades/` — helpers de presentación (`Formato`).
+- `Utilidades/` — `Formato` (presentación), `LibroExcel` (genera .xlsx sin librerías, con `System.IO.Compression`), `ExportacionExcel` (hojas comunes de las exportaciones).
 - `Content/site.css` — estilos.
 - `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc.
+- `Scripts/graficas.js` — gráficas de estadísticas en HTML/CSS, sin librerías (ver «Gráficas» más abajo).
 - `Scripts/markdown.js` — editor markdown propio sin dependencias (barra, Escribir/Vista previa). El renderizador escapa todo el HTML antes de aplicar marcas y solo permite enlaces `http(s)`/`mailto`; mantener esa garantía si se amplía.
 - CSS/JS se enlazan con `Formato.UrlConVersion("~/...")` (añade `?v=<fecha del archivo>`) para que el navegador no use versiones en caché tras un cambio.
 - **Codificación**: `.aspx`/`.Master` en UTF-8 **con BOM** (y `fileEncoding="utf-8"` en Web.config); sin ello ASP.NET los lee como Windows-1252 y los acentos salen mal.
@@ -137,6 +141,24 @@ Contenido de `connectionStrings.config` (local, **no versionar**):
 ### 5. Codificar siempre la salida
 
 - La validación de peticiones de ASP.NET está desactivada en las páginas (`ValidateRequestMode="Disabled"`) para permitir textos con `<` en títulos, comentarios o contraseñas. Por tanto **toda** salida de datos del usuario debe codificarse: `<%#: %>` / `<%: %>`, `Literal Mode="Encode"` o `HttpUtility.HtmlEncode`. `Label.Text` y `Page.Title` **no** codifican solos.
+
+### 6. SQL dinámico (buscador)
+
+- `BusquedaDatos` compone el `WHERE` solo con **fragmentos fijos escritos en el código**; los valores del usuario van siempre como parámetros (sus nombres, `@Palabra0`…, los genera el código). El `ORDER BY` sale de una lista blanca (`Ordenes`).
+- En `LIKE` escapar los comodines con `BusquedaDatos.EscaparLike` y `ESCAPE ''`.
+- La búsqueda siempre restringe a tableros donde el usuario es propietario o miembro, aunque se fuerce otro `TableroId`.
+
+### 7. Exportación a Excel
+
+- Usar `LibroExcel` (.xlsx real). El texto va como `inlineStr`: Excel no lo evalúa como fórmula (no generar CSV, que sí es vulnerable a la inyección de fórmulas).
+- Fechas como `DateTime` (sin hora = fecha; con hora = fecha y hora); las UTC se convierten a hora local antes de exportar.
+- `PaginaBase.EnviarArchivo` envía la descarga; el nombre de archivo lo genera el código (ASCII), nunca el usuario.
+
+### 8. Gráficas
+
+- Siguen la guía de visualización: una serie = color de serie 1 (`#2a78d6`, validado contra el blanco de las tarjetas); "Sin asignar" en gris de baja énfasis; estados (vencidas, esta semana…) solo con la paleta de estado y siempre con icono + etiqueta; barras de ≤ 24 px con punta redondeada; rejilla en línea fina; texto siempre en colores de tinta, nunca en el color de la serie.
+- Cada gráfica tiene tooltip (ratón y teclado) y vista de tabla. Los datos llegan como JSON en `<script type="application/json">` con `<`, `>` y `&` escapados; en JS los textos se insertan con `textContent`/`setAttribute`, nunca con `innerHTML`.
+- Prefijo `graf-` para las clases CSS de las gráficas: `.barra` ya es la barra superior de la aplicación.
 
 ## Convenciones de código
 

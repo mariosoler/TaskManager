@@ -26,6 +26,19 @@ Namespace Seguridad
             Return If(limpio.Length > longitudMaxima, limpio.Substring(0, longitudMaxima), limpio)
         End Function
 
+        ''' <summary>Envía un archivo como descarga y termina la petición (sin renderizar la página).</summary>
+        Protected Sub EnviarArchivo(contenido As Byte(), nombreArchivo As String, tipoMime As String)
+            Response.Clear()
+            Response.ContentType = tipoMime
+            ' nombreArchivo lo genera el código (ASCII seguro), nunca el usuario.
+            Response.AddHeader("Content-Disposition", "attachment; filename=""" & nombreArchivo & """")
+            Response.AddHeader("Cache-Control", "no-store")
+            Response.BinaryWrite(contenido)
+            Response.Flush()
+            Response.SuppressContent = True
+            Context.ApplicationInstance.CompleteRequest()
+        End Sub
+
         Protected Shared Function NormalizarEmail(valor As String) As String
             Return If(valor, "").Trim().ToLowerInvariant()
         End Function

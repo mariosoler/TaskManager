@@ -19,6 +19,8 @@ Partial Public Class SiteMaster
 
     Protected WithEvents lnkInicio As Global.System.Web.UI.HtmlControls.HtmlAnchor
 
+    Protected WithEvents phNavegacion As Global.System.Web.UI.WebControls.PlaceHolder
+
     Protected WithEvents phUsuario As Global.System.Web.UI.WebControls.PlaceHolder
 
     Protected WithEvents litIniciales As Global.System.Web.UI.WebControls.Literal

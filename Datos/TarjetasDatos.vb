@@ -12,19 +12,23 @@ Namespace Datos
         Private Sub New()
         End Sub
 
-        ' No incluye Codigo (NVARCHAR(MAX)): en la vista del tablero basta con TieneCodigo.
-        Friend Const SqlSelectTarjetas As String = "
-SELECT c.Id, c.ListaId, l.Titulo AS NombreLista, c.Titulo, c.Descripcion, c.Posicion, c.FechaLimite,
+        ' Columnas que lee LeerTarjeta. No incluye Codigo (NVARCHAR(MAX)): en listados basta con TieneCodigo.
+        Friend Const SqlColumnasTarjeta As String = "
+       c.Id, c.ListaId, l.Titulo AS NombreLista, c.Titulo, c.Descripcion, c.Posicion, c.FechaLimite,
        c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.Caso,
        c.FechaModificacion, um.Nombre AS NombreModificador,
        CAST(CASE WHEN c.Codigo IS NULL OR c.Codigo = N'' THEN 0 ELSE 1 END AS BIT) AS TieneCodigo,
        (SELECT COUNT(*) FROM Comentarios co WHERE co.TarjetaId = c.Id) AS NumComentarios,
        (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id) AS SubtareasTotal,
-       (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id AND s.Completada = 1) AS SubtareasHechas
+       (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id AND s.Completada = 1) AS SubtareasHechas"
+
+        Friend Const SqlFromTarjetas As String = "
 FROM Tarjetas c
 JOIN Listas l ON l.Id = c.ListaId
 LEFT JOIN Usuarios u ON u.Id = c.AsignadoA
 LEFT JOIN Usuarios um ON um.Id = c.ModificadoPor"
+
+        Friend Const SqlSelectTarjetas As String = "SELECT" & SqlColumnasTarjeta & SqlFromTarjetas
 
         ''' <summary>Tarjeta completa (incluido Codigo) si pertenece al tablero; Nothing en caso contrario.</summary>
         Public Shared Function Obtener(tarjetaId As Integer, tableroId As Integer) As Tarjeta

@@ -16,6 +16,15 @@ Namespace Utilidades
             Return String.Concat(palabras.Take(2).Select(Function(p) Char.ToUpper(p(0), CultureInfo.CurrentCulture)))
         End Function
 
+        ''' <summary>Etiqueta HTML de fecha límite (sin texto del usuario); en rojo si ya ha vencido.</summary>
+        Public Shared Function HtmlFechaLimite(valor As Object) As String
+            If Not TypeOf valor Is DateTime Then Return ""
+            Dim fecha = CDate(valor)
+            Dim clase = If(fecha.Date < DateTime.Today, "info info-fecha vencida", "info info-fecha")
+            Return String.Format(CultureInfo.InvariantCulture, "<span class=""{0}"" title=""Fecha límite"">&#128197; {1}</span>",
+                                 clase, fecha.ToString("d MMM", CultureInfo.CurrentCulture))
+        End Function
+
         ''' <summary>Convierte una fecha guardada en UTC a la hora local del servidor.</summary>
         Public Shared Function FechaLocal(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""

@@ -8,6 +8,7 @@ Public Class SiteMaster
         lnkEstilos.Href = Formato.UrlConVersion("~/Content/site.css")
         Dim autenticado = Page.User IsNot Nothing AndAlso Page.User.Identity.IsAuthenticated
         phUsuario.Visible = autenticado
+        phNavegacion.Visible = autenticado
         If autenticado Then
             Dim nombre = Autenticacion.NombreUsuarioActual()
             litNombreUsuario.Text = nombre

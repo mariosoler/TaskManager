@@ -60,6 +60,7 @@
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Web.Services" />
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
@@ -93,10 +94,13 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\site.css" />
+    <Content Include="Buscar.aspx" />
     <Content Include="Default.aspx" />
+    <Content Include="Estadisticas.aspx" />
     <Content Include="Global.asax" />
     <Content Include="Login.aspx" />
     <Content Include="Registro.aspx" />
+    <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
     <Content Include="Scripts\tablero.js" />
     <Content Include="Site.Master" />
@@ -112,9 +116,25 @@
       <DependentUpon>Default.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Buscar.aspx.designer.vb">
+      <DependentUpon>Buscar.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Buscar.aspx.vb">
+      <DependentUpon>Buscar.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
+    <Compile Include="Datos\BusquedaDatos.vb" />
     <Compile Include="Datos\ComentariosDatos.vb" />
     <Compile Include="Datos\Db.vb" />
+    <Compile Include="Datos\EstadisticasDatos.vb" />
     <Compile Include="Datos\HistorialDatos.vb" />
+    <Compile Include="Estadisticas.aspx.designer.vb">
+      <DependentUpon>Estadisticas.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Estadisticas.aspx.vb">
+      <DependentUpon>Estadisticas.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
     <Compile Include="Datos\ListasDatos.vb" />
     <Compile Include="Datos\SubtareasDatos.vb" />
     <Compile Include="Datos\TablerosDatos.vb" />
@@ -128,6 +148,8 @@
       <SubType>ASPXCodebehind</SubType>
     </Compile>
     <Compile Include="Models\Comentario.vb" />
+    <Compile Include="Models\Estadisticas.vb" />
+    <Compile Include="Models\FiltroBusqueda.vb" />
     <Compile Include="Models\HistorialTarjeta.vb" />
     <Compile Include="Models\Lista.vb" />
     <Compile Include="Models\Miembro.vb" />
@@ -166,7 +188,9 @@
       <DependentUpon>Tableros.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Utilidades\ExportacionExcel.vb" />
     <Compile Include="Utilidades\Formato.vb" />
+    <Compile Include="Utilidades\LibroExcel.vb" />
     <Compile Include="Global.asax.vb">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

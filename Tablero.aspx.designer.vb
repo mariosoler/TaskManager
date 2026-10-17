@@ -17,6 +17,10 @@ Partial Public Class TableroPagina
 
     Protected WithEvents litDescripcion As Global.System.Web.UI.WebControls.Literal
 
+    Protected WithEvents lnkBuscarTablero As Global.System.Web.UI.HtmlControls.HtmlAnchor
+
+    Protected WithEvents lnkEstadisticas As Global.System.Web.UI.HtmlControls.HtmlAnchor
+
     Protected WithEvents rptMiembros As Global.System.Web.UI.WebControls.Repeater
 
     Protected WithEvents pnlAgregarMiembro As Global.System.Web.UI.WebControls.Panel

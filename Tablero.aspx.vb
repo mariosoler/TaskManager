@@ -50,7 +50,16 @@ Public Class TableroPagina
         If _tablero Is Nothing Then Response.Redirect("~/Tableros.aspx")
 
         Title = HttpUtility.HtmlEncode(_tablero.Nombre)
-        If Not IsPostBack Then CargarTablero()
+        Dim idTexto = _tablero.Id.ToString(CultureInfo.InvariantCulture)
+        lnkBuscarTablero.HRef = "~/Buscar.aspx?tablero=" & idTexto
+        lnkEstadisticas.HRef = "~/Estadisticas.aspx?id=" & idTexto
+
+        If Not IsPostBack Then
+            CargarTablero()
+            ' Tablero.aspx?id=N&tarjeta=M abre directamente la tarjeta (enlaces del buscador).
+            Dim tarjetaId As Integer
+            If Integer.TryParse(Request.QueryString("tarjeta"), tarjetaId) Then AbrirTarjeta(tarjetaId)
+        End If
     End Sub
 
     ' ----- Listas y tarjetas -----
@@ -474,14 +483,5 @@ Public Class TableroPagina
         lblMensaje.CssClass = If(esError, "mensaje mensaje-error", "mensaje mensaje-ok")
         lblMensaje.Visible = True
     End Sub
-
-    ''' <summary>Etiqueta de fecha límite (sin texto del usuario); en rojo si ya ha vencido.</summary>
-    Protected Function HtmlFechaLimite(valor As Object) As String
-        If Not TypeOf valor Is DateTime Then Return ""
-        Dim fecha = CDate(valor)
-        Dim clase = If(fecha.Date < DateTime.Today, "info info-fecha vencida", "info info-fecha")
-        Return String.Format(CultureInfo.InvariantCulture, "<span class=""{0}"" title=""Fecha límite"">&#128197; {1}</span>",
-                             clase, fecha.ToString("d MMM", CultureInfo.CurrentCulture))
-    End Function
 
 End Class

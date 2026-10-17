@@ -46,6 +46,23 @@ Namespace Datos
             Return listas
         End Function
 
+        ''' <summary>Listas del tablero (sin tarjetas), ordenadas por posición.</summary>
+        Public Shared Function Listar(tableroId As Integer) As List(Of Lista)
+            Const sql = "SELECT Id, TableroId, Titulo, Posicion FROM Listas WHERE TableroId = @TableroId ORDER BY Posicion, Id"
+
+            Dim listas As New List(Of Lista)
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    While rd.Read()
+                        listas.Add(New Lista With {.Id = rd.GetInt32(0), .TableroId = rd.GetInt32(1), .Titulo = rd.GetString(2), .Posicion = rd.GetInt32(3)})
+                    End While
+                End Using
+            End Using
+            Return listas
+        End Function
+
         ''' <summary>Título de la lista si pertenece al tablero; Nothing en caso contrario.</summary>
         Public Shared Function ObtenerTitulo(listaId As Integer, tableroId As Integer) As String
             Const sql = "SELECT Titulo FROM Listas WHERE Id = @ListaId AND TableroId = @TableroId"

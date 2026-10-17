@@ -12,6 +12,12 @@
     <form id="form1" runat="server">
         <header class="barra">
             <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo">&#9638; TaskManager</a>
+            <asp:PlaceHolder ID="phNavegacion" runat="server" Visible="false">
+                <nav class="barra-nav">
+                    <a runat="server" href="~/Tableros.aspx">Tableros</a>
+                    <a runat="server" href="~/Buscar.aspx">Buscar</a>
+                </nav>
+            </asp:PlaceHolder>
             <asp:PlaceHolder ID="phUsuario" runat="server" Visible="false">
                 <div class="barra-usuario">
                     <span class="avatar"><asp:Literal ID="litIniciales" runat="server" Mode="Encode" /></span>
