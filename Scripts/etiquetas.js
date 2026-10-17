@@ -71,14 +71,14 @@
             if (vistos[clave]) { return; }
             vistos[clave] = true;
             if (!NOMBRE.test(nombre)) {
-                vista.appendChild(chip('#' + nombre, null, 'invalida')).title = 'No válida: solo letras, números, _ y -';
+                vista.appendChild(chip(nombre, null, 'invalida')).title = 'No válida: solo letras, números, _ y -';
                 return;
             }
             var dato = porNombre[clave];
             if (dato && !dato.o) {
-                vista.appendChild(chip('#' + dato.n, dato));
+                vista.appendChild(chip(dato.n, dato));
             } else {
-                vista.appendChild(chip('#' + nombre, null, 'nueva')).title = 'Nueva en este tablero: el color se asigna al guardar';
+                vista.appendChild(chip(nombre, null, 'nueva')).title = 'Nueva en este tablero: el color se asigna al guardar';
             }
         });
     }
@@ -136,7 +136,7 @@
             var li = document.createElement('li');
             li.id = lista.id + '_' + i;
             li.setAttribute('role', 'option');
-            li.appendChild(chip('#' + d.n, d));
+            li.appendChild(chip(d.n, d));
             var nota = document.createElement('small');
             nota.textContent = d.o ? 'de otro tablero' : (d.u === 1 ? '1 tarjeta' : d.u + ' tarjetas');
             li.appendChild(nota);

@@ -110,7 +110,7 @@
                                     </span>
                                     <asp:Repeater ID="rptEtiquetasTarjeta" runat="server" DataSource='<%# Eval("Etiquetas") %>'>
                                         <HeaderTemplate><span class="tarjeta-etiquetas"></HeaderTemplate>
-                                        <ItemTemplate><span class="etiqueta-tag" style='<%#: EstiloEtiqueta(Container.DataItem) %>'>#<%#: Eval("Nombre") %></span></ItemTemplate>
+                                        <ItemTemplate><span class="etiqueta-tag" style='<%#: EstiloEtiqueta(Container.DataItem) %>'><%#: Eval("Nombre") %></span></ItemTemplate>
                                         <FooterTemplate></span></FooterTemplate>
                                     </asp:Repeater>
                                     <span class="tarjeta-info">
