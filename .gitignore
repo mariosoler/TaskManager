@@ -36,6 +36,7 @@ secrets.json
 .env.*
 Web.Local.config
 connectionStrings.config
+appSettings.config
 
 # ===== Base de datos local =====
 *.mdf
