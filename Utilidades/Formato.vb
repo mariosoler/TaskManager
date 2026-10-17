@@ -1,4 +1,5 @@
 Imports System.Globalization
+Imports TaskManager.Seguridad
 
 Namespace Utilidades
 
@@ -21,8 +22,18 @@ Namespace Utilidades
             If Not TypeOf valor Is DateTime Then Return ""
             Dim fecha = CDate(valor)
             Dim clase = If(fecha.Date < DateTime.Today, "info info-fecha vencida", "info info-fecha")
-            Return String.Format(CultureInfo.InvariantCulture, "<span class=""{0}"" title=""Fecha límite"">&#128197; {1}</span>",
-                                 clase, fecha.ToString("d MMM", CultureInfo.CurrentCulture))
+            Return String.Format(CultureInfo.InvariantCulture, "<span class=""{0}"" title=""Fecha límite: {1}"">&#128197; {2}</span>",
+                                 clase, HttpUtility.HtmlEncode(FechaDia(fecha)), HttpUtility.HtmlEncode(FechaDiaCorta(fecha)))
+        End Function
+
+        ''' <summary>Día sin hora en el formato de fecha del usuario ("17/10/2026"). Para fechas sin hora (no UTC).</summary>
+        Public Shared Function FechaDia(fecha As DateTime) As String
+            Return fecha.ToString(UsuarioActual.FormatoFecha().Larga, CultureInfo.CurrentCulture)
+        End Function
+
+        ''' <summary>Día sin año en el formato del usuario ("17 oct", "17/10"...).</summary>
+        Public Shared Function FechaDiaCorta(fecha As DateTime) As String
+            Return fecha.ToString(UsuarioActual.FormatoFecha().Corta, CultureInfo.CurrentCulture)
         End Function
 
         ''' <summary>Etiqueta HTML de prioridad: color + texto (el color nunca va solo). Vacía si no tiene.</summary>
@@ -35,10 +46,10 @@ Namespace Utilidades
                                  Models.Prioridad.ClaseCss(p), nombre.ToLowerInvariant(), nombre)
         End Function
 
-        ''' <summary>Convierte una fecha guardada en UTC a la hora local del servidor.</summary>
+        ''' <summary>Fecha guardada en UTC, en hora local del servidor y con el formato del usuario ("17/10/2026 14:32").</summary>
         Public Shared Function FechaLocal(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""
-            Return ALocal(CDate(valor)).ToString("g", CultureInfo.CurrentCulture)
+            Return ALocal(CDate(valor)).ToString(UsuarioActual.FormatoFecha().Larga & " HH:mm", CultureInfo.CurrentCulture)
         End Function
 
         ''' <summary>"Modificada el 17/10/2026 14:32 por Ana" (texto plano: codificar al mostrar).</summary>
@@ -48,11 +59,12 @@ Namespace Utilidades
             Return If(String.IsNullOrEmpty(quien), texto, texto & " por " & quien)
         End Function
 
-        ''' <summary>Fecha UTC en formato compacto: la hora si es de hoy ("14:32"); si no, el día ("17 oct").</summary>
+        ''' <summary>Fecha UTC en formato compacto: la hora si es de hoy ("14:32"); si no, el día sin año ("17 oct").</summary>
         Public Shared Function FechaCorta(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""
             Dim local = ALocal(CDate(valor))
-            Return local.ToString(If(local.Date = DateTime.Today, "HH:mm", "d MMM"), CultureInfo.CurrentCulture)
+            If local.Date = DateTime.Today Then Return local.ToString("HH:mm", CultureInfo.CurrentCulture)
+            Return FechaDiaCorta(local)
         End Function
 
         ''' <summary>

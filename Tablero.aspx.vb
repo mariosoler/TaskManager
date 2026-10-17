@@ -406,7 +406,7 @@ Public Class TableroPagina
     Private Shared Function FechaLegible(iso As String) As String
         Dim fecha As DateTime
         If DateTime.TryParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, fecha) Then
-            Return fecha.ToString("d MMM yyyy", CultureInfo.CurrentCulture)
+            Return Formato.FechaDia(fecha)
         End If
         Return iso
     End Function

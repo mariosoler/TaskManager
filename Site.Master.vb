@@ -13,16 +13,17 @@ Public Class SiteMaster
         Dim autenticado = Page.User IsNot Nothing AndAlso Page.User.Identity.IsAuthenticated
         phUsuario.Visible = autenticado
         phNavegacion.Visible = autenticado
-        If autenticado Then
-            Dim nombre = Autenticacion.NombreUsuarioActual()
-            litNombreUsuario.Text = nombre
-            litIniciales.Text = Formato.Iniciales(nombre)
-        End If
     End Sub
 
     ''' <summary>La pestaña del navegador muestra siempre "TaskManager", en todas las páginas.</summary>
     Protected Sub Page_PreRender(sender As Object, e As EventArgs) Handles Me.PreRender
         Page.Title = "TaskManager"
+        ' En PreRender y no en Load: si el usuario acaba de cambiar su nombre en «Mi perfil», ya sale el nuevo.
+        If phUsuario.Visible Then
+            Dim nombre = Autenticacion.NombreUsuarioActual()
+            litNombreUsuario.Text = nombre
+            litIniciales.Text = Formato.Iniciales(nombre)
+        End If
     End Sub
 
     Protected Sub lnkSalir_Click(sender As Object, e As EventArgs) Handles lnkSalir.Click

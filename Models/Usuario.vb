@@ -6,6 +6,8 @@ Namespace Models
         Public Property Email As String
         Public Property PasswordHash As String
         Public Property FechaCreacion As DateTime
+        ''' <summary>Clave de <see cref="FormatoFecha"/>; Nothing = predeterminado.</summary>
+        Public Property FormatoFecha As String
     End Class
 
 End Namespace

@@ -150,6 +150,10 @@ textarea { resize: vertical; }
 .acceso-marca .logo-texto { font-size: 30px; }
 .acceso-logo { display: block; width: 44px; height: 44px; }
 .barra-usuario { display: flex; align-items: center; gap: 10px; }
+/* Avatar + nombre: enlace a «Mi perfil» */
+.barra-perfil { display: inline-flex; align-items: center; gap: 10px; padding: 3px 10px 3px 3px; border-radius: 999px; color: inherit; text-decoration: none; }
+.barra-perfil:hover { background: rgba(255, 255, 255, .14); }
+.barra-perfil:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
 .barra .boton-claro { background: rgba(255, 255, 255, .14); color: #fff; }
 .barra .boton-claro:hover { background: rgba(255, 255, 255, .26); }
 .barra .avatar { background: var(--acento); color: var(--primario); }
@@ -1122,3 +1126,10 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .tarjeta:hover, .tablero-ficha:not(.tablero-nuevo):hover { transform: none; }
 }
+
+/* ===== Mi perfil ===== */
+.pagina-estrecha { max-width: 560px; }
+.perfil { padding: 22px 24px; background: #fff; border: 1px solid var(--borde); border-radius: var(--radio-grande); box-shadow: var(--sombra-1); }
+.perfil input[type=text], .perfil select { width: 100%; }
+.perfil-dato { margin: 0; padding: 8px 0; color: var(--texto); }
+.perfil-acciones { display: flex; justify-content: flex-end; margin-top: 18px; }

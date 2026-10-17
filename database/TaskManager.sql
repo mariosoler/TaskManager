@@ -6,7 +6,8 @@ CREATE TABLE Usuarios (
     Nombre        NVARCHAR(100)  NOT NULL,
     Email         NVARCHAR(200)  NOT NULL UNIQUE,
     PasswordHash  NVARCHAR(500)  NOT NULL,
-    FechaCreacion DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME()
+    FechaCreacion DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
+    FormatoFecha  VARCHAR(20)    NULL  -- clave de Models/FormatoFecha (lista blanca); NULL = predeterminado
 );
 
 CREATE TABLE Tableros (

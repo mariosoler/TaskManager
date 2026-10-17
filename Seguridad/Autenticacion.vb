@@ -46,7 +46,10 @@ Namespace Seguridad
             HttpContext.Current.Response.Cookies.Add(cookie)
         End Sub
 
+        ''' <summary>Nombre actual (de la base de datos, por si lo ha cambiado en su perfil); si no, el del ticket.</summary>
         Public Shared Function NombreUsuarioActual() As String
+            Dim perfil = UsuarioActual.Perfil()
+            If perfil IsNot Nothing Then Return perfil.Nombre
             Dim identidad = TryCast(HttpContext.Current.User?.Identity, FormsIdentity)
             Return If(identidad?.Ticket.UserData, "")
         End Function

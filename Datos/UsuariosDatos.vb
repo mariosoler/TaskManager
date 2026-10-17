@@ -27,6 +27,39 @@ Namespace Datos
             End Using
         End Function
 
+        ''' <summary>Perfil del usuario (sin el hash de la contraseña), o Nothing si no existe.</summary>
+        Public Shared Function ObtenerPorId(usuarioId As Integer) As Usuario
+            Const sql = "SELECT Id, Nombre, Email, FechaCreacion, FormatoFecha FROM Usuarios WHERE Id = @UsuarioId"
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    If Not rd.Read() Then Return Nothing
+                    Return New Usuario With {
+                        .Id = rd.GetInt32(0),
+                        .Nombre = rd.GetString(1),
+                        .Email = rd.GetString(2),
+                        .FechaCreacion = rd.GetDateTime(3),
+                        .FormatoFecha = Db.Texto(rd, "FormatoFecha")
+                    }
+                End Using
+            End Using
+        End Function
+
+        ''' <summary>Cambia el nombre y el formato de fecha (Nothing = predeterminado) del usuario.</summary>
+        Public Shared Sub ActualizarPerfil(usuarioId As Integer, nombre As String, formatoFecha As String)
+            Const sql = "UPDATE Usuarios SET Nombre = @Nombre, FormatoFecha = @FormatoFecha WHERE Id = @UsuarioId"
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, 100).Value = nombre
+                cmd.Parameters.Add("@FormatoFecha", SqlDbType.VarChar, 20).Value = Db.ONulo(formatoFecha)
+                cn.Open()
+                cmd.ExecuteNonQuery()
+            End Using
+        End Sub
+
         ''' <summary>
         ''' Usuarios con los que comparte algún tablero (incluido él mismo): los que puede elegir
         ''' en los filtros del buscador.

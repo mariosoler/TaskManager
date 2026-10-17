@@ -21,8 +21,10 @@
             </asp:PlaceHolder>
             <asp:PlaceHolder ID="phUsuario" runat="server" Visible="false">
                 <div class="barra-usuario">
-                    <span class="avatar"><asp:Literal ID="litIniciales" runat="server" Mode="Encode" /></span>
-                    <span class="barra-nombre"><asp:Literal ID="litNombreUsuario" runat="server" Mode="Encode" /></span>
+                    <a runat="server" href="~/Perfil.aspx" class="barra-perfil" title="Mi perfil">
+                        <span class="avatar"><asp:Literal ID="litIniciales" runat="server" Mode="Encode" /></span>
+                        <span class="barra-nombre"><asp:Literal ID="litNombreUsuario" runat="server" Mode="Encode" /></span>
+                    </a>
                     <asp:LinkButton ID="lnkSalir" runat="server" CssClass="boton boton-claro" CausesValidation="false">Cerrar sesión</asp:LinkButton>
                 </div>
             </asp:PlaceHolder>

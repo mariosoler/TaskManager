@@ -144,8 +144,8 @@ Public Class EstadisticasPagina
             {"porPersona", est.PorPersona.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor, .gris = d.Clave = "sin-asignar"})},
             {"fechas", SegmentosFechas(est).Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor, .estado = d.Clave})},
             {"porDia", est.CambiosPorDia.Select(Function(d) New With {
-                .corta = d.Dia.ToString("d MMM", cultura),
-                .larga = cultura.TextInfo.ToTitleCase(d.Dia.ToString("ddd d MMM yyyy", cultura)),
+                .corta = Formato.FechaDiaCorta(d.Dia),
+                .larga = cultura.TextInfo.ToTitleCase(d.Dia.ToString("ddd", cultura)) & " " & Formato.FechaDia(d.Dia),
                 .v = d.Valor})},
             {"cambiosPersona", est.CambiosPorPersona.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},
             {"cambiosTipo", est.CambiosPorTipo.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},

@@ -128,11 +128,13 @@
     <Content Include="database\migraciones\004_fondo_tableros.sql" />
     <Content Include="database\migraciones\005_busquedas_guardadas.sql" />
     <Content Include="database\migraciones\006_etiquetas.sql" />
+    <Content Include="database\migraciones\007_perfil_usuario.sql" />
     <Content Include="database\demo\tablero_demo_aplicaciones.sql" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
     <Content Include="Global.asax" />
     <Content Include="Login.aspx" />
+    <Content Include="Perfil.aspx" />
     <Content Include="Registro.aspx" />
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
@@ -202,6 +204,7 @@
     </Compile>
     <Compile Include="Models\BusquedaGuardada.vb" />
     <Compile Include="Models\Etiqueta.vb" />
+    <Compile Include="Models\FormatoFecha.vb" />
     <Compile Include="Models\Comentario.vb" />
     <Compile Include="Models\Estadisticas.vb" />
     <Compile Include="Models\FiltroBusqueda.vb" />
@@ -213,6 +216,13 @@
     <Compile Include="Models\Tablero.vb" />
     <Compile Include="Models\Tarjeta.vb" />
     <Compile Include="Models\Usuario.vb" />
+    <Compile Include="Perfil.aspx.designer.vb">
+      <DependentUpon>Perfil.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Perfil.aspx.vb">
+      <DependentUpon>Perfil.aspx</DependentUpon>
+      <SubType>ASPXCodebehind</SubType>
+    </Compile>
     <Compile Include="Registro.aspx.designer.vb">
       <DependentUpon>Registro.aspx</DependentUpon>
     </Compile>
@@ -226,6 +236,7 @@
     </Compile>
     <Compile Include="Seguridad\PasswordHasher.vb" />
     <Compile Include="Seguridad\TokenAntiCsrf.vb" />
+    <Compile Include="Seguridad\UsuarioActual.vb" />
     <Compile Include="Site.Master.designer.vb">
       <DependentUpon>Site.Master</DependentUpon>
     </Compile>

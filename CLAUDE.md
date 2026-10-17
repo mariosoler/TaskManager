@@ -12,10 +12,11 @@ Guía para Claude Code al trabajar en este repositorio.
 
 ## Estructura
 
-- `Site.Master` — página maestra (barra superior, cerrar sesión). La pestaña del navegador muestra **siempre «TaskManager»** (lo fija `SiteMaster.Page_PreRender`; las páginas no ponen título propio). El favicon y el logo de la barra se enlazan con versión (`Formato.UrlConVersion`) para que el navegador no use un icono antiguo en caché.
+- `Site.Master` — página maestra (barra superior, cerrar sesión; el avatar y el nombre enlazan a «Mi perfil» y se rellenan en `Page_PreRender` para mostrar al momento un nombre recién cambiado). La pestaña del navegador muestra **siempre «TaskManager»** (lo fija `SiteMaster.Page_PreRender`; las páginas no ponen título propio). El favicon y el logo de la barra se enlazan con versión (`Formato.UrlConVersion`) para que el navegador no use un icono antiguo en caché.
 - Páginas (`*.aspx` + `.aspx.vb` + `.aspx.designer.vb`; las clases se llaman `XxxPagina`):
   - `Login.aspx`, `Registro.aspx` — acceso (únicas páginas públicas).
   - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.
+  - `Perfil.aspx` — «Mi perfil»: cambiar el nombre y el formato de las fechas (`Usuarios.FormatoFecha`). El email no se cambia.
   - `Tablero.aspx?id=N` — vista Kanban: listas, tarjetas, comentarios y miembros. Un único modal (`pnlDetalle`) sirve para crear tarjetas ("+ Añadir una tarjeta", estado en `ListaNuevaId`) y para editarlas (`TarjetaAbiertaId`).
   - `Buscar.aspx[?tablero=N[&etiqueta=NOMBRE] | ?busqueda=N]` — buscador con filtros básicos y búsqueda avanzada (incluidas etiquetas: todas / alguna / sin etiquetas, y texto en etiquetas); exporta a Excel. Las búsquedas se pueden guardar (y compartir); `?busqueda=N` aplica una guardada.
   - `Estadisticas.aspx?id=N[&dias=7|30|90]` — indicadores (incluidos prioridad alta, sin cambios en 30 días y tarjetas creadas frente al periodo anterior) y gráficas del tablero: anillos por lista, por prioridad y cambios por tipo; barras por persona, antigüedad y etiqueta («Tarjetas por etiqueta» enlaza al buscador filtrado); fechas límite; tabla «Próximos vencimientos» con enlace a cada tarjeta. Exporta a Excel.
@@ -26,8 +27,8 @@ Guía para Claude Code al trabajar en este repositorio.
   - `Fondo.ashx?id=N` — sirve la imagen de fondo del tablero N (solo a propietario/miembros).
   - `Default.aspx` — redirige a `Tableros.aspx`.
 - `Datos/` — acceso a datos ADO.NET (`Db`, `UsuariosDatos`, `TablerosDatos`, `ListasDatos`, `TarjetasDatos`, `SubtareasDatos`, `ComentariosDatos`, `HistorialDatos`, `EtiquetasDatos`, `BusquedaDatos`, `BusquedasGuardadasDatos`, `EstadisticasDatos`). Las páginas no contienen SQL.
-- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta, Etiqueta, FiltroBusqueda, BusquedaGuardada, Estadisticas).
-- `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas).
+- `Models/` — clases de modelo que reflejan las tablas (Usuario, Tablero, Lista, Tarjeta, Subtarea, Comentario, Miembro, HistorialTarjeta, Etiqueta, FiltroBusqueda, BusquedaGuardada, Estadisticas) y `FormatoFecha` (lista blanca de formatos de fecha del perfil).
+- `Seguridad/` — `PasswordHasher` (PBKDF2), `Autenticacion` (cookie de Forms Auth), `PaginaBase` (base de todas las páginas), `UsuarioActual` (perfil del usuario leído de la base de datos una vez por petición, cacheado en `HttpContext.Items`).
 - `Utilidades/` — `Formato` (presentación), `EdicionTarjeta` (lee y valida los campos del detalle; la usan el botón Guardar y `Tarjeta.ashx`), `LibroExcel` (genera .xlsx sin librerías, con `System.IO.Compression`), `ExportacionExcel` (hojas comunes de las exportaciones).
 - `Content/site.css` — estilos. **Colores de GE Vernova** (variables en `:root`): base evergreen `--primario` `#005e60` (hover `#004746`, fondo claro `#e4f1f1`), acento verde `--acento` `#c8ff08` solo sobre fondo evergreen (barra superior), tinta `#212121`. `Content/logo.svg` — icono del logo (barra superior, login/registro y favicon); junto a él va el texto «Task**Manager**» (`.logo-texto`) con la fuente **Outfit** incluida en `Content/fuentes/` (licencia OFL, solo para la marca; `Web.config` declara el MIME de `.woff2`).
 - `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc, edición del nombre del tablero al pulsar el título.
@@ -53,14 +54,14 @@ Guía para Claude Code al trabajar en este repositorio.
 - Al modificar tablas, columnas o procedimientos, en el mismo cambio:
   1. Actualizar `database/TaskManager.sql` (esquema completo para instalaciones nuevas).
   2. Añadir una migración **idempotente** en `database/migraciones/NNN_descripcion.sql` (`IF COL_LENGTH(...) IS NULL`, `IF OBJECT_ID(...) IS NULL`) para bases ya existentes.
-- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`, `002_modificacion_historial.sql`, `003_prioridad.sql`, `004_fondo_tableros.sql`, `005_busquedas_guardadas.sql`, `006_etiquetas.sql`.
+- Migraciones aplicadas: `001_caso_codigo_subtareas.sql`, `002_modificacion_historial.sql`, `003_prioridad.sql`, `004_fondo_tableros.sql`, `005_busquedas_guardadas.sql`, `006_etiquetas.sql`, `007_perfil_usuario.sql`.
 - `database/demo/tablero_demo_aplicaciones.sql` — tablero de demostración (etiquetas PLANIFICADOR_CABINAS, GESTOR_CABINAS, IT_CASES); no es parte del esquema. Uso: `sqlcmd ... -i database\demo\tablero_demo_aplicaciones.sql -v EmailPropietario="usuario@ejemplo.com"`.
 
 ### Esquema (nombres en español)
 
 | Tabla | Descripción | Relaciones |
 |---|---|---|
-| `Usuarios` | Cuentas (`Email` único, `PasswordHash`) | — |
+| `Usuarios` | Cuentas (`Email` único, `PasswordHash`); `FormatoFecha` (opcional) = clave de `Models/FormatoFecha`, NULL = predeterminado | — |
 | `Tableros` | Tableros; `Fondo` (opcional) = archivo de imagen subido o `predef:<clave>` de un fondo predeterminado | `PropietarioId` → Usuarios |
 | `MiembrosTablero` | Miembros de un tablero; `Rol` = `Admin` / `Miembro` | PK (TableroId, UsuarioId); cascada desde Tableros |
 | `Listas` | Columnas de un tablero, ordenadas por `Posicion` | → Tableros (cascada) |
@@ -74,6 +75,7 @@ Guía para Claude Code al trabajar en este repositorio.
 
 Notas:
 - Las fechas se guardan en **UTC** (`SYSUTCDATETIME()`); convertir a hora local solo al mostrar.
+- **Formato de las fechas**: cada usuario lo elige en «Mi perfil». Mostrar siempre las fechas con `Formato.FechaLocal` (UTC → local, con hora), `Formato.FechaCorta` (hora si es de hoy; si no, día sin año), `Formato.FechaDia` / `FechaDiaCorta` (fechas sin hora, como `FechaLimite`) o `HtmlFechaLimite`; no usar patrones fijos (`"d MMM"`, `"g"`...) al mostrar. Los patrones salen de la lista blanca `FormatoFecha` (claves en `Usuarios.FormatoFecha`; una clave desconocida = predeterminado). No afecta a los `yyyy-MM-dd` internos (campos de fecha, filtros guardados, historial) ni a las fechas del Excel.
 - `Usuarios.PasswordHash` guarda solo el hash (p. ej. PBKDF2 con `Rfc2898DeriveBytes` y sal); nunca contraseñas en claro.
 - Borrar una etiqueta asignada a tarjetas falla por la FK sin cascada: eliminar antes sus filas en `TarjetaEtiquetas`.
 - Al mover tarjetas/listas, actualizar `Posicion` de los elementos afectados dentro de una transacción.
@@ -147,7 +149,7 @@ Contenido de `connectionStrings.config` (local, **no versionar**):
 ### 4. Autenticación y autorización
 
 - Forms Authentication (`Web.config`): todo exige sesión salvo `Login.aspx`, `Registro.aspx`, `Content/` y `Scripts/`. Cookie solo HTTPS y HttpOnly.
-- El nombre del ticket es el **Id del usuario** (`PaginaBase.UsuarioId`); `UserData` guarda su nombre.
+- El nombre del ticket es el **Id del usuario** (`PaginaBase.UsuarioId`); `UserData` guarda su nombre al iniciar sesión, pero la barra muestra el de la base de datos (`UsuarioActual`), que puede haber cambiado en «Mi perfil».
 - Contraseñas: solo `PasswordHasher.Hash` / `Verificar` (PBKDF2-SHA256, sal aleatoria, comparación en tiempo constante).
 - Todas las páginas heredan de `Seguridad.PaginaBase`, que fija `ViewStateUserKey` (protección CSRF de los postbacks).
 - `Tablero.aspx` carga el tablero con `TablerosDatos.Obtener(id, UsuarioId)` en **cada** petición; si devuelve `Nothing` no hay acceso.

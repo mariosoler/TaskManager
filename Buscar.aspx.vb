@@ -372,8 +372,8 @@ Public Class BuscarPagina
     Private Shared Function Rango(desde As String, hasta As String) As String
         Dim d = Fecha(desde), h = Fecha(hasta)
         If Not d.HasValue AndAlso Not h.HasValue Then Return Nothing
-        Return If(d.HasValue, d.Value.ToString("d", CultureInfo.CurrentCulture), "…") & " – " &
-               If(h.HasValue, h.Value.ToString("d", CultureInfo.CurrentCulture), "…")
+        Return If(d.HasValue, Formato.FechaDia(d.Value), "…") & " – " &
+               If(h.HasValue, Formato.FechaDia(h.Value), "…")
     End Function
 
     Protected Function UrlTarjeta(encontrada As TarjetaEncontrada) As String
