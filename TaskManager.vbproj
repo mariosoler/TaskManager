@@ -122,6 +122,7 @@
     <Content Include="Global.asax" />
     <Content Include="Login.aspx" />
     <Content Include="Registro.aspx" />
+    <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />

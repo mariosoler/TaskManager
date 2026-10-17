@@ -80,13 +80,22 @@
 
     <asp:Label ID="lblMensaje" runat="server" CssClass="mensaje" Visible="false" EnableViewState="false" />
 
+    <%-- Búsqueda rápida: filtra las tarjetas mientras se escribe, sin recargar (Scripts/busqueda-rapida.js) --%>
+    <div class="busqueda-rapida" role="search">
+        <span class="busqueda-rapida-icono" aria-hidden="true">&#128269;</span>
+        <input type="search" id="busquedaRapida" class="busqueda-rapida-campo" autocomplete="off" spellcheck="false"
+            placeholder="Buscar en el tablero…  (#104512 o #ETIQUETA)" aria-label="Buscar tarjetas en el tablero"
+            aria-describedby="busquedaRapidaResultado" />
+        <span id="busquedaRapidaResultado" class="busqueda-rapida-resultado" aria-live="polite"></span>
+    </div>
+
     <div class="tablero">
         <asp:Repeater ID="rptListas" runat="server">
             <ItemTemplate>
                 <section class="lista">
                     <header class="lista-cabecera">
                         <h2><%#: Eval("Titulo") %></h2>
-                        <span class="lista-contador"><%# Eval("Tarjetas.Count") %></span>
+                        <span class="lista-contador" data-total='<%# Eval("Tarjetas.Count") %>'><%# Eval("Tarjetas.Count") %></span>
                         <span class="lista-acciones">
                             <asp:LinkButton ID="lnkIzquierda" runat="server" ToolTip="Mover a la izquierda" CausesValidation="false"
                                 CommandName="MoverIzquierda" CommandArgument='<%# Eval("Id") %>'>&#9664;</asp:LinkButton>
@@ -101,7 +110,8 @@
                     <div class="tarjetas" data-lista-id='<%# Eval("Id") %>'>
                         <asp:Repeater ID="rptTarjetas" runat="server" DataSource='<%# Eval("Tarjetas") %>'>
                             <ItemTemplate>
-                                <article class='<%# "tarjeta " & TaskManager.Models.Prioridad.ClaseCss(CType(Eval("Prioridad"), Integer?)) %>' draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'>
+                                <article class='<%# "tarjeta " & TaskManager.Models.Prioridad.ClaseCss(CType(Eval("Prioridad"), Integer?)) %>' draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'
+                                    data-caso='<%#: Eval("Caso") %>' data-etiquetas='<%#: NombresEtiquetas(Container.DataItem) %>' data-texto='<%#: TextoBusqueda(Container.DataItem) %>'>
                                     <span class="tarjeta-titulo">
                                         <asp:PlaceHolder runat="server" Visible='<%# Eval("Caso") IsNot Nothing %>'>
                                             <span class="tarjeta-caso" title="Caso">#<%#: Eval("Caso") %></span>
@@ -349,6 +359,8 @@
     <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
     <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetas.ClientID %>', datos: 'etiquetas-datos' };</script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
+    <script>window.TaskManagerBusquedaRapida = { campo: 'busquedaRapida', resultado: 'busquedaRapidaResultado', tablero: <%= TableroIdTexto %> };</script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/busqueda-rapida.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
     <script>

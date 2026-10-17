@@ -191,6 +191,17 @@ Public Class TableroPagina
         End Get
     End Property
 
+    ''' <summary>Etiquetas de la tarjeta separadas por espacios (data-etiquetas, para la búsqueda rápida).</summary>
+    Protected Shared Function NombresEtiquetas(dato As Object) As String
+        Return String.Join(" ", CType(dato, Tarjeta).Etiquetas.Select(Function(e) e.Nombre))
+    End Function
+
+    ''' <summary>Texto en el que busca la búsqueda rápida sin "#": título, descripción y persona asignada.</summary>
+    Protected Shared Function TextoBusqueda(dato As Object) As String
+        Dim tarjeta = CType(dato, Tarjeta)
+        Return String.Join(" ", {tarjeta.Titulo, tarjeta.Descripcion, tarjeta.NombreAsignado}.Where(Function(t) Not String.IsNullOrEmpty(t)))
+    End Function
+
     ''' <summary>Atributo style de una etiqueta (colores ya validados por Etiqueta.ColorSeguro).</summary>
     Protected Shared Function EstiloEtiqueta(dato As Object) As String
         Dim etiqueta = CType(dato, Etiqueta)
