@@ -110,4 +110,61 @@
             abrir(e.target);
         }
     });
+
+    // ----- Nombre del tablero editable al pulsar el título (solo si el servidor envía el cuadro de texto) -----
+    (function () {
+        var titulo = document.getElementById(cfg.titulo);
+        var edicion = document.getElementById(cfg.tituloEdicion);
+        var texto = document.getElementById(cfg.tituloTexto);
+        var guardar = document.getElementById(cfg.tituloGuardar);
+        var pulsable = titulo && titulo.querySelector('.titulo-texto.editable');
+        if (!pulsable || !edicion || !texto || !guardar) { return; }
+
+        var original = texto.value;
+        var enviando = false;
+
+        function editar() {
+            texto.value = original;
+            titulo.classList.add('oculto');
+            edicion.classList.remove('oculto');
+            texto.focus();
+            texto.select();
+        }
+
+        function cancelar() {
+            texto.value = original;
+            edicion.classList.add('oculto');
+            titulo.classList.remove('oculto');
+            pulsable.focus();
+        }
+
+        function confirmar() {
+            if (enviando) { return; }
+            var nuevo = texto.value.trim();
+            if (nuevo === '' || nuevo === original.trim()) { cancelar(); return; }
+            enviando = true;
+            guardar.click();
+        }
+
+        pulsable.addEventListener('click', editar);
+        pulsable.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                editar();
+            }
+        });
+        texto.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmar();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelar();
+            }
+        });
+        texto.addEventListener('blur', function () {
+            // Esc ya ha cerrado el cuadro: el blur posterior no debe guardar.
+            if (!edicion.classList.contains('oculto')) { confirmar(); }
+        });
+    }());
 }());

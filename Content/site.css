@@ -246,6 +246,23 @@ textarea { resize: vertical; }
     color: #fff;
 }
 .tablero-cabecera h1 { font-size: 20px; margin: 4px 0; word-break: break-word; }
+/* Título editable al pulsarlo (propietario o Admin) */
+.titulo-texto.editable { display: inline-block; margin-left: -6px; padding: 0 6px; border-radius: 6px; cursor: text; }
+.titulo-texto.editable:hover { background: rgba(255, 255, 255, .16); }
+.titulo-texto.editable:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.titulo-edicion { margin: 4px 0; }
+.tablero-cabecera input.titulo-input {
+    width: min(480px, 100%);
+    margin-left: -6px;
+    padding: 0 6px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+    border: 0;
+    color: var(--texto);
+    background: #fff;
+    outline: 2px solid var(--acento);
+}
 .tablero-descripcion { margin: 0; opacity: .85; }
 .volver { color: #fff; opacity: .85; text-decoration: none; font-size: 12px; }
 

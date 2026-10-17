@@ -6,7 +6,12 @@
     <div class="tablero-cabecera">
         <div>
             <a href="Tableros.aspx" class="volver">&larr; Mis tableros</a>
-            <h1><asp:Literal ID="litNombre" runat="server" Mode="Encode" /></h1>
+            <h1 id="h1Titulo" runat="server"><span id="spnTitulo" runat="server" class="titulo-texto"><asp:Literal ID="litNombre" runat="server" Mode="Encode" /></span></h1>
+            <%-- Edición del nombre al pulsar el título (propietario o Admin), en Scripts/tablero.js --%>
+            <asp:Panel ID="pnlTituloEdicion" runat="server" CssClass="titulo-edicion oculto" DefaultButton="btnGuardarTitulo">
+                <asp:TextBox ID="txtTitulo" runat="server" MaxLength="150" CssClass="titulo-input" aria-label="Nombre del tablero" />
+                <asp:Button ID="btnGuardarTitulo" runat="server" Text="Guardar" CssClass="oculto" CausesValidation="false" />
+            </asp:Panel>
             <p class="tablero-descripcion"><asp:Literal ID="litDescripcion" runat="server" Mode="Encode" /></p>
             <div class="tablero-enlaces">
                 <a id="lnkBuscarTablero" runat="server">&#128269; Buscar en este tablero</a>
@@ -320,7 +325,11 @@
             indice: '<%= hfIndice.ClientID %>',
             mover: '<%= lnkMoverTarjeta.UniqueID %>',
             abrir: '<%= lnkAbrirTarjeta.UniqueID %>',
-            cerrar: '<%= btnCerrarDetalle.ClientID %>'
+            cerrar: '<%= btnCerrarDetalle.ClientID %>',
+            titulo: '<%= h1Titulo.ClientID %>',
+            tituloEdicion: '<%= pnlTituloEdicion.ClientID %>',
+            tituloTexto: '<%= txtTitulo.ClientID %>',
+            tituloGuardar: '<%= btnGuardarTitulo.ClientID %>'
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>

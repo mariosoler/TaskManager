@@ -523,6 +523,17 @@ Public Class TableroPagina
         CargarTablero()
     End Sub
 
+    ' Nombre editado al pulsar el título (Scripts/tablero.js); la descripción no cambia.
+    Protected Sub btnGuardarTitulo_Click(sender As Object, e As EventArgs) Handles btnGuardarTitulo.Click
+        Dim nombre = Texto(txtTitulo.Text, 150)
+        If PuedeGestionarMiembros AndAlso nombre.Length > 0 AndAlso nombre <> _tablero.Nombre AndAlso
+           TablerosDatos.CambiarNombre(TableroId, nombre, _tablero.Descripcion, UsuarioId) Then
+            _tablero.Nombre = nombre
+            Title = HttpUtility.HtmlEncode(nombre)
+        End If
+        CargarTablero()
+    End Sub
+
     ' ----- Fondo del tablero (propietario o Admin) -----
 
     Protected Sub rptFondos_ItemCommand(source As Object, e As RepeaterCommandEventArgs) Handles rptFondos.ItemCommand
@@ -596,6 +607,7 @@ Public Class TableroPagina
         End If
         phEditarTablero.Visible = PuedeGestionarMiembros
         txtNombreTablero.Text = _tablero.Nombre
+        txtTitulo.Text = _tablero.Nombre
         txtDescripcionTablero.Text = If(_tablero.Descripcion, "")
         lnkQuitarFondo.Visible = _tablero.Fondo IsNot Nothing
     End Sub
@@ -603,7 +615,18 @@ Public Class TableroPagina
     ' El fondo se aplica en cada petición (también en los postbacks que no recargan el tablero).
     Protected Overrides Sub OnPreRender(e As EventArgs)
         MyBase.OnPreRender(e)
-        If _tablero Is Nothing OrElse _tablero.Fondo Is Nothing Then Return
+        If _tablero Is Nothing Then Return
+
+        ' Título editable al pulsarlo: solo propietario o Admin (el resto no recibe el cuadro de texto).
+        pnlTituloEdicion.Visible = PuedeGestionarMiembros
+        If PuedeGestionarMiembros Then
+            spnTitulo.Attributes("class") = "titulo-texto editable"
+            spnTitulo.Attributes("role") = "button"
+            spnTitulo.Attributes("tabindex") = "0"
+            spnTitulo.Attributes("title") = "Pulsa para cambiar el nombre"
+        End If
+
+        If _tablero.Fondo Is Nothing Then Return
         pnlTablero.Style("background-image") = FondosTablero.ImagenCss(TableroId, _tablero.Fondo)
         pnlTablero.CssClass = "tablero-pagina con-fondo"
     End Sub
