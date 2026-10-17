@@ -176,18 +176,16 @@ Public Class TableroPagina
     ' ----- Etiquetas -----
 
     ''' <summary>
-    ''' Etiquetas para las sugerencias de Scripts/etiquetas.js: las del tablero (n, c = color, t = tinta, u = usos)
-    ''' y las de otros tableros del usuario (o = 1). Vacío si el detalle está cerrado.
+    ''' Etiquetas del tablero para las sugerencias de Scripts/etiquetas.js (n, c = color, t = tinta, u = usos).
+    ''' Solo las de este tablero: las etiquetas no se comparten entre tableros. Vacío si el detalle está cerrado.
     ''' </summary>
     Protected ReadOnly Property EtiquetasJson As String
         Get
             If Not pnlDetalle.Visible Then Return "[]"
-            Dim propias = EtiquetasDatos.ListarDeTablero(TableroId).Select(
-                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos, .o = 0})
-            Dim otras = EtiquetasDatos.ListarDeOtrosTableros(UsuarioId, TableroId).Select(
-                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = 0, .o = 1})
-            Dim json = New JavaScriptSerializer().Serialize(propias.Concat(otras).ToList())
-            Return json.Replace("<", "<").Replace(">", ">").Replace("&", "&")
+            Dim etiquetas = EtiquetasDatos.ListarDeTablero(TableroId).Select(
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos})
+            Dim json = New JavaScriptSerializer().Serialize(etiquetas.ToList())
+            Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
         End Get
     End Property
 

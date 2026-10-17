@@ -1,7 +1,7 @@
 /*
  * Cuadro de etiquetas del detalle de tarjeta (#PLANIFICADOR_CABINAS #urgente):
- * - al escribir "#" sugiere las etiquetas ya creadas en el tablero (las más usadas primero)
- *   y las de otros tableros del usuario; flechas para elegir, Enter/Tab para insertar, Esc para cerrar;
+ * - al escribir "#" sugiere las etiquetas ya creadas en este tablero (las más usadas primero; las etiquetas
+ *   no se comparten entre tableros); flechas para elegir, Enter/Tab para insertar, Esc para cerrar;
  * - debajo muestra cómo quedarán, con su color (las nuevas, punteadas: el color se asigna al guardar).
  * Datos en <script type="application/json" id="etiquetas-datos"> (ver TableroPagina.EtiquetasJson).
  * Los textos se insertan con textContent y los colores se validan antes de usarlos.
@@ -75,7 +75,7 @@
                 return;
             }
             var dato = porNombre[clave];
-            if (dato && !dato.o) {
+            if (dato) {
                 vista.appendChild(chip(dato.n, dato));
             } else {
                 vista.appendChild(chip(nombre, null, 'nueva')).title = 'Nueva en este tablero: el color se asigna al guardar';
@@ -138,7 +138,7 @@
             li.setAttribute('role', 'option');
             li.appendChild(chip(d.n, d));
             var nota = document.createElement('small');
-            nota.textContent = d.o ? 'de otro tablero' : (d.u === 1 ? '1 tarjeta' : d.u + ' tarjetas');
+            nota.textContent = d.u === 0 ? 'sin usar' : (d.u === 1 ? '1 tarjeta' : d.u + ' tarjetas');
             li.appendChild(nota);
             li.addEventListener('mousedown', function (e) {
                 e.preventDefault();   // que el cuadro no pierda el foco

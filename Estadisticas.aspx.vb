@@ -122,7 +122,7 @@ Public Class EstadisticasPagina
             {"cambiosTipo", est.CambiosPorTipo.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})}
         }
         Dim json = New JavaScriptSerializer().Serialize(datos)
-        Return json.Replace("<", "<").Replace(">", ">").Replace("&", "&")
+        Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
     End Function
 
     ''' <summary>Fechas límite como segmentos de estado (Clave = estado para el color de estado).</summary>

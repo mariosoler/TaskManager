@@ -19,7 +19,7 @@
     var claveSesion = 'busquedaRapida:' + cfg.tablero;
 
     function normalizar(texto) {
-        return (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     }
 
     // Datos de búsqueda de cada tarjeta, preparados una vez (el tablero no cambia sin recargar la página).

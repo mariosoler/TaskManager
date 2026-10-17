@@ -31,7 +31,7 @@ Guía para Claude Code al trabajar en este repositorio.
 - `Scripts/tablero.js` — arrastrar/soltar de tarjetas, abrir detalle, Esc, edición del nombre del tablero al pulsar el título.
 - `Scripts/chat.js` — chat del detalle de tarjeta: envío por fetch (Enter) y sondeo cada 4 s de los mensajes nuevos; si falla, recurre al postback del botón Enviar.
 - `Scripts/busqueda-rapida.js` — búsqueda rápida del tablero (cuadro sobre las listas): oculta al escribir las tarjetas que no coinciden. `#texto` busca en nº de caso y etiquetas; sin `#`, en título, descripción, asignado, caso y etiquetas; varias palabras = todas; sin distinguir mayúsculas ni acentos. Lee `data-caso`, `data-etiquetas` y `data-texto` de cada tarjeta (codificados con `<%#: %>`), recuerda la búsqueda en `sessionStorage` por tablero; atajos `/` y Esc. Es solo de cliente: el buscador completo sigue en `Buscar.aspx`.
-- `Scripts/etiquetas.js` — cuadro de etiquetas del detalle: sugerencias al escribir `#` (las del tablero y las de otros tableros del usuario) y vista previa con colores.
+- `Scripts/etiquetas.js` — cuadro de etiquetas del detalle: sugerencias al escribir `#` (solo las del tablero: las etiquetas **no se comparten entre tableros**) y vista previa con colores.
 - `Scripts/graficas.js` — gráficas de estadísticas en HTML/CSS, sin librerías (ver «Gráficas» más abajo).
 - `Scripts/markdown.js` — editor markdown propio sin dependencias (barra, Escribir/Vista previa). El renderizador escapa todo el HTML antes de aplicar marcas y solo permite enlaces `http(s)`/`mailto`; mantener esa garantía si se amplía.
 - CSS/JS se enlazan con `Formato.UrlConVersion("~/...")` (añade `?v=<fecha del archivo>`) para que el navegador no use versiones en caché tras un cambio.

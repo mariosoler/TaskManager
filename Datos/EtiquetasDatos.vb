@@ -5,8 +5,8 @@ Imports TaskManager.Models
 Namespace Datos
 
     ''' <summary>
-    ''' Etiquetas (#tags) de las tarjetas. Son de cada tablero: todos los métodos reciben el TableroId ya
-    ''' autorizado y lo usan en el WHERE. Una etiqueta se crea al usarla por primera vez en el tablero,
+    ''' Etiquetas (#tags) de las tarjetas. Son de cada tablero y no se comparten entre tableros: todos los
+    ''' métodos reciben el TableroId ya autorizado y lo usan en el WHERE. Una etiqueta se crea al usarla por primera vez en el tablero,
     ''' con el siguiente color de Etiqueta.Paleta, y se conserva aunque deje de usarse (sirve de sugerencia).
     ''' </summary>
     Public NotInheritable Class EtiquetasDatos
@@ -32,39 +32,6 @@ ORDER BY COUNT(te.TarjetaId) DESC, e.Nombre"
                     While rd.Read()
                         etiquetas.Add(New Etiqueta With {
                             .Id = rd.GetInt32(0), .Nombre = rd.GetString(1), .Color = rd.GetString(2), .Usos = rd.GetInt32(3)})
-                    End While
-                End Using
-            End Using
-            Return etiquetas
-        End Function
-
-        ''' <summary>
-        ''' Nombres de etiquetas de los demás tableros del usuario que no existen en este (para sugerirlas también);
-        ''' con el color que tienen allí, que cambiará al crearlas en este tablero.
-        ''' </summary>
-        Public Shared Function ListarDeOtrosTableros(usuarioId As Integer, tableroId As Integer) As List(Of Etiqueta)
-            Const sql = "
-WITH Accesibles AS (
-    SELECT t.Id FROM Tableros t
-    WHERE t.Id <> @TableroId
-      AND (t.PropietarioId = @UsuarioId
-           OR EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = t.Id AND m.UsuarioId = @UsuarioId))
-)
-SELECT MIN(e.Nombre) AS Nombre, MIN(e.Color) AS Color
-FROM Etiquetas e
-JOIN Accesibles a ON a.Id = e.TableroId
-WHERE NOT EXISTS (SELECT 1 FROM Etiquetas p WHERE p.TableroId = @TableroId AND p.Nombre = e.Nombre)
-GROUP BY e.Nombre
-ORDER BY MIN(e.Nombre)"
-
-            Dim etiquetas As New List(Of Etiqueta)
-            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
-                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
-                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                cn.Open()
-                Using rd = cmd.ExecuteReader()
-                    While rd.Read()
-                        etiquetas.Add(New Etiqueta With {.Nombre = rd.GetString(0), .Color = rd.GetString(1)})
                     End While
                 End Using
             End Using
