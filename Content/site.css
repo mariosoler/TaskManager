@@ -502,7 +502,24 @@ textarea { resize: vertical; }
 .lista-acciones a.peligro { font-size: 15px; }
 .lista-acciones a.peligro:hover { color: var(--rojo); }
 
-.tarjetas { display: flex; flex-direction: column; gap: 8px; min-height: 12px; padding: 2px; overflow-y: auto; }
+.tarjetas { display: flex; flex-direction: column; gap: 8px; min-height: 12px; padding: 2px 4px 2px 2px; overflow-y: auto; }
+
+/* Barra de desplazamiento lateral siempre visible en las listas de tarjetas y en el detalle (sin rueda del ratón
+   hay que poder arrastrarla). Con scrollbar-width/scrollbar-color (regla global de arriba) Chrome y Edge usan
+   barras superpuestas que se ocultan; con "auto" vuelven a aplicar ::-webkit-scrollbar, que se ve siempre. */
+.tarjetas, .modal-fondo { scrollbar-width: auto; scrollbar-color: auto; }
+.tarjetas::-webkit-scrollbar, .modal-fondo::-webkit-scrollbar { width: 12px; }
+.tarjetas::-webkit-scrollbar-track { border-radius: 10px; background: rgba(0, 40, 41, .08); }
+.tarjetas::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(0, 40, 41, .45) padding-box; }
+.tarjetas::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 40, 41, .65); }
+.modal-fondo::-webkit-scrollbar-track { background: rgba(255, 255, 255, .12); }
+.modal-fondo::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(255, 255, 255, .6) padding-box; }
+.modal-fondo::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, .85); }
+/* Firefox (no tiene ::-webkit-scrollbar): barra normal con colores visibles */
+@supports not selector(::-webkit-scrollbar) {
+    .tarjetas { scrollbar-color: rgba(0, 40, 41, .45) rgba(0, 40, 41, .08); }
+    .modal-fondo { scrollbar-color: rgba(255, 255, 255, .6) rgba(255, 255, 255, .12); }
+}
 
 /* La sombra se compone con variables: la franja de prioridad (--franja) se conserva al pasar el ratón. */
 .tarjeta {
