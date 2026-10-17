@@ -602,7 +602,8 @@ Public Class TableroPagina
         Dim fondo = TryCast(e.Item.DataItem, FondoPredefinido)
         If fondo Is Nothing Then Return
         Dim enlace = CType(e.Item.FindControl("lnkFondo"), LinkButton)
-        enlace.Style("background-image") = fondo.ImagenCss(miniatura:=True)
+        ' Variable CSS y no "background-image": ASP.NET envuelve ese valor en url(...) y estropea los degradados.
+        enlace.Style("--fondo-imagen") = fondo.ImagenCss(miniatura:=True)
         Dim activo = fondo.Valor = _tablero.Fondo
         enlace.CssClass = If(activo, "fondo-opcion activo", "fondo-opcion")
         enlace.Attributes("aria-pressed") = If(activo, "true", "false")
@@ -680,7 +681,8 @@ Public Class TableroPagina
         End If
 
         If _tablero.Fondo Is Nothing Then Return
-        pnlTablero.Style("background-image") = FondosTablero.ImagenCss(TableroId, _tablero.Fondo)
+        ' Variable CSS (ver .tablero-pagina): Style("background-image") convertiría un degradado en url(linear-gradient(...)).
+        pnlTablero.Style("--fondo-imagen") = FondosTablero.ImagenCss(TableroId, _tablero.Fondo)
         pnlTablero.CssClass = "tablero-pagina con-fondo"
     End Sub
 
