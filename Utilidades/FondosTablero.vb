@@ -59,7 +59,13 @@ Namespace Utilidades
                     "Falta appSettings '" & ClaveConfiguracion & "' en Web.config con la carpeta de los fondos de tablero.")
             End If
             ruta = ruta.Trim()
-            Return If(ruta.StartsWith("~/", StringComparison.Ordinal), HttpContext.Current.Server.MapPath(ruta), ruta)
+            If ruta.StartsWith("~/", StringComparison.Ordinal) Then Return HttpContext.Current.Server.MapPath(ruta)
+            ' Una ruta relativa (o el marcador [RUTA_CARPETA_FONDOS] sin sustituir) acabaría en la carpeta del proceso de IIS.
+            If Not Path.IsPathRooted(ruta) OrElse ruta.Contains("[") Then
+                Throw New ConfigurationErrorsException(
+                    "Configura '" & ClaveConfiguracion & "' en Web.config con una ruta absoluta (p. ej. D:\Datos\TaskManager\Fondos) o ~/App_Data/Fondos.")
+            End If
+            Return ruta
         End Function
 
         ''' <summary>

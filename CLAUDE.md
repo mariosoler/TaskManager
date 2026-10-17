@@ -136,8 +136,7 @@ Contenido de `connectionStrings.config` (local, **no versionar**):
 
 - Preferir autenticación integrada de Windows en local.
 - Si se necesita una plantilla para otros desarrolladores, versionar `connectionStrings.example.config` con valores ficticios, nunca el archivo real.
-- Los ajustes propios de cada servidor (p. ej. `RutaFondosTableros`) van en **`appSettings.config`** (opcional, local, excluido de git; plantilla `appSettings.example.config`), que `Web.config` lee con `<appSettings file="appSettings.config">` y que sustituye a sus valores por defecto.
-- **Publicación**: el objetivo `CrearConfiguracionAlPublicar` del `.vbproj` (tras `WebFileSystemPublish`) crea en la carpeta de destino `connectionStrings.config` y `appSettings.config` a partir de las plantillas solo si no existen, para no sobrescribir nunca los del servidor (el perfil debe tener `DeleteExistingFiles` = false). Pasos de despliegue en `README.md`.
+- **Publicación**: `Web.Release.config` escribe dentro del `Web.config` publicado la cadena de conexión y `RutaFondosTableros` con marcadores (`[SERVIDOR_SQL]`, `[RUTA_CARPETA_FONDOS]`) y explicaciones, para rellenarlos en el servidor. Solo marcadores: nunca datos ni contraseñas reales en `Web.Release.config`. Si se publica sin rellenarlos, `Db.CrearConexion` y `FondosTablero.Carpeta` lanzan un error que dice qué configurar. Cada publicación regenera el `Web.config` con los marcadores. Pasos de despliegue en `README.md`.
 - Leer la cadena siempre mediante `ConfigurationManager.ConnectionStrings("TaskManager")`; no codificarla en el código.
 - No eliminar entradas de seguridad del `.gitignore`.
 

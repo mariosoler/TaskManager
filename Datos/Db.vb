@@ -17,6 +17,11 @@ Namespace Datos
                 Throw New ConfigurationErrorsException(
                     "Falta la cadena de conexión 'TaskManager'. Copia connectionStrings.example.config como connectionStrings.config y rellénalo.")
             End If
+            ' Web.config publicado sin configurar (marcadores de Web.Release.config).
+            If cadena.ConnectionString.Contains("[SERVIDOR_SQL]") Then
+                Throw New ConfigurationErrorsException(
+                    "Configura la conexión a la base de datos: en Web.config, sustituye [SERVIDOR_SQL] por el servidor de SQL Server.")
+            End If
             Return New SqlConnection(cadena.ConnectionString)
         End Function
 

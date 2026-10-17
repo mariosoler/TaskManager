@@ -7,14 +7,14 @@ Gestor de tareas tipo Trello (tableros, listas y tarjetas) en ASP.NET Web Forms 
 1. **Base de datos.** En el SQL Server de destino, crear la base `TaskManager` y ejecutar `database/TaskManager.sql`.
    Si la base ya existía, ejecutar en orden las migraciones de `database/migraciones/` que falten
    (son idempotentes: se pueden repetir sin problema).
-2. **Publicar.** En Visual Studio: clic derecho en el proyecto → *Publicar* → perfil de carpeta.
-   La primera vez se crean en la carpeta de destino, a partir de las plantillas `*.example.config`:
-   - `connectionStrings.config` — conexión a la base de datos.
-   - `appSettings.config` — ajustes del servidor, como la carpeta de las imágenes de fondo (`RutaFondosTableros`).
+2. **Publicar.** En Visual Studio: clic derecho en el proyecto → *Publicar* → perfil de carpeta (configuración Release).
+   El `Web.config` publicado lleva dentro, con su explicación, dos marcadores para sustituir en el servidor:
+   - `[SERVIDOR_SQL]` en la cadena de conexión `TaskManager` (conexión a la base de datos).
+   - `[RUTA_CARPETA_FONDOS]` en `RutaFondosTableros` (carpeta de las imágenes de fondo que suben los usuarios).
 
-   Edítalos con los datos del servidor. En las siguientes publicaciones **no se sobrescriben**
-   (el perfil debe mantener *Eliminar los archivos existentes* desactivado). Al copiar a mano la carpeta
-   publicada a otro servidor, no sustituyas esos dos archivos si allí ya están configurados.
+   Si se olvida alguno, la aplicación muestra un error que indica qué falta. Cada publicación genera el `Web.config`
+   otra vez con los marcadores: al actualizar un servidor ya configurado, conserva su `Web.config` (no lo sustituyas
+   al copiar) o vuelve a poner los valores.
 3. **IIS.**
    - Grupo de aplicaciones con .NET CLR v4.0 y canalización integrada (requiere ASP.NET 4.8 instalado).
    - Enlace **HTTPS**: la cookie de sesión solo viaja por HTTPS, sin él no se puede iniciar sesión.
@@ -24,5 +24,5 @@ Gestor de tareas tipo Trello (tableros, listas y tarjetas) en ASP.NET Web Forms 
    - Dar a esa identidad permiso de **modificación** sobre la carpeta de fondos. Se recomienda una ruta absoluta
      fuera de la carpeta del sitio (p. ej. `D:\Datos\TaskManager\Fondos`) para no perder las imágenes al publicar.
 
-Los archivos `connectionStrings.config` y `appSettings.config` son locales: están excluidos de git y nunca se
-publican los del equipo de desarrollo. No guardes contraseñas en el repositorio.
+En desarrollo, la cadena de conexión está en `connectionStrings.config` (local, excluido de git; plantilla
+`connectionStrings.example.config`). No guardes contraseñas en el repositorio.

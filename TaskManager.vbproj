@@ -283,7 +283,6 @@
   <ItemGroup>
     <Folder Include="App_Data\" />
     <None Include="connectionStrings.example.config" />
-    <None Include="appSettings.example.config" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -334,21 +333,5 @@
       <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Use la restauración de paquetes NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props'))" />
-  </Target>
-  <!--
-    Publicación a carpeta: crea en el destino connectionStrings.config y appSettings.config a partir de las
-    plantillas *.example.config, SOLO si todavía no existen. Así la primera vez quedan listos para editar en el
-    servidor y en las siguientes publicaciones nunca se sobrescriben (requiere DeleteExistingFiles = false).
-    Los archivos locales de desarrollo no se publican nunca.
-  -->
-  <Target Name="CrearConfiguracionAlPublicar" AfterTargets="WebFileSystemPublish" Condition="'$(PublishUrl)' != ''">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\connectionStrings.example.config"
-          DestinationFiles="$(PublishUrl)\connectionStrings.config"
-          Condition="!Exists('$(PublishUrl)\connectionStrings.config')" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\appSettings.example.config"
-          DestinationFiles="$(PublishUrl)\appSettings.config"
-          Condition="!Exists('$(PublishUrl)\appSettings.config')" />
-    <Message Importance="high"
-             Text="Configuración del servidor: revisa connectionStrings.config (base de datos) y appSettings.config (carpeta de fondos) en $(PublishUrl)" />
   </Target>
 </Project>
