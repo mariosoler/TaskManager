@@ -123,6 +123,11 @@ Public Class TableroPagina
         Dim usuario As Integer
         If Integer.TryParse(ddlAsignado.SelectedValue, usuario) Then datos.AsignadoA = usuario
 
+        Dim valorPrioridad As Integer
+        If Integer.TryParse(ddlPrioridad.SelectedValue, valorPrioridad) AndAlso Prioridad.EsValida(valorPrioridad) Then
+            datos.Prioridad = valorPrioridad
+        End If
+
         datos.Descripcion = Texto(txtDescripcionTarjeta.Text, 20000).Replace(vbCrLf, vbLf)
         ' El código no se recorta: los espacios iniciales (sangría) son significativos.
         Dim codigo = If(txtCodigo.Text, "").Replace(vbCrLf, vbLf)
@@ -148,16 +153,42 @@ Public Class TableroPagina
         CerrarDetalle()
     End Sub
 
+    ' Envío del chat sin JavaScript (o si falla el envío por AJAX de Scripts/chat.js).
     Protected Sub btnComentar_Click(sender As Object, e As EventArgs) Handles btnComentar.Click
-        Dim comentario = Texto(txtComentario.Text, 4000)
-        If comentario.Length > 0 Then
-            ComentariosDatos.Crear(TarjetaAbiertaId, TableroId, UsuarioId, comentario)
+        Dim mensaje = Texto(txtComentario.Text, 2000)
+        If mensaje.Length > 0 Then
+            ComentariosDatos.Crear(TarjetaAbiertaId, TableroId, UsuarioId, mensaje)
             txtComentario.Text = ""
             CargarComentarios()
-            CargarActividad()
             CargarTablero()
         End If
     End Sub
+
+    ' ----- Chat (configuración para Scripts/chat.js) -----
+
+    Protected ReadOnly Property TokenChat As String
+        Get
+            Return TokenAntiCsrf.Generar(UsuarioId)
+        End Get
+    End Property
+
+    Protected ReadOnly Property TableroIdTexto As String
+        Get
+            Return TableroId.ToString(CultureInfo.InvariantCulture)
+        End Get
+    End Property
+
+    ''' <summary>Tarjeta cuyo chat está visible (0 si el detalle está cerrado o se está creando una tarjeta).</summary>
+    Protected ReadOnly Property TarjetaChatTexto As String
+        Get
+            Dim visible = pnlDetalle.Visible AndAlso phChat.Visible
+            Return If(visible, TarjetaAbiertaId, 0).ToString(CultureInfo.InvariantCulture)
+        End Get
+    End Property
+
+    Protected Function ClaseMensaje(autorId As Object) As String
+        Return If(TypeOf autorId Is Integer AndAlso CInt(autorId) = UsuarioId, "chat-mensaje propio", "chat-mensaje")
+    End Function
 
     Private Sub AbrirTarjeta(tarjetaId As Integer)
         Dim tarjeta = TarjetasDatos.Obtener(tarjetaId, TableroId)
@@ -191,13 +222,19 @@ Public Class TableroPagina
         litTituloModal.Text = If(esNueva, "Nueva tarjeta", "Detalle de la tarjeta")
         btnGuardarTarjeta.Text = If(esNueva, "Crear tarjeta", "Guardar")
         btnEliminarTarjeta.Visible = Not esNueva
-        phComentarios.Visible = Not esNueva
+        phHistorial.Visible = Not esNueva
+        phChat.Visible = Not esNueva
+        phChatNuevo.Visible = esNueva
 
         litDetalleLista.Text = tarjeta.NombreLista
         litFechasTarjeta.Text = ""
         txtCaso.Text = If(tarjeta.Caso, "")
         txtTituloTarjeta.Text = tarjeta.Titulo
         txtDescripcionTarjeta.Text = If(tarjeta.Descripcion, "")
+        ddlPrioridad.ClearSelection()
+        Dim opcionPrioridad = ddlPrioridad.Items.FindByValue(
+            If(tarjeta.Prioridad.HasValue, tarjeta.Prioridad.Value.ToString(CultureInfo.InvariantCulture), ""))
+        If opcionPrioridad IsNot Nothing Then opcionPrioridad.Selected = True
         txtFechaLimite.Text = If(tarjeta.FechaLimite.HasValue,
                                  tarjeta.FechaLimite.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "")
         txtCodigo.Text = If(tarjeta.Codigo, "")
@@ -303,6 +340,11 @@ Public Class TableroPagina
             Case HistorialTarjeta.CampoCodigo
                 Return Variante(antes, despues, "añadió código", "eliminó el código", "editó el código") &
                        Extracto(despues)
+            Case HistorialTarjeta.CampoPrioridad
+                Return Variante(antes, despues,
+                                "puso la prioridad " & Valor(despues),
+                                "quitó la prioridad " & Valor(antes),
+                                "cambió la prioridad de " & Valor(antes) & " a " & Valor(despues))
             Case Else
                 Return "editó " & HttpUtility.HtmlEncode(campo)
         End Select
@@ -464,6 +506,58 @@ Public Class TableroPagina
         Return PuedeGestionarMiembros AndAlso CStr(rol) <> Tablero.RolPropietario
     End Function
 
+    ' ----- Nombre y descripción del tablero (propietario o Admin) -----
+
+    Protected Sub btnGuardarNombre_Click(sender As Object, e As EventArgs) Handles btnGuardarNombre.Click
+        If Not PuedeGestionarMiembros OrElse Not IsValid Then Return
+        Dim nombre = Texto(txtNombreTablero.Text, 150)
+        If nombre.Length = 0 Then Return
+        Dim descripcion = Texto(txtDescripcionTablero.Text, 500)
+
+        If TablerosDatos.CambiarNombre(TableroId, nombre, descripcion, UsuarioId) Then
+            _tablero.Nombre = nombre
+            _tablero.Descripcion = If(descripcion.Length = 0, Nothing, descripcion)
+            Title = HttpUtility.HtmlEncode(nombre)
+            MostrarMensaje("Tablero actualizado.", False)
+        End If
+        CargarTablero()
+    End Sub
+
+    ' ----- Fondo del tablero (propietario o Admin) -----
+
+    Protected Sub btnSubirFondo_Click(sender As Object, e As EventArgs) Handles btnSubirFondo.Click
+        If Not PuedeGestionarMiembros Then Return
+        If Not fuFondo.HasFile Then
+            MostrarMensaje("Elige una imagen para el fondo.", True)
+        ElseIf fuFondo.PostedFile.ContentLength > FondosTablero.TamanoMaximo Then
+            MostrarMensaje("La imagen supera los 5 MB.", True)
+        Else
+            Dim nombre = FondosTablero.Guardar(TableroId, fuFondo.FileBytes)
+            If nombre Is Nothing Then
+                MostrarMensaje("El archivo no es una imagen JPG, PNG, GIF o WebP.", True)
+            Else
+                AplicarFondo(nombre)
+            End If
+        End If
+        CargarTablero()
+    End Sub
+
+    Protected Sub lnkQuitarFondo_Click(sender As Object, e As EventArgs) Handles lnkQuitarFondo.Click
+        If PuedeGestionarMiembros Then AplicarFondo(Nothing)
+        CargarTablero()
+    End Sub
+
+    ''' <summary>Guarda el nuevo fondo (o ninguno) y borra el archivo anterior.</summary>
+    Private Sub AplicarFondo(nombre As String)
+        Dim anterior = _tablero.Fondo
+        If TablerosDatos.CambiarFondo(TableroId, nombre, UsuarioId) Then
+            _tablero.Fondo = nombre
+            FondosTablero.Eliminar(anterior)
+        Else
+            FondosTablero.Eliminar(nombre)
+        End If
+    End Sub
+
     ' ----- Carga y formato -----
 
     Private Sub CargarTablero()
@@ -476,6 +570,19 @@ Public Class TableroPagina
         rptMiembros.DataSource = TablerosDatos.ListarMiembros(TableroId)
         rptMiembros.DataBind()
         pnlAgregarMiembro.Visible = PuedeGestionarMiembros
+        phFondo.Visible = PuedeGestionarMiembros
+        phEditarTablero.Visible = PuedeGestionarMiembros
+        txtNombreTablero.Text = _tablero.Nombre
+        txtDescripcionTablero.Text = If(_tablero.Descripcion, "")
+        lnkQuitarFondo.Visible = _tablero.Fondo IsNot Nothing
+    End Sub
+
+    ' El fondo se aplica en cada petición (también en los postbacks que no recargan el tablero).
+    Protected Overrides Sub OnPreRender(e As EventArgs)
+        MyBase.OnPreRender(e)
+        If _tablero Is Nothing OrElse _tablero.Fondo Is Nothing Then Return
+        pnlTablero.Style("background-image") = "url('" & FondosTablero.Url(TableroId, _tablero.Fondo) & "')"
+        pnlTablero.CssClass = "tablero-pagina con-fondo"
     End Sub
 
     Private Sub MostrarMensaje(mensaje As String, esError As Boolean)

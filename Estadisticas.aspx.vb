@@ -48,7 +48,7 @@ Public Class EstadisticasPagina
             New Object() {"Sin asignar", est.SinAsignar},
             New Object() {"Subtareas", est.SubtareasTotal},
             New Object() {"Subtareas completadas", est.SubtareasHechas},
-            New Object() {"Comentarios", est.Comentarios},
+            New Object() {"Mensajes de chat", est.Comentarios},
             New Object() {"Periodo de actividad (días)", est.Dias},
             New Object() {"Cambios en el periodo", est.TotalCambios}
         })

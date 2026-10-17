@@ -40,7 +40,7 @@
                 </span>
             </div>
             <div class="kpi">
-                <span class="kpi-etiqueta">Comentarios</span>
+                <span class="kpi-etiqueta">Mensajes de chat</span>
                 <span class="kpi-valor"><asp:Literal ID="litComentarios" runat="server" /></span>
             </div>
         </div>

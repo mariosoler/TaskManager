@@ -6,12 +6,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TaskManager</title>
+    <link runat="server" rel="icon" type="image/svg+xml" href="~/Content/logo.svg" />
     <link id="lnkEstilos" runat="server" rel="stylesheet" />
 </head>
 <body>
     <form id="form1" runat="server">
         <header class="barra">
-            <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo">&#9638; TaskManager</a>
+            <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo"><img runat="server" src="~/Content/logo.svg" alt="" class="logo-icono" /><span class="logo-texto">Task<span>Manager</span></span></a>
             <asp:PlaceHolder ID="phNavegacion" runat="server" Visible="false">
                 <nav class="barra-nav">
                     <a runat="server" href="~/Tableros.aspx">Tableros</a>

@@ -2,6 +2,10 @@
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">
     <asp:Panel ID="pnlRegistro" runat="server" CssClass="tarjeta-acceso" DefaultButton="btnRegistrar">
+        <div class="acceso-marca">
+            <img src="Content/logo.svg" alt="" class="acceso-logo" />
+            <span class="logo-texto">Task<span>Manager</span></span>
+        </div>
         <h1>Crear cuenta</h1>
 
         <asp:Label ID="lblError" runat="server" CssClass="mensaje mensaje-error" Visible="false" EnableViewState="false" />

@@ -25,6 +25,16 @@ Namespace Utilidades
                                  clase, fecha.ToString("d MMM", CultureInfo.CurrentCulture))
         End Function
 
+        ''' <summary>Etiqueta HTML de prioridad: color + texto (el color nunca va solo). Vacía si no tiene.</summary>
+        Public Shared Function HtmlPrioridad(valor As Object) As String
+            If Not TypeOf valor Is Integer Then Return ""
+            Dim p = CInt(valor)
+            Dim nombre = Models.Prioridad.Nombre(p)
+            If nombre Is Nothing Then Return ""
+            Return String.Format(CultureInfo.InvariantCulture, "<span class=""etiqueta-prioridad {0}"" title=""Prioridad {1}"">{2}</span>",
+                                 Models.Prioridad.ClaseCss(p), nombre.ToLowerInvariant(), nombre)
+        End Function
+
         ''' <summary>Convierte una fecha guardada en UTC a la hora local del servidor.</summary>
         Public Shared Function FechaLocal(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""

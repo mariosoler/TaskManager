@@ -2,6 +2,10 @@
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">
     <asp:Panel ID="pnlLogin" runat="server" CssClass="tarjeta-acceso" DefaultButton="btnEntrar">
+        <div class="acceso-marca">
+            <img src="Content/logo.svg" alt="" class="acceso-logo" />
+            <span class="logo-texto">Task<span>Manager</span></span>
+        </div>
         <h1>Iniciar sesión</h1>
         <p class="subtitulo">Organiza tus tareas en tableros, listas y tarjetas.</p>
 

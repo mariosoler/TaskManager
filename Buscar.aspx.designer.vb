@@ -23,6 +23,8 @@ Partial Public Class BuscarPagina
 
     Protected WithEvents ddlEstadoFecha As Global.System.Web.UI.WebControls.DropDownList
 
+    Protected WithEvents ddlPrioridad As Global.System.Web.UI.WebControls.DropDownList
+
     Protected WithEvents btnBuscar As Global.System.Web.UI.WebControls.Button
 
     Protected WithEvents btnLimpiar As Global.System.Web.UI.WebControls.Button
@@ -70,4 +72,18 @@ Partial Public Class BuscarPagina
     Protected WithEvents rptResultados As Global.System.Web.UI.WebControls.Repeater
 
     Protected WithEvents phSinResultados As Global.System.Web.UI.WebControls.PlaceHolder
+
+    Protected WithEvents lblMensaje As Global.System.Web.UI.WebControls.Label
+
+    Protected WithEvents rptGuardadas As Global.System.Web.UI.WebControls.Repeater
+
+    Protected WithEvents pnlGuardarBusqueda As Global.System.Web.UI.WebControls.Panel
+
+    Protected WithEvents txtNombreBusqueda As Global.System.Web.UI.WebControls.TextBox
+
+    Protected WithEvents rfvNombreBusqueda As Global.System.Web.UI.WebControls.RequiredFieldValidator
+
+    Protected WithEvents chkCompartirBusqueda As Global.System.Web.UI.WebControls.CheckBox
+
+    Protected WithEvents btnGuardarBusqueda As Global.System.Web.UI.WebControls.Button
 End Class

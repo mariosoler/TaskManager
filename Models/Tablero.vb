@@ -11,6 +11,9 @@ Namespace Models
         Public Property PropietarioId As Integer
         Public Property FechaCreacion As DateTime
 
+        ''' <summary>Nombre del archivo de fondo (en la carpeta RutaFondosTableros); Nothing = color por defecto.</summary>
+        Public Property Fondo As String
+
         ''' <summary>Rol del usuario actual en el tablero (Propietario / Admin / Miembro).</summary>
         Public Property Rol As String
     End Class

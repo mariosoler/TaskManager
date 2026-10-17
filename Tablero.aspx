@@ -2,6 +2,7 @@
 <%@ Import Namespace="TaskManager.Utilidades" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">
+  <asp:Panel ID="pnlTablero" runat="server" CssClass="tablero-pagina">
     <div class="tablero-cabecera">
         <div>
             <a href="Tableros.aspx" class="volver">&larr; Mis tableros</a>
@@ -10,6 +11,35 @@
             <div class="tablero-enlaces">
                 <a id="lnkBuscarTablero" runat="server">&#128269; Buscar en este tablero</a>
                 <a id="lnkEstadisticas" runat="server">&#128202; Estadísticas</a>
+                <asp:PlaceHolder ID="phEditarTablero" runat="server">
+                    <details class="tablero-fondo">
+                        <summary>&#9998; Editar</summary>
+                        <asp:Panel ID="pnlEditarTablero" runat="server" CssClass="tablero-fondo-panel" DefaultButton="btnGuardarNombre">
+                            <asp:Label runat="server" AssociatedControlID="txtNombreTablero" Text="Nombre" />
+                            <asp:TextBox ID="txtNombreTablero" runat="server" MaxLength="150" />
+                            <asp:RequiredFieldValidator ID="rfvNombreTablero" runat="server" ControlToValidate="txtNombreTablero"
+                                ValidationGroup="EditarTablero" ErrorMessage="Escribe un nombre." Display="Dynamic" CssClass="validacion" />
+                            <asp:Label runat="server" AssociatedControlID="txtDescripcionTablero" Text="Descripción" />
+                            <asp:TextBox ID="txtDescripcionTablero" runat="server" MaxLength="500" TextMode="MultiLine" Rows="2" />
+                            <div class="form-linea">
+                                <asp:Button ID="btnGuardarNombre" runat="server" Text="Guardar" CssClass="boton" ValidationGroup="EditarTablero" />
+                            </div>
+                        </asp:Panel>
+                    </details>
+                </asp:PlaceHolder>
+                <asp:PlaceHolder ID="phFondo" runat="server">
+                    <details class="tablero-fondo">
+                        <summary>&#128444; Fondo</summary>
+                        <div class="tablero-fondo-panel">
+                            <asp:FileUpload ID="fuFondo" runat="server" accept="image/jpeg,image/png,image/gif,image/webp" />
+                            <small>JPG, PNG, GIF o WebP. Máximo 5 MB.</small>
+                            <div class="form-linea">
+                                <asp:Button ID="btnSubirFondo" runat="server" Text="Aplicar" CssClass="boton" CausesValidation="false" />
+                                <asp:LinkButton ID="lnkQuitarFondo" runat="server" CssClass="boton boton-claro" CausesValidation="false">Quitar fondo</asp:LinkButton>
+                            </div>
+                        </div>
+                    </details>
+                </asp:PlaceHolder>
             </div>
         </div>
 
@@ -56,7 +86,7 @@
                     <div class="tarjetas" data-lista-id='<%# Eval("Id") %>'>
                         <asp:Repeater ID="rptTarjetas" runat="server" DataSource='<%# Eval("Tarjetas") %>'>
                             <ItemTemplate>
-                                <article class="tarjeta" draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'>
+                                <article class='<%# "tarjeta " & TaskManager.Models.Prioridad.ClaseCss(CType(Eval("Prioridad"), Integer?)) %>' draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'>
                                     <span class="tarjeta-titulo">
                                         <asp:PlaceHolder runat="server" Visible='<%# Eval("Caso") IsNot Nothing %>'>
                                             <span class="tarjeta-caso" title="Caso">#<%#: Eval("Caso") %></span>
@@ -64,6 +94,7 @@
                                         <%#: Eval("Titulo") %>
                                     </span>
                                     <span class="tarjeta-info">
+                                        <%# Formato.HtmlPrioridad(Eval("Prioridad")) %>
                                         <%# Formato.HtmlFechaLimite(Eval("FechaLimite")) %>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("SubtareasTotal")) > 0 %>'>
                                             <span class='<%# If(CInt(Eval("SubtareasHechas")) = CInt(Eval("SubtareasTotal")), "info info-subtareas completas", "info info-subtareas") %>'
@@ -74,7 +105,7 @@
                                         </asp:PlaceHolder>
                                         <span class="info info-modificada" title='<%#: TextoModificacion(Eval("FechaModificacion"), Eval("NombreModificador")) %>'>&#9998; <%#: Formato.FechaCorta(Eval("FechaModificacion")) %></span>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumComentarios")) > 0 %>'>
-                                            <span class="info" title="Comentarios">&#128172; <%# Eval("NumComentarios") %></span>
+                                            <span class="info" title="Mensajes de chat">&#128172; <%# Eval("NumComentarios") %></span>
                                         </asp:PlaceHolder>
                                         <asp:PlaceHolder runat="server" Visible='<%# Eval("NombreAsignado") IsNot Nothing %>'>
                                             <span class="avatar avatar-pequeno" title='<%#: Eval("NombreAsignado") %>'><%#: Formato.Iniciales(Eval("NombreAsignado")) %></span>
@@ -104,8 +135,11 @@
     <asp:LinkButton ID="lnkMoverTarjeta" runat="server" CssClass="oculto" CausesValidation="false" />
     <asp:LinkButton ID="lnkAbrirTarjeta" runat="server" CssClass="oculto" CausesValidation="false" />
 
+  </asp:Panel>
+
     <asp:Panel ID="pnlDetalle" runat="server" Visible="false" CssClass="modal-fondo" DefaultButton="btnGuardarTarjeta">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloDetalle">
+        <div class="modal modal-con-chat" role="dialog" aria-modal="true" aria-labelledby="tituloDetalle">
+          <div class="modal-principal">
             <div class="modal-cabecera">
                 <h2 id="tituloDetalle"><asp:Literal ID="litTituloModal" runat="server" /></h2>
                 <asp:LinkButton ID="btnCerrarDetalle" runat="server" CssClass="modal-cerrar" ToolTip="Cerrar (Esc)" CausesValidation="false">&times;</asp:LinkButton>
@@ -134,6 +168,15 @@
             </div>
 
             <div class="campos-fila">
+                <div class="campo">
+                    <asp:Label runat="server" AssociatedControlID="ddlPrioridad" Text="Prioridad" />
+                    <asp:DropDownList ID="ddlPrioridad" runat="server">
+                        <asp:ListItem Value="" Text="Sin prioridad" />
+                        <asp:ListItem Value="1" Text="Alta" />
+                        <asp:ListItem Value="2" Text="Media" />
+                        <asp:ListItem Value="3" Text="Baja" />
+                    </asp:DropDownList>
+                </div>
                 <div class="campo">
                     <asp:Label runat="server" AssociatedControlID="txtFechaLimite" Text="Fecha límite" />
                     <asp:TextBox ID="txtFechaLimite" runat="server" TextMode="Date" />
@@ -196,30 +239,12 @@
 
             <div class="modal-acciones">
                 <asp:Button ID="btnGuardarTarjeta" runat="server" Text="Guardar" CssClass="boton" ValidationGroup="Detalle" />
-                <asp:Button ID="btnEliminarTarjeta" runat="server" Text="Eliminar tarjeta" CssClass="boton boton-peligro" CausesValidation="false"
+                <asp:Button ID="btnEliminarTarjeta" runat="server" Text="Eliminar tarea" CssClass="boton boton-peligro" CausesValidation="false"
                     OnClientClick="return confirm('¿Eliminar esta tarjeta?');" />
             </div>
 
             <%-- Solo al editar una tarjeta existente --%>
-            <asp:PlaceHolder ID="phComentarios" runat="server">
-            <h3>Comentarios</h3>
-            <div class="nuevo-comentario">
-                <asp:TextBox ID="txtComentario" runat="server" TextMode="MultiLine" Rows="2" placeholder="Escribe un comentario…" />
-                <asp:Button ID="btnComentar" runat="server" Text="Comentar" CssClass="boton boton-claro" CausesValidation="false" />
-            </div>
-            <asp:Repeater ID="rptComentarios" runat="server">
-                <ItemTemplate>
-                    <div class="comentario">
-                        <div class="comentario-cabecera">
-                            <span class="avatar avatar-pequeno"><%#: Formato.Iniciales(Eval("NombreUsuario")) %></span>
-                            <strong><%#: Eval("NombreUsuario") %></strong>
-                            <span class="fecha"><%#: Formato.FechaLocal(Eval("Fecha")) %></span>
-                        </div>
-                        <p><%#: Eval("Texto") %></p>
-                    </div>
-                </ItemTemplate>
-            </asp:Repeater>
-
+            <asp:PlaceHolder ID="phHistorial" runat="server">
             <details class="historial" open="open">
                 <summary><h3>Historial de cambios <span class="seccion-nota"><asp:Literal ID="litNumCambios" runat="server" /></span></h3></summary>
                 <asp:Repeater ID="rptHistorial" runat="server">
@@ -239,6 +264,40 @@
                 </asp:Repeater>
             </details>
             </asp:PlaceHolder>
+          </div>
+
+          <%-- Chat de la tarjeta: envío y actualización sin recargar en Scripts/chat.js (Chat.ashx). --%>
+          <aside class="chat" aria-label="Chat de la tarjeta">
+            <div class="chat-cabecera">
+                <h3>Chat</h3>
+                <span class="seccion-nota" id="chatContador"></span>
+            </div>
+            <asp:PlaceHolder ID="phChat" runat="server">
+                <div class="chat-mensajes" id="chatMensajes" aria-live="polite">
+                    <p class="chat-vacio">Todavía no hay mensajes. ¡Escribe el primero!</p>
+                    <asp:Repeater ID="rptComentarios" runat="server">
+                        <ItemTemplate>
+                            <div class='<%# ClaseMensaje(Eval("UsuarioId")) %>' data-id='<%# Eval("Id") %>'>
+                                <span class="avatar avatar-pequeno" title='<%#: Eval("NombreUsuario") %>'><%#: Formato.Iniciales(Eval("NombreUsuario")) %></span>
+                                <div class="chat-burbuja">
+                                    <div class="chat-meta"><strong><%#: Eval("NombreUsuario") %></strong> <span class="fecha"><%#: Formato.FechaLocal(Eval("Fecha")) %></span></div>
+                                    <p><%#: Eval("Texto") %></p>
+                                </div>
+                            </div>
+                        </ItemTemplate>
+                    </asp:Repeater>
+                </div>
+                <p class="chat-aviso" id="chatAviso" hidden="hidden"></p>
+                <div class="chat-escribir">
+                    <asp:TextBox ID="txtComentario" runat="server" TextMode="MultiLine" Rows="2" MaxLength="2000" placeholder="Escribe un mensaje…" aria-label="Mensaje" />
+                    <asp:Button ID="btnComentar" runat="server" Text="Enviar" CssClass="boton" CausesValidation="false" />
+                </div>
+                <p class="chat-ayuda">Enter para enviar · Mayús+Enter para saltar de línea</p>
+            </asp:PlaceHolder>
+            <asp:PlaceHolder ID="phChatNuevo" runat="server" Visible="false">
+                <p class="chat-vacio">El chat estará disponible cuando crees la tarjeta.</p>
+            </asp:PlaceHolder>
+          </aside>
         </div>
     </asp:Panel>
 </asp:Content>
@@ -256,4 +315,15 @@
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
+    <script>
+        window.TaskManagerChat = {
+            url: '<%= ResolveUrl("~/Chat.ashx") %>',
+            token: '<%= TokenChat %>',
+            tablero: <%= TableroIdTexto %>,
+            tarjeta: <%= TarjetaChatTexto %>,
+            texto: '<%= txtComentario.ClientID %>',
+            boton: '<%= btnComentar.ClientID %>'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/chat.js") %>"></script>
 </asp:Content>

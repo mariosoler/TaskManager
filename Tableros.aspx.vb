@@ -1,6 +1,7 @@
 Imports System.Globalization
 Imports TaskManager.Datos
 Imports TaskManager.Seguridad
+Imports TaskManager.Utilidades
 
 Public Class TablerosPagina
     Inherits PaginaBase
@@ -22,7 +23,10 @@ Public Class TablerosPagina
     Protected Sub rptTableros_ItemCommand(source As Object, e As RepeaterCommandEventArgs) Handles rptTableros.ItemCommand
         Dim tableroId As Integer
         If e.CommandName = "Eliminar" AndAlso Integer.TryParse(CStr(e.CommandArgument), tableroId) Then
-            If Not TablerosDatos.Eliminar(tableroId, UsuarioId) Then
+            Dim tablero = TablerosDatos.Obtener(tableroId, UsuarioId)
+            If TablerosDatos.Eliminar(tableroId, UsuarioId) Then
+                FondosTablero.Eliminar(tablero?.Fondo)
+            Else
                 lblMensaje.Text = "Solo el propietario puede eliminar el tablero."
                 lblMensaje.Visible = True
             End If

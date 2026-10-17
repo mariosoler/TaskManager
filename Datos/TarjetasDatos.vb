@@ -15,7 +15,7 @@ Namespace Datos
         ' Columnas que lee LeerTarjeta. No incluye Codigo (NVARCHAR(MAX)): en listados basta con TieneCodigo.
         Friend Const SqlColumnasTarjeta As String = "
        c.Id, c.ListaId, l.Titulo AS NombreLista, c.Titulo, c.Descripcion, c.Posicion, c.FechaLimite,
-       c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.Caso,
+       c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.Caso, CAST(c.Prioridad AS INT) AS Prioridad,
        c.FechaModificacion, um.Nombre AS NombreModificador,
        CAST(CASE WHEN c.Codigo IS NULL OR c.Codigo = N'' THEN 0 ELSE 1 END AS BIT) AS TieneCodigo,
        (SELECT COUNT(*) FROM Comentarios co WHERE co.TarjetaId = c.Id) AS NumComentarios,
@@ -65,11 +65,11 @@ SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;"
                                 usuarioId As Integer)
             Dim sql = "
 DECLARE @Nueva TABLE (Id INT);
-INSERT INTO Tarjetas (ListaId, Titulo, Descripcion, Posicion, FechaLimite, AsignadoA, Caso, Codigo)
+INSERT INTO Tarjetas (ListaId, Titulo, Descripcion, Posicion, FechaLimite, AsignadoA, Caso, Codigo, Prioridad)
 OUTPUT INSERTED.Id INTO @Nueva
 SELECT l.Id, @Titulo, @Descripcion,
        ISNULL((SELECT MAX(Posicion) + 1 FROM Tarjetas WHERE ListaId = l.Id), 0),
-       @FechaLimite," & SqlAsignadoValido & ", @Caso, @Codigo
+       @FechaLimite," & SqlAsignadoValido & ", @Caso, @Codigo, @Prioridad
 FROM Listas l
 WHERE l.Id = @ListaId AND l.TableroId = @TableroId;
 SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
@@ -108,7 +108,8 @@ SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
         ''' </summary>
         Public Shared Sub Actualizar(tarjetaId As Integer, tableroId As Integer, datos As Tarjeta, usuarioId As Integer)
             Const sqlActual = "
-SELECT c.Titulo, c.Descripcion, c.FechaLimite, c.AsignadoA, u.Nombre AS NombreAsignado, c.Caso, c.Codigo
+SELECT c.Titulo, c.Descripcion, c.FechaLimite, c.AsignadoA, u.Nombre AS NombreAsignado, c.Caso, c.Codigo,
+       CAST(c.Prioridad AS INT) AS Prioridad
 FROM Tarjetas c WITH (UPDLOCK)
 JOIN Listas l ON l.Id = c.ListaId
 LEFT JOIN Usuarios u ON u.Id = c.AsignadoA
@@ -121,6 +122,7 @@ UPDATE c SET
     FechaLimite = @FechaLimite,
     Caso = @Caso,
     Codigo = @Codigo,
+    Prioridad = @Prioridad,
     AsignadoA =" & SqlAsignadoValido & "
 FROM Tarjetas c
 JOIN Listas l ON l.Id = c.ListaId
@@ -143,7 +145,8 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
                                 .AsignadoA = Db.Entero(rd, "AsignadoA"),
                                 .NombreAsignado = Db.Texto(rd, "NombreAsignado"),
                                 .Caso = Db.Texto(rd, "Caso"),
-                                .Codigo = Db.Texto(rd, "Codigo")
+                                .Codigo = Db.Texto(rd, "Codigo"),
+                                .Prioridad = Db.Entero(rd, "Prioridad")
                             }
                         End Using
                     End Using
@@ -151,7 +154,7 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
                     ' El asignado final puede diferir del pedido (si no tiene acceso se guarda NULL).
                     Dim despues = New Tarjeta With {
                         .Titulo = datos.Titulo, .Descripcion = datos.Descripcion, .FechaLimite = datos.FechaLimite,
-                        .Caso = datos.Caso, .Codigo = datos.Codigo
+                        .Caso = datos.Caso, .Codigo = datos.Codigo, .Prioridad = datos.Prioridad
                     }
                     Using cmd As New SqlCommand(sqlActualizar, cn, tx)
                         cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
@@ -183,6 +186,8 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
 
             comparar(HistorialTarjeta.CampoTitulo, antes.Titulo, despues.Titulo, antes.Titulo, despues.Titulo)
             comparar(HistorialTarjeta.CampoCaso, antes.Caso, despues.Caso, antes.Caso, despues.Caso)
+            comparar(HistorialTarjeta.CampoPrioridad, Prioridad.Nombre(antes.Prioridad), Prioridad.Nombre(despues.Prioridad),
+                     Prioridad.Nombre(antes.Prioridad), Prioridad.Nombre(despues.Prioridad))
             comparar(HistorialTarjeta.CampoDescripcion, antes.Descripcion, despues.Descripcion,
                      HistorialDatos.Extracto(antes.Descripcion), HistorialDatos.Extracto(despues.Descripcion))
             comparar(HistorialTarjeta.CampoFechaLimite, FechaIso(antes.FechaLimite), FechaIso(despues.FechaLimite),
@@ -207,6 +212,8 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
             cmd.Parameters.Add("@AsignadoA", SqlDbType.Int).Value = Db.ONulo(datos.AsignadoA)
             cmd.Parameters.Add("@Caso", SqlDbType.NVarChar, 20).Value = Db.ONulo(datos.Caso)
             cmd.Parameters.Add("@Codigo", SqlDbType.NVarChar, -1).Value = Db.ONulo(datos.Codigo)
+            cmd.Parameters.Add("@Prioridad", SqlDbType.TinyInt).Value =
+                If(datos.Prioridad.HasValue AndAlso Prioridad.EsValida(datos.Prioridad.Value), CObj(CByte(datos.Prioridad.Value)), DBNull.Value)
         End Sub
 
         Public Shared Sub Eliminar(tarjetaId As Integer, tableroId As Integer)
@@ -294,6 +301,7 @@ SELECT (SELECT Titulo FROM Listas WHERE Id = @Origen) AS Origen,
                 .NombreAsignado = Db.Texto(rd, "NombreAsignado"),
                 .FechaCreacion = rd.GetDateTime(rd.GetOrdinal("FechaCreacion")),
                 .Caso = Db.Texto(rd, "Caso"),
+                .Prioridad = Db.Entero(rd, "Prioridad"),
                 .TieneCodigo = rd.GetBoolean(rd.GetOrdinal("TieneCodigo")),
                 .NumComentarios = rd.GetInt32(rd.GetOrdinal("NumComentarios")),
                 .SubtareasTotal = rd.GetInt32(rd.GetOrdinal("SubtareasTotal")),

@@ -13,6 +13,9 @@ Namespace Models
         Public Property NumComentarios As Integer
         Public Property FechaCreacion As DateTime
 
+        ''' <summary>1 = Alta, 2 = Media, 3 = Baja (ver Models.Prioridad) o Nothing.</summary>
+        Public Property Prioridad As Integer?
+
         ''' <summary>Número de caso (solo dígitos) o Nothing.</summary>
         Public Property Caso As String
 

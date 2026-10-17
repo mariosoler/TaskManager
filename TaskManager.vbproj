@@ -95,11 +95,17 @@
   <ItemGroup>
     <Content Include="Content\site.css" />
     <Content Include="Buscar.aspx" />
+    <Content Include="Chat.ashx" />
+    <Content Include="Content\logo.svg" />
+    <Content Include="Content\fuentes\outfit.woff2" />
+    <Content Include="Content\fuentes\Outfit-OFL.txt" />
+    <Content Include="Fondo.ashx" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
     <Content Include="Global.asax" />
     <Content Include="Login.aspx" />
     <Content Include="Registro.aspx" />
+    <Content Include="Scripts\chat.js" />
     <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
     <Content Include="Scripts\tablero.js" />
@@ -123,7 +129,14 @@
       <DependentUpon>Buscar.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Chat.ashx.vb">
+      <DependentUpon>Chat.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Fondo.ashx.vb">
+      <DependentUpon>Fondo.ashx</DependentUpon>
+    </Compile>
     <Compile Include="Datos\BusquedaDatos.vb" />
+    <Compile Include="Datos\BusquedasGuardadasDatos.vb" />
     <Compile Include="Datos\ComentariosDatos.vb" />
     <Compile Include="Datos\Db.vb" />
     <Compile Include="Datos\EstadisticasDatos.vb" />
@@ -147,12 +160,14 @@
       <DependentUpon>Login.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Models\BusquedaGuardada.vb" />
     <Compile Include="Models\Comentario.vb" />
     <Compile Include="Models\Estadisticas.vb" />
     <Compile Include="Models\FiltroBusqueda.vb" />
     <Compile Include="Models\HistorialTarjeta.vb" />
     <Compile Include="Models\Lista.vb" />
     <Compile Include="Models\Miembro.vb" />
+    <Compile Include="Models\Prioridad.vb" />
     <Compile Include="Models\Subtarea.vb" />
     <Compile Include="Models\Tablero.vb" />
     <Compile Include="Models\Tarjeta.vb" />
@@ -165,8 +180,11 @@
       <SubType>ASPXCodebehind</SubType>
     </Compile>
     <Compile Include="Seguridad\Autenticacion.vb" />
-    <Compile Include="Seguridad\PaginaBase.vb" />
+    <Compile Include="Seguridad\PaginaBase.vb">
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
     <Compile Include="Seguridad\PasswordHasher.vb" />
+    <Compile Include="Seguridad\TokenAntiCsrf.vb" />
     <Compile Include="Site.Master.designer.vb">
       <DependentUpon>Site.Master</DependentUpon>
     </Compile>
@@ -189,6 +207,7 @@
       <SubType>ASPXCodebehind</SubType>
     </Compile>
     <Compile Include="Utilidades\ExportacionExcel.vb" />
+    <Compile Include="Utilidades\FondosTablero.vb" />
     <Compile Include="Utilidades\Formato.vb" />
     <Compile Include="Utilidades\LibroExcel.vb" />
     <Compile Include="Global.asax.vb">

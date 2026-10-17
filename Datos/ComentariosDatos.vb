@@ -3,26 +3,34 @@ Imports TaskManager.Models
 
 Namespace Datos
 
+    ''' <summary>
+    ''' Mensajes del chat de cada tarjeta (tabla Comentarios). No se registran en el historial
+    ''' ni cambian la fecha de modificación: son conversación, no cambios de la tarjeta.
+    ''' </summary>
     Public NotInheritable Class ComentariosDatos
 
         Private Sub New()
         End Sub
 
-        ''' <summary>Comentarios de la tarjeta (más recientes primero), si pertenece al tablero.</summary>
-        Public Shared Function Listar(tarjetaId As Integer, tableroId As Integer) As List(Of Comentario)
+        ''' <summary>
+        ''' Mensajes de la tarjeta en orden cronológico (si pertenece al tablero).
+        ''' Con <paramref name="desdeId"/> solo devuelve los posteriores a ese mensaje (sondeo del chat).
+        ''' </summary>
+        Public Shared Function Listar(tarjetaId As Integer, tableroId As Integer, Optional desdeId As Integer = 0) As List(Of Comentario)
             Const sql = "
 SELECT co.Id, co.TarjetaId, co.UsuarioId, u.Nombre AS NombreUsuario, co.Texto, co.Fecha
 FROM Comentarios co
 JOIN Usuarios u ON u.Id = co.UsuarioId
 JOIN Tarjetas c ON c.Id = co.TarjetaId
 JOIN Listas l ON l.Id = c.ListaId
-WHERE co.TarjetaId = @TarjetaId AND l.TableroId = @TableroId
-ORDER BY co.Fecha DESC, co.Id DESC"
+WHERE co.TarjetaId = @TarjetaId AND l.TableroId = @TableroId AND co.Id > @DesdeId
+ORDER BY co.Id"
 
             Dim comentarios As New List(Of Comentario)
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@DesdeId", SqlDbType.Int).Value = desdeId
                 cn.Open()
                 Using rd = cmd.ExecuteReader()
                     While rd.Read()
@@ -40,7 +48,8 @@ ORDER BY co.Fecha DESC, co.Id DESC"
             Return comentarios
         End Function
 
-        Public Shared Sub Crear(tarjetaId As Integer, tableroId As Integer, usuarioId As Integer, texto As String)
+        ''' <summary>Publica un mensaje y devuelve su Id, o Nothing si la tarjeta no pertenece al tablero.</summary>
+        Public Shared Function Crear(tarjetaId As Integer, tableroId As Integer, usuarioId As Integer, texto As String) As Integer?
             Const sql = "
 INSERT INTO Comentarios (TarjetaId, UsuarioId, Texto)
 OUTPUT INSERTED.Id
@@ -48,22 +57,16 @@ SELECT c.Id, @UsuarioId, @Texto
 FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
 WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId"
 
-            Using cn = Db.CrearConexion()
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, -1).Value = texto
                 cn.Open()
-                Using tx = cn.BeginTransaction()
-                    Using cmd As New SqlCommand(sql, cn, tx)
-                        cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
-                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
-                        cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
-                        cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, -1).Value = texto
-                        If cmd.ExecuteScalar() Is Nothing Then Return
-                    End Using
-                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
-                                             HistorialTarjeta.Nuevo(HistorialTarjeta.Comentada, valorNuevo:=HistorialDatos.Extracto(texto)))
-                    tx.Commit()
-                End Using
+                Dim id = cmd.ExecuteScalar()
+                Return If(id Is Nothing, CType(Nothing, Integer?), CInt(id))
             End Using
-        End Sub
+        End Function
 
     End Class
 

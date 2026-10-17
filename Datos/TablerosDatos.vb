@@ -16,7 +16,7 @@ Namespace Datos
 
         ' Tableros a los que tiene acceso @UsuarioId (propietario o miembro), con su rol.
         Private Const SqlTablerosDeUsuario As String = "
-SELECT t.Id, t.Nombre, t.Descripcion, t.PropietarioId, t.FechaCreacion,
+SELECT t.Id, t.Nombre, t.Descripcion, t.PropietarioId, t.FechaCreacion, t.Fondo,
        CASE WHEN t.PropietarioId = @UsuarioId THEN N'Propietario' ELSE m.Rol END AS Rol
 FROM Tableros t
 LEFT JOIN MiembrosTablero m ON m.TableroId = t.Id AND m.UsuarioId = @UsuarioId
@@ -81,6 +81,46 @@ SELECT @Id;"
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cmd.Parameters.Add("@PropietarioId", SqlDbType.Int).Value = propietarioId
+                cn.Open()
+                Return cmd.ExecuteNonQuery() > 0
+            End Using
+        End Function
+
+        ''' <summary>Cambia el nombre y la descripción del tablero. Solo propietario o Admin; devuelve True si se cambió.</summary>
+        Public Shared Function CambiarNombre(tableroId As Integer, nombre As String, descripcion As String, usuarioId As Integer) As Boolean
+            Const sql = "
+UPDATE t SET Nombre = @Nombre, Descripcion = @Descripcion
+FROM Tableros t
+WHERE t.Id = @TableroId
+  AND (t.PropietarioId = @UsuarioId
+       OR EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = t.Id AND m.UsuarioId = @UsuarioId AND m.Rol = N'Admin'))"
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, 150).Value = nombre
+                cmd.Parameters.Add("@Descripcion", SqlDbType.NVarChar, 500).Value = Db.ONulo(descripcion)
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cn.Open()
+                Return cmd.ExecuteNonQuery() > 0
+            End Using
+        End Function
+
+        ''' <summary>
+        ''' Cambia el fondo del tablero (Nothing = quitarlo). Solo propietario o Admin.
+        ''' Devuelve True si se cambió; el archivo anterior lo borra quien llama.
+        ''' </summary>
+        Public Shared Function CambiarFondo(tableroId As Integer, fondo As String, usuarioId As Integer) As Boolean
+            Const sql = "
+UPDATE t SET Fondo = @Fondo
+FROM Tableros t
+WHERE t.Id = @TableroId
+  AND (t.PropietarioId = @UsuarioId
+       OR EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = t.Id AND m.UsuarioId = @UsuarioId AND m.Rol = N'Admin'))"
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@Fondo", SqlDbType.NVarChar, 100).Value = Db.ONulo(fondo)
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
                 cn.Open()
                 Return cmd.ExecuteNonQuery() > 0
             End Using
@@ -185,6 +225,7 @@ COMMIT;"
                 .Descripcion = Db.Texto(rd, "Descripcion"),
                 .PropietarioId = rd.GetInt32(rd.GetOrdinal("PropietarioId")),
                 .FechaCreacion = rd.GetDateTime(rd.GetOrdinal("FechaCreacion")),
+                .Fondo = Db.Texto(rd, "Fondo"),
                 .Rol = rd.GetString(rd.GetOrdinal("Rol"))
             }
         End Function

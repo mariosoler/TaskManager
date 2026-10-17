@@ -5,6 +5,33 @@
     <div class="pagina pagina-ancha">
         <h1>Buscar tareas</h1>
 
+        <asp:Label ID="lblMensaje" runat="server" CssClass="mensaje" Visible="false" EnableViewState="false" />
+
+        <asp:Repeater ID="rptGuardadas" runat="server">
+            <HeaderTemplate>
+                <div class="guardadas">
+                    <span class="guardadas-titulo">Búsquedas guardadas:</span>
+            </HeaderTemplate>
+            <ItemTemplate>
+                    <span class='<%# "guardada" & If(CInt(Eval("Id")) = BusquedaActivaId, " activa", "") & If(CBool(Eval("EsPropia")), "", " guardada-sin-borrar") %>'
+                        title='<%#: TituloGuardada(CType(Container.DataItem, TaskManager.Models.BusquedaGuardada)) %>'>
+                        <a href='<%#: ResolveUrl("~/Buscar.aspx") & "?busqueda=" & Eval("Id").ToString() %>'>
+                            <%# If(CBool(Eval("Compartida")), "&#128101; ", "") %><%#: Eval("Nombre") %>
+                        </a>
+                        <asp:PlaceHolder runat="server" Visible='<%# Not CBool(Eval("EsPropia")) %>'>
+                            <span class="guardada-autor">· <%#: Eval("NombreUsuario") %></span>
+                        </asp:PlaceHolder>
+                        <asp:LinkButton ID="lnkEliminarGuardada" runat="server" CssClass="guardada-eliminar"
+                            CommandName="Eliminar" CommandArgument='<%# Eval("Id") %>' CausesValidation="false"
+                            Visible='<%# CBool(Eval("EsPropia")) %>' ToolTip="Eliminar búsqueda guardada"
+                            OnClientClick="return confirm('¿Eliminar esta búsqueda guardada?');">&times;</asp:LinkButton>
+                    </span>
+            </ItemTemplate>
+            <FooterTemplate>
+                </div>
+            </FooterTemplate>
+        </asp:Repeater>
+
         <asp:Panel ID="pnlFiltros" runat="server" CssClass="filtros" DefaultButton="btnBuscar">
             <div class="filtros-basicos">
                 <div class="campo campo-texto">
@@ -30,6 +57,16 @@
                         <asp:ListItem Value="sin" Text="Sin fecha" />
                     </asp:DropDownList>
                 </div>
+                <div class="campo">
+                    <asp:Label runat="server" AssociatedControlID="ddlPrioridad" Text="Prioridad" />
+                    <asp:DropDownList ID="ddlPrioridad" runat="server">
+                        <asp:ListItem Value="" Text="Cualquiera" />
+                        <asp:ListItem Value="1" Text="Alta" />
+                        <asp:ListItem Value="2" Text="Media" />
+                        <asp:ListItem Value="3" Text="Baja" />
+                        <asp:ListItem Value="sin" Text="Sin prioridad" />
+                    </asp:DropDownList>
+                </div>
                 <div class="filtros-acciones">
                     <asp:Button ID="btnBuscar" runat="server" Text="Buscar" CssClass="boton" ValidationGroup="Busqueda" />
                     <asp:Button ID="btnLimpiar" runat="server" Text="Limpiar" CssClass="boton boton-claro" CausesValidation="false" />
@@ -44,7 +81,7 @@
                         <asp:CheckBox ID="chkEnTitulo" runat="server" Text="Título y caso" Checked="true" />
                         <asp:CheckBox ID="chkEnDescripcion" runat="server" Text="Descripción" Checked="true" />
                         <asp:CheckBox ID="chkEnCodigo" runat="server" Text="Código" />
-                        <asp:CheckBox ID="chkEnComentarios" runat="server" Text="Comentarios" />
+                        <asp:CheckBox ID="chkEnComentarios" runat="server" Text="Mensajes del chat" />
                         <asp:CheckBox ID="chkEnSubtareas" runat="server" Text="Subtareas" />
                     </fieldset>
                     <div class="campo">
@@ -96,6 +133,7 @@
                             <asp:ListItem Value="modificada" Text="Última modificación" />
                             <asp:ListItem Value="creada" Text="Fecha de creación" />
                             <asp:ListItem Value="limite" Text="Fecha límite" />
+                            <asp:ListItem Value="prioridad" Text="Prioridad (alta primero)" />
                             <asp:ListItem Value="caso" Text="Nº de caso" />
                             <asp:ListItem Value="titulo" Text="Título" />
                             <asp:ListItem Value="tablero" Text="Tablero y lista" />
@@ -107,7 +145,21 @@
 
         <div class="resultados-cabecera">
             <p class="resultados-resumen"><asp:Literal ID="litResumen" runat="server" Mode="Encode" /></p>
-            <asp:Button ID="btnExportar" runat="server" Text="Exportar a Excel" CssClass="boton boton-claro" ValidationGroup="Busqueda" />
+            <div class="resultados-acciones">
+                <details class="guardar-busqueda"<%= If(GuardarAbierto, " open=""open""", "") %>>
+                    <summary class="boton boton-claro">&#128190; Guardar búsqueda</summary>
+                    <asp:Panel ID="pnlGuardarBusqueda" runat="server" CssClass="guardar-busqueda-panel" DefaultButton="btnGuardarBusqueda">
+                        <asp:Label runat="server" AssociatedControlID="txtNombreBusqueda" Text="Nombre" />
+                        <asp:TextBox ID="txtNombreBusqueda" runat="server" MaxLength="100" placeholder="p. ej. Vencidas del equipo" />
+                        <asp:RequiredFieldValidator ID="rfvNombreBusqueda" runat="server" ControlToValidate="txtNombreBusqueda"
+                            ValidationGroup="GuardarBusqueda" ErrorMessage="Escribe un nombre." Display="Dynamic" CssClass="validacion" />
+                        <asp:CheckBox ID="chkCompartirBusqueda" runat="server" Text="Compartir con mis compañeros" />
+                        <small>La verán los usuarios con los que compartes algún tablero. Cada uno solo obtiene tareas de sus propios tableros. Si ya tienes una búsqueda con ese nombre, se sustituye.</small>
+                        <asp:Button ID="btnGuardarBusqueda" runat="server" Text="Guardar" CssClass="boton" ValidationGroup="GuardarBusqueda" />
+                    </asp:Panel>
+                </details>
+                <asp:Button ID="btnExportar" runat="server" Text="Exportar a Excel" CssClass="boton boton-claro" ValidationGroup="Busqueda" />
+            </div>
         </div>
 
         <asp:Repeater ID="rptResultados" runat="server">
@@ -115,7 +167,7 @@
                 <div class="tabla-contenedor">
                 <table class="tabla-datos">
                     <thead>
-                        <tr><th>Caso</th><th>Título</th><th>Tablero · lista</th><th>Asignada a</th><th>Fecha límite</th><th class="num">Subtareas</th><th>Modificada</th></tr>
+                        <tr><th>Caso</th><th>Título</th><th>Prioridad</th><th>Tablero · lista</th><th>Asignada a</th><th>Fecha límite</th><th class="num">Subtareas</th><th>Modificada</th></tr>
                     </thead>
                     <tbody>
             </HeaderTemplate>
@@ -125,8 +177,9 @@
                             <td class="col-titulo">
                                 <a href='<%#: UrlTarjeta(CType(Container.DataItem, TaskManager.Models.TarjetaEncontrada)) %>'><%#: Eval("Tarjeta.Titulo") %></a>
                                 <asp:PlaceHolder runat="server" Visible='<%# CBool(Eval("Tarjeta.TieneCodigo")) %>'><span class="info info-codigo" title="Tiene código">&lt;/&gt;</span></asp:PlaceHolder>
-                                <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("Tarjeta.NumComentarios")) > 0 %>'><span class="info" title="Comentarios">&#128172; <%# Eval("Tarjeta.NumComentarios") %></span></asp:PlaceHolder>
+                                <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("Tarjeta.NumComentarios")) > 0 %>'><span class="info" title="Mensajes de chat">&#128172; <%# Eval("Tarjeta.NumComentarios") %></span></asp:PlaceHolder>
                             </td>
+                            <td><%# Formato.HtmlPrioridad(Eval("Tarjeta.Prioridad")) %></td>
                             <td><%#: Eval("NombreTablero") %><span class="secundario"><%#: Eval("Tarjeta.NombreLista") %></span></td>
                             <td><%#: If(Eval("Tarjeta.NombreAsignado"), "—") %></td>
                             <td><%# Formato.HtmlFechaLimite(Eval("Tarjeta.FechaLimite")) %></td>

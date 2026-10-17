@@ -14,7 +14,8 @@ CREATE TABLE Tableros (
     Nombre        NVARCHAR(150) NOT NULL,
     Descripcion   NVARCHAR(500) NULL,
     PropietarioId INT NOT NULL REFERENCES Usuarios(Id),
-    FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    Fondo         NVARCHAR(100) NULL -- archivo de fondo en la carpeta RutaFondosTableros
 );
 
 CREATE TABLE MiembrosTablero (
@@ -44,7 +45,9 @@ CREATE TABLE Tarjetas (
     Codigo        NVARCHAR(MAX) NULL,     -- apartado de código (markdown)
     FechaModificacion DATETIME2 NOT NULL CONSTRAINT DF_Tarjetas_FechaModificacion DEFAULT SYSUTCDATETIME(),
     ModificadoPor INT NULL CONSTRAINT FK_Tarjetas_ModificadoPor REFERENCES Usuarios(Id),
-    CONSTRAINT CK_Tarjetas_Caso CHECK (Caso IS NULL OR (Caso <> N'' AND Caso NOT LIKE N'%[^0-9]%'))
+    Prioridad     TINYINT NULL,           -- 1 = Alta, 2 = Media, 3 = Baja
+    CONSTRAINT CK_Tarjetas_Caso CHECK (Caso IS NULL OR (Caso <> N'' AND Caso NOT LIKE N'%[^0-9]%')),
+    CONSTRAINT CK_Tarjetas_Prioridad CHECK (Prioridad IS NULL OR Prioridad BETWEEN 1 AND 3)
 );
 
 -- Una fila por cambio en una tarjeta (quién, cuándo, qué).
@@ -88,7 +91,19 @@ CREATE TABLE Comentarios (
     Fecha     DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
-CREATE INDEX IX_Listas_Tablero   ON Listas(TableroId, Posicion);
+-- Búsquedas guardadas del buscador. Criterios = filtro serializado (FiltroBusqueda.ACriterios).
+-- Compartida = 1: la ven también los compañeros del autor (usuarios con algún tablero en común).
+CREATE TABLE BusquedasGuardadas (
+    Id            INT IDENTITY(1,1) PRIMARY KEY,
+    UsuarioId     INT NOT NULL REFERENCES Usuarios(Id) ON DELETE CASCADE,
+    Nombre        NVARCHAR(100) NOT NULL,
+    Criterios     NVARCHAR(4000) NOT NULL,
+    Compartida    BIT NOT NULL DEFAULT 0,
+    FechaCreacion DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT UQ_BusquedasGuardadas_Nombre UNIQUE (UsuarioId, Nombre)
+);
+
+CREATE INDEX IX_Listas_Tablero  ON Listas(TableroId, Posicion);
 CREATE INDEX IX_Tarjetas_Lista   ON Tarjetas(ListaId, Posicion);
 CREATE INDEX IX_Subtareas_Tarjeta ON Subtareas(TarjetaId, Posicion);
 CREATE INDEX IX_HistorialTarjeta_Tarjeta ON HistorialTarjeta(TarjetaId, Fecha DESC);

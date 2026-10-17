@@ -18,6 +18,7 @@ Namespace Datos
             {FiltroBusqueda.OrdenModificada, "c.FechaModificacion DESC, c.Id DESC"},
             {FiltroBusqueda.OrdenCreada, "c.FechaCreacion DESC, c.Id DESC"},
             {FiltroBusqueda.OrdenLimite, "CASE WHEN c.FechaLimite IS NULL THEN 1 ELSE 0 END, c.FechaLimite, c.Id"},
+            {FiltroBusqueda.OrdenPrioridad, "ISNULL(c.Prioridad, 4), CASE WHEN c.FechaLimite IS NULL THEN 1 ELSE 0 END, c.FechaLimite, c.Id"},
             {FiltroBusqueda.OrdenTitulo, "c.Titulo, c.Id"},
             {FiltroBusqueda.OrdenCaso, "CASE WHEN c.Caso IS NULL THEN 1 ELSE 0 END, LEN(c.Caso), c.Caso, c.Id"},
             {FiltroBusqueda.OrdenTablero, "t.Nombre, t.Id, l.Posicion, c.Posicion"}
@@ -73,6 +74,15 @@ Namespace Datos
                 End Select
                 cmd.Parameters.Add("@Hoy", SqlDbType.DateTime2).Value = hoy
                 cmd.Parameters.Add("@FinSemana", SqlDbType.DateTime2).Value = hoy.AddDays(8)
+
+                Dim prioridad As Integer
+                If filtro.Prioridad = FiltroBusqueda.PrioridadSin Then
+                    condiciones.Add("c.Prioridad IS NULL")
+                ElseIf Integer.TryParse(filtro.Prioridad, NumberStyles.None, CultureInfo.InvariantCulture, prioridad) AndAlso
+                       Models.Prioridad.EsValida(prioridad) Then
+                    condiciones.Add("c.Prioridad = @Prioridad")
+                    cmd.Parameters.Add("@Prioridad", SqlDbType.TinyInt).Value = CByte(prioridad)
+                End If
 
                 If Not String.IsNullOrEmpty(filtro.Caso) Then
                     condiciones.Add("c.Caso = @Caso")
