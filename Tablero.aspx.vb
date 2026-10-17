@@ -8,9 +8,6 @@ Imports TaskManager.Utilidades
 Public Class TableroPagina
     Inherits PaginaBase
 
-    Private Shared ReadOnly SoloDigitos As New Regex("^[0-9]+$")
-    Private Const LongitudMaximaCodigo As Integer = 200000
-
     ' Tablero de la URL, cargado y autorizado en cada petición (también en los postbacks).
     Private _tablero As Tablero
 
@@ -108,39 +105,16 @@ Public Class TableroPagina
 
     Protected Sub btnGuardarTarjeta_Click(sender As Object, e As EventArgs) Handles btnGuardarTarjeta.Click
         If Not IsValid Then Return
-        Dim datos As New Tarjeta With {.Titulo = Texto(txtTituloTarjeta.Text, 200)}
-        If datos.Titulo.Length = 0 Then Return
-
-        Dim caso = Texto(txtCaso.Text, 20)
-        If caso.Length > 0 AndAlso Not SoloDigitos.IsMatch(caso) Then Return
-        datos.Caso = If(caso.Length = 0, Nothing, caso)
-
-        Dim fecha As DateTime
-        If DateTime.TryParseExact(txtFechaLimite.Text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, fecha) Then
-            datos.FechaLimite = fecha
-        End If
-
-        Dim usuario As Integer
-        If Integer.TryParse(ddlAsignado.SelectedValue, usuario) Then datos.AsignadoA = usuario
-
-        Dim valorPrioridad As Integer
-        If Integer.TryParse(ddlPrioridad.SelectedValue, valorPrioridad) AndAlso Prioridad.EsValida(valorPrioridad) Then
-            datos.Prioridad = valorPrioridad
-        End If
-
-        datos.Descripcion = Texto(txtDescripcionTarjeta.Text, 20000).Replace(vbCrLf, vbLf)
-        ' El código no se recorta: los espacios iniciales (sangría) son significativos.
-        Dim codigo = If(txtCodigo.Text, "").Replace(vbCrLf, vbLf)
-        If codigo.Length > LongitudMaximaCodigo Then codigo = codigo.Substring(0, LongitudMaximaCodigo)
-        datos.Codigo = If(codigo.Trim().Length = 0, Nothing, codigo)
-
+        ' Misma lectura y validación que el guardado automático (Tarjeta.ashx).
+        Dim errorTexto As String = Nothing
         Dim ignoradas As List(Of String) = Nothing
-        datos.Etiquetas = Etiqueta.Analizar(txtEtiquetas.Text, ignoradas).Select(Function(n) New Etiqueta With {.Nombre = n}).ToList()
-        If ignoradas.Count > 0 Then
-            MostrarMensaje("No se han guardado estas etiquetas (solo letras, números, _ y -, hasta " &
-                           Etiqueta.LongitudMaxima & " caracteres y " & Etiqueta.MaximoPorTarjeta & " por tarjeta): " &
-                           String.Join(" ", ignoradas), True)
-        End If
+        Dim datos = EdicionTarjeta.Leer(txtTituloTarjeta.Text, txtCaso.Text, txtFechaLimite.Text, ddlAsignado.SelectedValue,
+                                        ddlPrioridad.SelectedValue, txtDescripcionTarjeta.Text, txtCodigo.Text, txtEtiquetas.Text,
+                                        errorTexto, ignoradas)
+        If datos Is Nothing Then Return
+
+        Dim aviso = EdicionTarjeta.AvisoEtiquetas(ignoradas)
+        If aviso IsNot Nothing Then MostrarMensaje(aviso, True)
 
         If ListaNuevaId > 0 Then
             TarjetasDatos.Crear(ListaNuevaId, TableroId, datos, SubtareasPendientes, UsuarioId)
@@ -159,6 +133,8 @@ Public Class TableroPagina
 
     Protected Sub btnCerrarDetalle_Click(sender As Object, e As EventArgs) Handles btnCerrarDetalle.Click
         CerrarDetalle()
+        ' La tarjeta puede haberse guardado sola mientras estaba abierta (Tarjeta.ashx): se recarga el tablero.
+        CargarTablero()
     End Sub
 
     ' Envío del chat sin JavaScript (o si falla el envío por AJAX de Scripts/chat.js).
@@ -218,6 +194,13 @@ Public Class TableroPagina
         Get
             Dim visible = pnlDetalle.Visible AndAlso phChat.Visible
             Return If(visible, TarjetaAbiertaId, 0).ToString(CultureInfo.InvariantCulture)
+        End Get
+    End Property
+
+    ''' <summary>Tarjeta abierta en modo edición (guardado automático); 0 si se está creando una o no hay detalle.</summary>
+    Protected ReadOnly Property TarjetaEdicionTexto As String
+        Get
+            Return If(pnlDetalle.Visible AndAlso Not CreandoTarjeta, TarjetaAbiertaId, 0).ToString(CultureInfo.InvariantCulture)
         End Get
     End Property
 
@@ -316,9 +299,7 @@ Public Class TableroPagina
 
     ''' <summary>"Modificada el 17/10/2026 14:32 por Ana" (texto plano: codificar al mostrar).</summary>
     Protected Function TextoModificacion(fecha As Object, nombre As Object) As String
-        Dim texto = "Modificada el " & Formato.FechaLocal(fecha)
-        Dim quien = TryCast(nombre, String)
-        Return If(String.IsNullOrEmpty(quien), texto, texto & " por " & quien)
+        Return Formato.TextoModificacion(fecha, nombre)
     End Function
 
     ''' <summary>
@@ -667,6 +648,9 @@ Public Class TableroPagina
     Protected Overrides Sub OnPreRender(e As EventArgs)
         MyBase.OnPreRender(e)
         If _tablero Is Nothing Then Return
+
+        ' Guardado automático y cierre al pulsar fuera: solo con el detalle abierto.
+        phScriptDetalle.Visible = pnlDetalle.Visible
 
         ' Título editable al pulsarlo: solo propietario o Admin (el resto no recibe el cuadro de texto).
         pnlTituloEdicion.Visible = PuedeGestionarMiembros

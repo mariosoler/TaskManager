@@ -117,6 +117,7 @@
     <Content Include="Content\fuentes\outfit.woff2" />
     <Content Include="Content\fuentes\Outfit-OFL.txt" />
     <Content Include="Fondo.ashx" />
+    <Content Include="Tarjeta.ashx" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
     <Content Include="Global.asax" />
@@ -124,6 +125,7 @@
     <Content Include="Registro.aspx" />
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
+    <Content Include="Scripts\detalle-tarjeta.js" />
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
@@ -153,6 +155,9 @@
     </Compile>
     <Compile Include="Fondo.ashx.vb">
       <DependentUpon>Fondo.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Tarjeta.ashx.vb">
+      <DependentUpon>Tarjeta.ashx</DependentUpon>
     </Compile>
     <Compile Include="Datos\BusquedaDatos.vb" />
     <Compile Include="Datos\BusquedasGuardadasDatos.vb" />
@@ -227,6 +232,7 @@
       <DependentUpon>Tableros.aspx</DependentUpon>
       <SubType>ASPXCodebehind</SubType>
     </Compile>
+    <Compile Include="Utilidades\EdicionTarjeta.vb" />
     <Compile Include="Utilidades\ExportacionExcel.vb" />
     <Compile Include="Utilidades\FondosTablero.vb" />
     <Compile Include="Utilidades\Formato.vb" />

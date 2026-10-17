@@ -597,4 +597,13 @@ Partial Public Class TableroPagina
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
     Protected WithEvents phChatNuevo As Global.System.Web.UI.WebControls.PlaceHolder
+
+    '''<summary>
+    '''Control phScriptDetalle.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phScriptDetalle As Global.System.Web.UI.WebControls.PlaceHolder
 End Class

@@ -276,6 +276,8 @@
             </div>
 
             <div class="modal-acciones">
+                <%-- Al editar, Scripts/detalle-tarjeta.js oculta Guardar y muestra aquí el estado del guardado automático --%>
+                <span id="estadoGuardado" class="guardado-estado" aria-live="polite"></span>
                 <asp:Button ID="btnGuardarTarjeta" runat="server" Text="Guardar" CssClass="boton" ValidationGroup="Detalle" />
                 <asp:Button ID="btnEliminarTarjeta" runat="server" Text="Eliminar tarea" CssClass="boton boton-peligro" CausesValidation="false"
                     OnClientClick="return confirm('¿Eliminar esta tarjeta?');" />
@@ -363,6 +365,32 @@
     <script src="<%= Formato.UrlConVersion("~/Scripts/busqueda-rapida.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/markdown.js") %>"></script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/tablero.js") %>"></script>
+    <asp:PlaceHolder ID="phScriptDetalle" runat="server" Visible="false">
+    <script>
+        window.TaskManagerDetalle = {
+            url: '<%= ResolveUrl("~/Tarjeta.ashx") %>',
+            token: '<%= TokenChat %>',
+            tablero: <%= TableroIdTexto %>,
+            tarjeta: <%= TarjetaEdicionTexto %>,
+            modal: '<%= pnlDetalle.ClientID %>',
+            cerrar: '<%= btnCerrarDetalle.ClientID %>',
+            cerrarUnico: '<%= btnCerrarDetalle.UniqueID %>',
+            guardar: '<%= btnGuardarTarjeta.ClientID %>',
+            estado: 'estadoGuardado',
+            campos: {
+                titulo: '<%= txtTituloTarjeta.ClientID %>',
+                caso: '<%= txtCaso.ClientID %>',
+                descripcion: '<%= txtDescripcionTarjeta.ClientID %>',
+                prioridad: '<%= ddlPrioridad.ClientID %>',
+                fechaLimite: '<%= txtFechaLimite.ClientID %>',
+                asignado: '<%= ddlAsignado.ClientID %>',
+                etiquetas: '<%= txtEtiquetas.ClientID %>',
+                codigo: '<%= txtCodigo.ClientID %>'
+            }
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/detalle-tarjeta.js") %>"></script>
+    </asp:PlaceHolder>
     <script>
         window.TaskManagerChat = {
             url: '<%= ResolveUrl("~/Chat.ashx") %>',

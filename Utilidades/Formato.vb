@@ -41,6 +41,13 @@ Namespace Utilidades
             Return ALocal(CDate(valor)).ToString("g", CultureInfo.CurrentCulture)
         End Function
 
+        ''' <summary>"Modificada el 17/10/2026 14:32 por Ana" (texto plano: codificar al mostrar).</summary>
+        Public Shared Function TextoModificacion(fecha As Object, nombre As Object) As String
+            Dim texto = "Modificada el " & FechaLocal(fecha)
+            Dim quien = TryCast(nombre, String)
+            Return If(String.IsNullOrEmpty(quien), texto, texto & " por " & quien)
+        End Function
+
         ''' <summary>Fecha UTC en formato compacto: la hora si es de hoy ("14:32"); si no, el día ("17 oct").</summary>
         Public Shared Function FechaCorta(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""

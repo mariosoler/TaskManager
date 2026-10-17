@@ -11,6 +11,12 @@ Namespace Datos
 
         Private Const LongitudValor As Integer = 500
 
+        ''' <summary>
+        ''' Minutos durante los que las ediciones seguidas de un mismo campo por el mismo usuario se agrupan
+        ''' en una sola fila (el guardado automático del detalle guarda en cada pausa al escribir).
+        ''' </summary>
+        Private Const MinutosAgrupacion As Integer = 10
+
         Private Sub New()
         End Sub
 
@@ -52,13 +58,34 @@ ORDER BY h.Fecha DESC, h.Id DESC"
         ''' <summary>
         ''' Inserta los cambios y actualiza FechaModificacion/ModificadoPor de la tarjeta.
         ''' No hace nada si no hay cambios.
+        ''' Una edición de un campo se agrupa con la anterior del mismo campo si es del mismo usuario, de hace
+        ''' menos de <see cref="MinutosAgrupacion"/> minutos y nadie más ha tocado la tarjeta desde entonces:
+        ''' se conserva el valor anterior original y se actualizan el valor nuevo y la fecha. Si con ello el
+        ''' campo vuelve a su valor original, la fila se elimina (salvo descripción y código, que guardan
+        ''' solo un extracto y no se pueden comparar con seguridad).
         ''' </summary>
         Friend Shared Sub Registrar(cn As SqlConnection, tx As SqlTransaction, tarjetaId As Integer, usuarioId As Integer,
                                     cambios As IEnumerable(Of HistorialTarjeta))
             Const sqlTarjeta = "UPDATE Tarjetas SET FechaModificacion = @Fecha, ModificadoPor = @UsuarioId WHERE Id = @TarjetaId"
             Const sqlCambio = "
-INSERT INTO HistorialTarjeta (TarjetaId, UsuarioId, Fecha, Accion, Campo, ValorAnterior, ValorNuevo)
-VALUES (@TarjetaId, @UsuarioId, @Fecha, @Accion, @Campo, @ValorAnterior, @ValorNuevo)"
+DECLARE @Id INT = NULL;
+IF @Agrupar = 1
+    SELECT TOP (1) @Id = h.Id
+    FROM HistorialTarjeta h
+    WHERE h.TarjetaId = @TarjetaId AND h.UsuarioId = @UsuarioId AND h.Accion = @Accion AND h.Campo = @Campo
+      AND h.Fecha >= DATEADD(MINUTE, -@Minutos, @Fecha)
+      AND NOT EXISTS (SELECT 1 FROM HistorialTarjeta o
+                      WHERE o.TarjetaId = @TarjetaId AND o.Id > h.Id AND o.UsuarioId <> @UsuarioId)
+    ORDER BY h.Id DESC;
+
+IF @Id IS NULL
+    INSERT INTO HistorialTarjeta (TarjetaId, UsuarioId, Fecha, Accion, Campo, ValorAnterior, ValorNuevo)
+    VALUES (@TarjetaId, @UsuarioId, @Fecha, @Accion, @Campo, @ValorAnterior, @ValorNuevo);
+ELSE IF @BorrarSiVuelve = 1 AND EXISTS (SELECT 1 FROM HistorialTarjeta WHERE Id = @Id
+         AND ISNULL(ValorAnterior, N'') COLLATE Latin1_General_BIN2 = ISNULL(@ValorNuevo, N'') COLLATE Latin1_General_BIN2)
+    DELETE FROM HistorialTarjeta WHERE Id = @Id;
+ELSE
+    UPDATE HistorialTarjeta SET ValorNuevo = @ValorNuevo, Fecha = @Fecha WHERE Id = @Id;"
 
             Dim lista = cambios.ToList()
             If lista.Count = 0 Then Return
@@ -80,6 +107,11 @@ VALUES (@TarjetaId, @UsuarioId, @Fecha, @Accion, @Campo, @ValorAnterior, @ValorN
                     cmd.Parameters.Add("@Campo", SqlDbType.NVarChar, 30).Value = Db.ONulo(cambio.Campo)
                     cmd.Parameters.Add("@ValorAnterior", SqlDbType.NVarChar, LongitudValor).Value = Db.ONulo(Recortar(cambio.ValorAnterior))
                     cmd.Parameters.Add("@ValorNuevo", SqlDbType.NVarChar, LongitudValor).Value = Db.ONulo(Recortar(cambio.ValorNuevo))
+                    Dim agrupar = cambio.Accion = HistorialTarjeta.Editada AndAlso cambio.Campo IsNot Nothing
+                    Dim esExtracto = cambio.Campo = HistorialTarjeta.CampoDescripcion OrElse cambio.Campo = HistorialTarjeta.CampoCodigo
+                    cmd.Parameters.Add("@Agrupar", SqlDbType.Bit).Value = agrupar
+                    cmd.Parameters.Add("@BorrarSiVuelve", SqlDbType.Bit).Value = agrupar AndAlso Not esExtracto
+                    cmd.Parameters.Add("@Minutos", SqlDbType.Int).Value = MinutosAgrupacion
                     cmd.ExecuteNonQuery()
                 End Using
             Next
