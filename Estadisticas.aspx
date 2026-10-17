@@ -32,6 +32,18 @@
                 <span class="kpi-valor"><asp:Literal ID="litSinAsignar" runat="server" /></span>
             </div>
             <div class="kpi">
+                <span class="kpi-etiqueta">Prioridad alta</span>
+                <span class="kpi-valor"><asp:Literal ID="litPrioridadAlta" runat="server" /></span>
+                <span class="kpi-detalle"><asp:Literal ID="litDetallePrioridadAlta" runat="server" /></span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-etiqueta">Sin cambios en <%= DiasSinActividad %> días</span>
+                <span class="kpi-valor"><asp:Literal ID="litSinActividad" runat="server" /></span>
+                <asp:PlaceHolder ID="phAvisoSinActividad" runat="server">
+                    <span class="estado"><span class="estado-icono estado-aviso" aria-hidden="true">&#9719;</span> Pueden estar olvidadas</span>
+                </asp:PlaceHolder>
+            </div>
+            <div class="kpi">
                 <span class="kpi-etiqueta">Subtareas completadas</span>
                 <span class="kpi-valor"><asp:Literal ID="litPorcentajeSubtareas" runat="server" /></span>
                 <span class="kpi-detalle"><asp:Literal ID="litDetalleSubtareas" runat="server" /></span>
@@ -47,15 +59,52 @@
 
         <div class="rejilla-graficas">
             <figure class="grafica" id="grafica-por-lista">
-                <figcaption><h3>Tarjetas por lista</h3></figcaption>
+                <figcaption><h3>Tarjetas por lista</h3><p class="grafica-subtitulo">Reparto del total; con más de 6 listas, las menores se agrupan en «Otras listas»</p></figcaption>
                 <div class="grafica-cuerpo"></div>
+            </figure>
+            <figure class="grafica" id="grafica-por-prioridad">
+                <figcaption><h3>Tarjetas por prioridad</h3><p class="grafica-subtitulo">Mismos colores que en el tablero</p></figcaption>
+                <div class="grafica-cuerpo"></div>
+            </figure>
+            <figure class="grafica grafica-ancha" id="grafica-fechas">
+                <figcaption><h3>Fechas límite</h3><p class="grafica-subtitulo">Reparto de las tarjetas según su fecha límite</p></figcaption>
+                <div class="grafica-cuerpo"></div>
+            </figure>
+            <figure class="grafica grafica-ancha" id="tabla-proximos">
+                <figcaption><h3>Próximos vencimientos</h3><p class="grafica-subtitulo"><asp:Literal ID="litSubtituloProximos" runat="server" Mode="Encode" /></p></figcaption>
+                <asp:Repeater ID="rptProximos" runat="server">
+                    <HeaderTemplate>
+                        <div class="tabla-contenedor tabla-incrustada">
+                        <table class="tabla-datos">
+                            <thead><tr><th>Caso</th><th>Tarjeta</th><th>Lista</th><th>Asignada a</th><th>Prioridad</th><th>Fecha límite</th></tr></thead>
+                            <tbody>
+                    </HeaderTemplate>
+                    <ItemTemplate>
+                                <tr>
+                                    <td class="col-caso"><%#: Eval("Caso") %></td>
+                                    <td class="col-titulo"><a href='<%#: UrlTarjeta(Eval("Id")) %>'><%#: Eval("Titulo") %></a></td>
+                                    <td><%#: Eval("NombreLista") %></td>
+                                    <td><%#: If(Eval("NombreAsignado"), "—") %></td>
+                                    <td><%# Formato.HtmlPrioridad(Eval("Prioridad")) %></td>
+                                    <td class="col-fecha"><%# Formato.HtmlFechaLimite(Eval("FechaLimite")) %></td>
+                                </tr>
+                    </ItemTemplate>
+                    <FooterTemplate>
+                            </tbody>
+                        </table>
+                        </div>
+                    </FooterTemplate>
+                </asp:Repeater>
+                <asp:PlaceHolder ID="phSinProximos" runat="server">
+                    <p class="grafica-vacia">No hay tarjetas vencidas ni que venzan pronto.</p>
+                </asp:PlaceHolder>
             </figure>
             <figure class="grafica" id="grafica-por-persona">
                 <figcaption><h3>Tarjetas por persona asignada</h3></figcaption>
                 <div class="grafica-cuerpo"></div>
             </figure>
-            <figure class="grafica grafica-ancha" id="grafica-fechas">
-                <figcaption><h3>Fechas límite</h3><p class="grafica-subtitulo">Reparto de las tarjetas según su fecha límite</p></figcaption>
+            <figure class="grafica" id="grafica-antiguedad">
+                <figcaption><h3>Antigüedad de las tarjetas</h3><p class="grafica-subtitulo">Tiempo desde que se crearon</p></figcaption>
                 <div class="grafica-cuerpo"></div>
             </figure>
             <figure class="grafica grafica-ancha" id="grafica-por-etiqueta">
@@ -84,6 +133,11 @@
                 <span class="kpi-etiqueta">Personas con actividad</span>
                 <span class="kpi-valor"><asp:Literal ID="litPersonasActivas" runat="server" /></span>
             </div>
+            <div class="kpi">
+                <span class="kpi-etiqueta">Tarjetas creadas</span>
+                <span class="kpi-valor"><asp:Literal ID="litCreadas" runat="server" /></span>
+                <span class="kpi-detalle"><asp:Literal ID="litDetalleCreadas" runat="server" Mode="Encode" /></span>
+            </div>
         </div>
         <div class="rejilla-graficas">
             <figure class="grafica grafica-ancha" id="grafica-por-dia">
@@ -95,7 +149,7 @@
                 <div class="grafica-cuerpo"></div>
             </figure>
             <figure class="grafica" id="grafica-cambios-tipo">
-                <figcaption><h3>Cambios por tipo</h3></figcaption>
+                <figcaption><h3>Cambios por tipo</h3><p class="grafica-subtitulo">Reparto de los cambios del periodo</p></figcaption>
                 <div class="grafica-cuerpo"></div>
             </figure>
         </div>

@@ -17,6 +17,7 @@ Public Class EstadisticasPagina
     Private _estadisticas As Estadisticas
 
     Protected Property PorcentajeSubtareas As Integer
+    Protected ReadOnly Property DiasSinActividad As Integer = EstadisticasDatos.DiasSinActividad
     Protected Property DatosJson As String
 
     Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
@@ -46,18 +47,27 @@ Public Class EstadisticasPagina
             New Object() {"Sin fecha límite", est.SinFecha},
             New Object() {"Sin asignar", est.SinAsignar},
             New Object() {"Sin etiqueta", est.SinEtiqueta},
+            New Object() {"Prioridad alta", est.PrioridadAlta},
+            New Object() {"Sin cambios en " & EstadisticasDatos.DiasSinActividad & " días", est.SinActividad},
             New Object() {"Subtareas", est.SubtareasTotal},
             New Object() {"Subtareas completadas", est.SubtareasHechas},
             New Object() {"Mensajes de chat", est.Comentarios},
             New Object() {"Periodo de actividad (días)", est.Dias},
-            New Object() {"Cambios en el periodo", est.TotalCambios}
+            New Object() {"Cambios en el periodo", est.TotalCambios},
+            New Object() {"Tarjetas creadas en el periodo", est.CreadasPeriodo},
+            New Object() {"Tarjetas creadas en el periodo anterior", est.CreadasPeriodoAnterior}
         })
         libro.AgregarHoja("Por lista", {"Lista", "Tarjetas"}, Filas(est.PorLista))
         libro.AgregarHoja("Por persona", {"Persona", "Tarjetas asignadas"}, Filas(est.PorPersona))
         libro.AgregarHoja("Por etiqueta", {"Etiqueta", "Tarjetas", "Vencidas", "Sin asignar"},
                           est.PorEtiqueta.Select(Function(d) New Object() {d.Etiqueta.Nombre, d.Tarjetas, d.Vencidas, d.SinAsignar}).
                               Concat({New Object() {"Sin etiqueta", est.SinEtiqueta, Nothing, Nothing}}))
+        libro.AgregarHoja("Por prioridad", {"Prioridad", "Tarjetas"}, Filas(est.PorPrioridad))
         libro.AgregarHoja("Fechas límite", {"Estado", "Tarjetas"}, Filas(SegmentosFechas(est)))
+        libro.AgregarHoja("Próximos vencimientos", {"Caso", "Tarjeta", "Lista", "Asignada a", "Prioridad", "Fecha límite"},
+                          est.ProximosVencimientos.Select(Function(t) New Object() {
+                              t.Caso, t.Titulo, t.NombreLista, t.NombreAsignado, Prioridad.Nombre(t.Prioridad), t.FechaLimite.Date}))
+        libro.AgregarHoja("Antigüedad", {"Antigüedad", "Tarjetas"}, Filas(est.Antiguedad))
         libro.AgregarHoja("Actividad diaria", {"Día", "Cambios"},
                           est.CambiosPorDia.Select(Function(d) New Object() {d.Dia, d.Valor}))
         libro.AgregarHoja("Cambios por persona", {"Persona", "Cambios"}, Filas(est.CambiosPorPersona))
@@ -85,6 +95,18 @@ Public Class EstadisticasPagina
         litVencidas.Text = Numero(est.Vencidas)
         phAvisoVencidas.Visible = est.Vencidas > 0
         litSinAsignar.Text = Numero(est.SinAsignar)
+        litPrioridadAlta.Text = Numero(est.PrioridadAlta)
+        litDetallePrioridadAlta.Text = If(est.TotalTarjetas = 0, "",
+            Math.Round(100.0 * est.PrioridadAlta / est.TotalTarjetas).ToString(CultureInfo.CurrentCulture) & " % del total")
+        litSinActividad.Text = Numero(est.SinActividad)
+        phAvisoSinActividad.Visible = est.SinActividad > 0
+
+        litSubtituloProximos.Text = String.Format(CultureInfo.CurrentCulture,
+            "Vencidas y las que vencen en los próximos {0} días; las {1} más urgentes. Pulsa una para abrirla.",
+            EstadisticasDatos.DiasProximos, EstadisticasDatos.MaxProximos)
+        rptProximos.DataSource = est.ProximosVencimientos
+        rptProximos.DataBind()
+        phSinProximos.Visible = est.ProximosVencimientos.Count = 0
         litComentarios.Text = Numero(est.Comentarios)
         If est.SubtareasTotal = 0 Then
             PorcentajeSubtareas = 0
@@ -105,6 +127,8 @@ Public Class EstadisticasPagina
         litCambios.Text = Numero(est.TotalCambios)
         litMediaDiaria.Text = (CDbl(est.TotalCambios) / est.Dias).ToString("0.#", CultureInfo.CurrentCulture)
         litPersonasActivas.Text = Numero(est.CambiosPorPersona.Count)
+        litCreadas.Text = Numero(est.CreadasPeriodo)
+        litDetalleCreadas.Text = TextoComparacion(est.CreadasPeriodo, est.CreadasPeriodoAnterior, est.Dias)
 
         DatosJson = CrearJson(est)
     End Sub
@@ -115,6 +139,8 @@ Public Class EstadisticasPagina
         Dim datos = New Dictionary(Of String, Object) From {
             {"dias", est.Dias},
             {"porLista", est.PorLista.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},
+            {"porPrioridad", est.PorPrioridad.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor, .clave = d.Clave})},
+            {"antiguedad", est.Antiguedad.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},
             {"porPersona", est.PorPersona.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor, .gris = d.Clave = "sin-asignar"})},
             {"fechas", SegmentosFechas(est).Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor, .estado = d.Clave})},
             {"porDia", est.CambiosPorDia.Select(Function(d) New With {
@@ -152,6 +178,21 @@ Public Class EstadisticasPagina
             New Dato With {.Etiqueta = "Más adelante", .Valor = est.VencenMasAdelante, .Clave = "bien"},
             New Dato With {.Etiqueta = "Sin fecha", .Valor = est.SinFecha, .Clave = "neutro"}
         }
+    End Function
+
+    ''' <summary>Enlace que abre la tarjeta en el tablero (Tablero.aspx?id=N&amp;tarjeta=M).</summary>
+    Protected Function UrlTarjeta(tarjetaId As Object) As String
+        Return ResolveUrl("~/Tablero.aspx") & "?id=" & _tablero.Id.ToString(CultureInfo.InvariantCulture) &
+               "&tarjeta=" & CInt(tarjetaId).ToString(CultureInfo.InvariantCulture)
+    End Function
+
+    ''' <summary>"▲ 3 más que en los 30 días anteriores (5)": la flecha y el texto dicen el sentido, no el color.</summary>
+    Private Shared Function TextoComparacion(actual As Integer, anterior As Integer, dias As Integer) As String
+        Dim diferencia = actual - anterior
+        Dim periodo = String.Format(CultureInfo.CurrentCulture, "los {0} días anteriores ({1:N0})", dias, anterior)
+        If diferencia = 0 Then Return "= Igual que en " & periodo
+        Dim cantidad = Math.Abs(diferencia).ToString("N0", CultureInfo.CurrentCulture)
+        Return If(diferencia > 0, "▲ " & cantidad & " más que en ", "▼ " & cantidad & " menos que en ") & periodo
     End Function
 
     Private Shared Function Filas(datos As IEnumerable(Of Dato)) As IEnumerable(Of Object())

@@ -4,7 +4,9 @@
  *  - barras horizontales (una serie: color de serie 1; "Sin asignar" en gris de baja énfasis; opcionalmente
  *    una muestra de color junto al nombre —p. ej. el de cada etiqueta— y un enlace),
  *  - una barra apilada de estados (paleta de estado + icono + etiqueta),
- *  - columnas por día.
+ *  - columnas por día,
+ *  - anillos ("quesos") para parte del total: como mucho 6 porciones (el resto se agrupa en "Otras", en gris),
+ *    colores categóricos en orden fijo (--cat-1…5, validados en ciclo) o de prioridad con icono + etiqueta.
  * Cada gráfica lleva tooltip (ratón y teclado) y una vista de tabla ("Ver tabla").
  * Todos los textos procedentes de datos se insertan con textContent / setAttribute.
  */
@@ -17,6 +19,8 @@
     var numero = new Intl.NumberFormat('es-ES');
 
     var ICONOS = { critico: '⚠', aviso: '◷', bien: '✓', neutro: '–' };
+    var ICONOS_PRIORIDAD = { alta: '▲', media: '◆', baja: '▼', sin: '–' };
+    var SVG = 'http://www.w3.org/2000/svg';
     var COLOR = /^#[0-9a-f]{6}$/i;
 
     // Solo rutas del propio sitio ("/..."), nunca "//otro-sitio" ni "javascript:".
@@ -244,14 +248,145 @@
         tabla(g.figura, ['Día', 'Cambios'], dias.map(function (d) { return [d.larga, numero.format(d.v)]; }));
     }
 
+    // ----- Anillo (parte del total) -----
+
+    // filas: [{ e, v, clase, icono }]. Solo entran las porciones con valor; si hay más de 6, se quedan las 5
+    // mayores (en su orden original, que fija el color) y el resto se suma en "Otras" (gris de baja énfasis).
+    function porciones(filas, nombreOtras) {
+        var conValor = filas.filter(function (f) { return f.v > 0; });
+        if (conValor.length <= 6) { return conValor; }
+        var mayores = conValor.slice().sort(function (a, b) { return b.v - a.v; }).slice(0, 5);
+        var resto = 0;
+        var quedan = conValor.filter(function (f) {
+            if (mayores.indexOf(f) >= 0) { return true; }
+            resto += f.v;
+            return false;
+        });
+        quedan.push({ e: nombreOtras, v: resto, clase: 'otras' });
+        return quedan;
+    }
+
+    function anillo(id, filas, o) {
+        var g = cuerpoDe(id);
+        if (!g) { return; }
+        var total = filas.reduce(function (s, f) { return s + f.v; }, 0);
+        if (total === 0) {
+            vacio(g.cuerpo, o.vacio);
+            return;
+        }
+        var partes = porciones(filas, o.otras || 'Otras');
+        function porcentaje(v) { return Math.round(v / total * 100) + ' %'; }
+
+        var raiz = el('div', 'anillo');
+        var grafico = el('div', 'anillo-grafico');
+        var svg = document.createElementNS(SVG, 'svg');
+        svg.setAttribute('viewBox', '0 0 120 120');
+        svg.setAttribute('aria-hidden', 'true');   // la información accesible está en la leyenda y en la tabla
+
+        var R = 46, C = 2 * Math.PI * R;
+        var HUECO = partes.length > 1 ? 1.5 : 0;   // separación (color de la superficie) entre porciones
+        var inicio = 0;
+        var segmentos = [];
+        partes.forEach(function (f, i) {
+            var largo = f.v / total * C;
+            var c = document.createElementNS(SVG, 'circle');
+            c.setAttribute('cx', '60');
+            c.setAttribute('cy', '60');
+            c.setAttribute('r', String(R));
+            c.setAttribute('class', 'anillo-seg ' + (f.clase || ('cat-' + (i + 1))));
+            var visible = Math.max(largo - HUECO, 0.6);
+            c.setAttribute('stroke-dasharray', visible + ' ' + (C - visible));
+            c.setAttribute('stroke-dashoffset', String(-inicio));
+            c.setAttribute('transform', 'rotate(-90 60 60)');   // empieza arriba, sentido horario
+            svg.appendChild(c);
+            segmentos.push(c);
+            inicio += largo;
+        });
+        grafico.appendChild(svg);
+
+        // Centro: el total; al señalar una porción, su valor y su nombre.
+        var centro = el('div', 'anillo-centro');
+        var centroValor = el('strong');
+        var centroTexto = el('span');
+        centro.appendChild(centroValor);
+        centro.appendChild(centroTexto);
+        grafico.appendChild(centro);
+        function centroTotal() {
+            centroValor.textContent = numero.format(total);
+            centroTexto.textContent = o.textoTotal;
+        }
+        centroTotal();
+        raiz.appendChild(grafico);
+
+        // Leyenda: muestra (con icono si lo hay) + nombre + valor y %; es la parte que se recorre con el teclado.
+        var leyenda = el('ul', 'leyenda anillo-leyenda');
+        var items = partes.map(function (f, i) {
+            var item = el('li', 'leyenda-item');
+            var muestra = el('span', 'leyenda-muestra ' + (f.clase || ('cat-' + (i + 1))), f.icono || '');
+            muestra.setAttribute('aria-hidden', 'true');
+            var nombre = el('span', 'leyenda-etiqueta', f.e);
+            nombre.title = f.e;
+            item.appendChild(muestra);
+            item.appendChild(nombre);
+            item.appendChild(el('span', 'leyenda-valor', numero.format(f.v) + ' · ' + porcentaje(f.v)));
+            item.tabIndex = 0;
+            item.setAttribute('aria-label', f.e + ': ' + plural(f.v, o.unidad[0], o.unidad[1]) + ' (' + porcentaje(f.v) + ')');
+            leyenda.appendChild(item);
+            return item;
+        });
+        raiz.appendChild(leyenda);
+
+        function resaltar(i) {
+            raiz.classList.add('resaltando');
+            segmentos.forEach(function (s, j) { s.classList.toggle('activo', i === j); });
+            items.forEach(function (it, j) { it.classList.toggle('activo', i === j); });
+            centroValor.textContent = porcentaje(partes[i].v);
+            centroTexto.textContent = partes[i].e;
+        }
+        function quitar() {
+            raiz.classList.remove('resaltando');
+            segmentos.forEach(function (s) { s.classList.remove('activo'); });
+            items.forEach(function (it) { it.classList.remove('activo'); });
+            centroTotal();
+        }
+        partes.forEach(function (f, i) {
+            [segmentos[i], items[i]].forEach(function (m) {
+                m.addEventListener('pointerenter', function () { resaltar(i); });
+                m.addEventListener('pointerleave', quitar);
+            });
+            items[i].addEventListener('focus', function () { resaltar(i); });
+            items[i].addEventListener('blur', quitar);
+        });
+
+        g.cuerpo.appendChild(raiz);
+        // La tabla lleva todas las filas (también las agrupadas en "Otras" y las que están a cero).
+        tabla(g.figura, o.encabezado.concat('%'), filas.map(function (f) {
+            return [f.e, numero.format(f.v), porcentaje(f.v)];
+        }));
+    }
+
     // ----- Montaje -----
 
-    barras('grafica-por-lista', datos.porLista, ['tarjeta', 'tarjetas'], ['Lista', 'Tarjetas'], 'El tablero no tiene listas.');
+    anillo('grafica-por-lista', datos.porLista, {
+        unidad: ['tarjeta', 'tarjetas'], encabezado: ['Lista', 'Tarjetas'], textoTotal: 'tarjetas',
+        otras: 'Otras listas', vacio: 'Todavía no hay tarjetas.'
+    });
+    anillo('grafica-por-prioridad', (datos.porPrioridad || []).map(function (f) {
+        return { e: f.e, v: f.v, clase: 'prio-' + f.clave, icono: ICONOS_PRIORIDAD[f.clave] || '' };
+    }), {
+        unidad: ['tarjeta', 'tarjetas'], encabezado: ['Prioridad', 'Tarjetas'], textoTotal: 'tarjetas',
+        vacio: 'Todavía no hay tarjetas.'
+    });
+    barras('grafica-antiguedad', datos.antiguedad || [], ['tarjeta', 'tarjetas'], ['Antigüedad', 'Tarjetas'],
+           'Todavía no hay tarjetas.');
     barras('grafica-por-persona', datos.porPersona, ['tarjeta', 'tarjetas'], ['Persona', 'Tarjetas'], 'Todavía no hay tarjetas.');
     apilada('grafica-fechas', datos.fechas);
     columnas('grafica-por-dia', datos.porDia);
     barras('grafica-cambios-persona', datos.cambiosPersona, ['cambio', 'cambios'], ['Persona', 'Cambios'], 'No hubo cambios en este periodo.');
     barras('grafica-por-etiqueta', datos.porEtiqueta || [], ['tarjeta', 'tarjetas'], ['Etiqueta', 'Tarjetas'],
            'Todavía no hay tarjetas con etiquetas.');
-    barras('grafica-cambios-tipo', datos.cambiosTipo, ['cambio', 'cambios'], ['Tipo', 'Cambios'], 'No hubo cambios en este periodo.');
+    anillo('grafica-cambios-tipo', datos.cambiosTipo, {
+        unidad: ['cambio', 'cambios'], encabezado: ['Tipo', 'Cambios'], textoTotal: 'cambios',
+        vacio: 'No hubo cambios en este periodo.'
+    });
 }());

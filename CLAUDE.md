@@ -18,7 +18,7 @@ Guía para Claude Code al trabajar en este repositorio.
   - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.
   - `Tablero.aspx?id=N` — vista Kanban: listas, tarjetas, comentarios y miembros. Un único modal (`pnlDetalle`) sirve para crear tarjetas ("+ Añadir una tarjeta", estado en `ListaNuevaId`) y para editarlas (`TarjetaAbiertaId`).
   - `Buscar.aspx[?tablero=N[&etiqueta=NOMBRE] | ?busqueda=N]` — buscador con filtros básicos y búsqueda avanzada (incluidas etiquetas: todas / alguna / sin etiquetas, y texto en etiquetas); exporta a Excel. Las búsquedas se pueden guardar (y compartir); `?busqueda=N` aplica una guardada.
-  - `Estadisticas.aspx?id=N[&dias=7|30|90]` — indicadores y gráficas del tablero (incluida «Tarjetas por etiqueta», que enlaza al buscador filtrado); exporta a Excel.
+  - `Estadisticas.aspx?id=N[&dias=7|30|90]` — indicadores (incluidos prioridad alta, sin cambios en 30 días y tarjetas creadas frente al periodo anterior) y gráficas del tablero: anillos por lista, por prioridad y cambios por tipo; barras por persona, antigüedad y etiqueta («Tarjetas por etiqueta» enlaza al buscador filtrado); fechas límite; tabla «Próximos vencimientos» con enlace a cada tarjeta. Exporta a Excel.
   - `Tablero.aspx?id=N&tarjeta=M` abre directamente la tarjeta M (lo usan los enlaces del buscador).
   - `Chat.ashx` — endpoint JSON del chat de cada tarjeta (GET mensajes nuevos / POST publicar).
   - `Tarjeta.ashx` — endpoint JSON del guardado automático del detalle de tarjeta (POST; mismo patrón de seguridad que el chat).
@@ -173,6 +173,7 @@ Contenido de `connectionStrings.config` (local, **no versionar**):
 - Siguen la guía de visualización: una serie = color de serie 1 (`#00949a`, evergreen saturado validado contra el blanco de las tarjetas; el evergreen `#005e60` puro no pasa el mínimo de croma como color de serie); "Sin asignar" en gris de baja énfasis; estados (vencidas, esta semana…) solo con la paleta de estado y siempre con icono + etiqueta; barras de ≤ 24 px con punta redondeada; rejilla en línea fina; texto siempre en colores de tinta, nunca en el color de la serie.
 - Cada gráfica tiene tooltip (ratón y teclado) y vista de tabla. Los datos llegan como JSON en `<script type="application/json">` con `<`, `>` y `&` escapados; en JS los textos se insertan con `textContent`/`setAttribute`, nunca con `innerHTML`.
 - Prefijo `graf-` para las clases CSS de las gráficas: `.barra` ya es la barra superior de la aplicación.
+- **Anillos («quesos»)**, `anillo()`: solo para parte del total, **≤ 6 porciones** (con más, las 5 mayores y el resto en «Otras», gris); siempre leyenda con valor y %, centro con el total (al señalar: % y nombre), leyenda navegable con teclado y vista de tabla con todas las filas. Colores categóricos `--cat-1…5` en **orden fijo** (`.viz-root`), validados con el script de la guía **en ciclo** (la última porción toca a la primera) para 2–5 colores con y sin «Otras»; si se cambian, volver a validarlos así. El anillo de prioridad usa los colores del tablero (Baja en `#00949a`, no el evergreen puro) con icono ▲ ◆ ▼.
 - `barras()` admite por fila `color` (muestra `.graf-muestra` junto al nombre, validada `#rrggbb`) y `url` (solo rutas locales `/...`). En «Tarjetas por etiqueta» la barra sigue en color de serie 1 y el color de la etiqueta solo va en la muestra.
 
 ### 9. Chat y peticiones AJAX

@@ -833,6 +833,14 @@ select:disabled { background: var(--lista); color: var(--texto-suave); }
     --estado-aviso: #fab219;
     --estado-bien: #0ca30c;
     --estado-neutro: #c3c2b7;
+    /* Categóricos de los anillos, en orden fijo (nunca rotados). Validados con el script de la guía en ciclo
+       (la última porción toca a la primera) para 2-5 colores, con y sin «Otras» en gris: CVD ΔE >= 13,4 y
+       visión normal >= 15,5 frente al blanco. El amarillo (< 3:1) va siempre con leyenda y tabla. */
+    --cat-1: #00949a;   /* evergreen saturado (= serie 1) */
+    --cat-2: #eb6834;   /* naranja */
+    --cat-3: #6250d6;   /* violeta */
+    --cat-4: #008300;   /* verde */
+    --cat-5: #eda100;   /* amarillo */
 }
 .seccion-titulo { margin: 24px 0 10px; font-size: 16px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
@@ -889,6 +897,7 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
 .apilada-seg.estado-bien, .leyenda-muestra.estado-bien { background-color: var(--estado-bien); }
 .apilada-seg.estado-neutro, .leyenda-muestra.estado-neutro { background-color: var(--estado-neutro); }
 .estado-icono.estado-critico { color: var(--estado-critico); }
+.estado-icono.estado-aviso { color: var(--estado-aviso); }
 .leyenda { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 0; padding: 0; list-style: none; }
 .leyenda-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tinta); }
 .leyenda-muestra { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 700; }
@@ -923,6 +932,48 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
 .viz-tooltip[hidden] { display: none; }
 .viz-tooltip strong { font-size: 14px; color: #0b0b0b; }
 .viz-tooltip span { color: #52514e; }
+
+/* Anillo («queso»): parte del total, <= 6 porciones; hueco del color de la superficie entre porciones */
+.anillo { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+.anillo-grafico { position: relative; flex: 0 0 184px; width: 184px; height: 184px; }
+.anillo-grafico svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.anillo-seg { fill: none; stroke-width: 18; transition: opacity .15s, stroke-width .15s; }
+.anillo.resaltando .anillo-seg:not(.activo) { opacity: .28; }
+.anillo-seg.activo { stroke-width: 21; }
+.anillo-centro {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+    text-align: center;
+    pointer-events: none;
+}
+.anillo-centro strong { font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--tinta); }
+.anillo-centro span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--tinta-2); }
+.anillo-leyenda { flex: 1 1 200px; flex-direction: column; flex-wrap: nowrap; gap: 2px; min-width: 0; margin: 0; }
+.anillo-leyenda .leyenda-item { padding: 4px 8px; border-radius: 6px; outline: none; transition: background-color .15s; }
+.anillo-leyenda .leyenda-item.activo { background: rgba(0, 148, 154, .08); }
+.anillo-leyenda .leyenda-item:focus-visible { box-shadow: 0 0 0 2px var(--serie-1); }
+.anillo-leyenda .leyenda-etiqueta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anillo-leyenda .leyenda-valor { white-space: nowrap; }
+/* Colores por papel: categóricos en orden fijo, «Otras» en gris, prioridad = colores del tablero (con icono) */
+.anillo-seg.cat-1 { stroke: var(--cat-1); } .leyenda-muestra.cat-1 { background-color: var(--cat-1); }
+.anillo-seg.cat-2 { stroke: var(--cat-2); } .leyenda-muestra.cat-2 { background-color: var(--cat-2); }
+.anillo-seg.cat-3 { stroke: var(--cat-3); } .leyenda-muestra.cat-3 { background-color: var(--cat-3); }
+.anillo-seg.cat-4 { stroke: var(--cat-4); } .leyenda-muestra.cat-4 { background-color: var(--cat-4); }
+.anillo-seg.cat-5 { stroke: var(--cat-5); } .leyenda-muestra.cat-5 { background-color: var(--cat-5); }
+.anillo-seg.otras, .anillo-seg.prio-sin { stroke: var(--enfasis-bajo); }
+.leyenda-muestra.otras, .leyenda-muestra.prio-sin { background-color: var(--enfasis-bajo); color: var(--tinta); }
+.anillo-seg.prio-alta { stroke: var(--estado-critico); } .leyenda-muestra.prio-alta { background-color: var(--estado-critico); }
+.anillo-seg.prio-media { stroke: var(--estado-aviso); } .leyenda-muestra.prio-media { background-color: var(--estado-aviso); color: var(--tinta); }
+.anillo-seg.prio-baja { stroke: var(--serie-1); } .leyenda-muestra.prio-baja { background-color: var(--serie-1); }
+
+/* Tabla dentro de una tarjeta de gráfica (Próximos vencimientos) */
+.grafica .tabla-incrustada { margin-top: 12px; border: 1px solid var(--borde); box-shadow: none; }
+.pagina-ancha .grafica .tabla-incrustada { border-color: var(--borde); box-shadow: none; }
 
 /* ===== Detalle de tarjeta con chat a la derecha ===== */
 .modal.modal-con-chat { display: flex; align-items: flex-start; max-width: 1180px; padding: 0; }

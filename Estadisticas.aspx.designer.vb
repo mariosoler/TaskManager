@@ -46,4 +46,84 @@ Partial Public Class EstadisticasPagina
     Protected WithEvents litMediaDiaria As Global.System.Web.UI.WebControls.Literal
 
     Protected WithEvents litPersonasActivas As Global.System.Web.UI.WebControls.Literal
+    '''<summary>
+    '''Control litPrioridadAlta.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litPrioridadAlta As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control litDetallePrioridadAlta.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litDetallePrioridadAlta As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control litSinActividad.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litSinActividad As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control phAvisoSinActividad.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phAvisoSinActividad As Global.System.Web.UI.WebControls.PlaceHolder
+
+    '''<summary>
+    '''Control litSubtituloProximos.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litSubtituloProximos As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control rptProximos.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents rptProximos As Global.System.Web.UI.WebControls.Repeater
+
+    '''<summary>
+    '''Control phSinProximos.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phSinProximos As Global.System.Web.UI.WebControls.PlaceHolder
+
+    '''<summary>
+    '''Control litCreadas.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litCreadas As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control litDetalleCreadas.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litDetalleCreadas As Global.System.Web.UI.WebControls.Literal
 End Class
