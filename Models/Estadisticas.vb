@@ -9,6 +9,14 @@ Namespace Models
         Public Property Clave As String
     End Class
 
+    ''' <summary>Tarjetas de un tablero que llevan una etiqueta.</summary>
+    Public Class DatoEtiqueta
+        Public Property Etiqueta As Etiqueta
+        Public Property Tarjetas As Integer
+        Public Property Vencidas As Integer
+        Public Property SinAsignar As Integer
+    End Class
+
     Public Class DatoDia
         Public Property Dia As DateTime   ' día local
         Public Property Valor As Integer
@@ -28,6 +36,8 @@ Namespace Models
         Public Property Comentarios As Integer
         Public Property PorLista As New List(Of Dato)
         Public Property PorPersona As New List(Of Dato)
+        Public Property PorEtiqueta As New List(Of DatoEtiqueta)   ' solo etiquetas con tarjetas; las más usadas primero
+        Public Property SinEtiqueta As Integer
 
         ' --- Actividad (historial) ---
         Public Property Dias As Integer

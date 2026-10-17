@@ -115,33 +115,48 @@ Namespace Datos
                                        "(c.Codigo IS NULL OR c.Codigo = N'')"))
                 End If
 
+                AgregarEtiquetas(filtro, cmd, condiciones)
+
                 Dim orden As String = Nothing
                 If filtro.Orden Is Nothing OrElse Not Ordenes.TryGetValue(filtro.Orden, orden) Then
                     orden = Ordenes(FiltroBusqueda.OrdenModificada)
                 End If
 
                 ' Acceso: solo tableros de los que el usuario es propietario o miembro.
+                ' El resultado va a una tabla temporal para leer después las etiquetas de esas mismas tarjetas.
                 cmd.CommandText =
-                    "SELECT TOP (@Max) COUNT(*) OVER () AS Total, t.Id AS TableroId, t.Nombre AS NombreTablero," &
-                    TarjetasDatos.SqlColumnasTarjeta &
+                    "SELECT TOP (@Max) COUNT(*) OVER () AS Total, ROW_NUMBER() OVER (ORDER BY " & orden & ") AS Fila," &
+                    " t.Id AS TableroId, t.Nombre AS NombreTablero," &
+                    TarjetasDatos.SqlColumnasTarjeta & "
+INTO #Resultado" &
                     TarjetasDatos.SqlFromTarjetas & "
 JOIN Tableros t ON t.Id = l.TableroId
 WHERE (t.PropietarioId = @UsuarioId
        OR EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = t.Id AND m.UsuarioId = @UsuarioId))" &
                     String.Concat(condiciones.Select(Function(c) vbLf & "  AND " & c)) & vbLf &
-                    "ORDER BY " & orden
+                    "ORDER BY " & orden & ";" & vbLf &
+                    "SELECT * FROM #Resultado ORDER BY Fila;" & vbLf &
+                    "SELECT te.TarjetaId, e.Id, e.Nombre, e.Color FROM #Resultado r" &
+                    " JOIN TarjetaEtiquetas te ON te.TarjetaId = r.Id JOIN Etiquetas e ON e.Id = te.EtiquetaId" &
+                    " WHERE e.TableroId = r.TableroId ORDER BY e.Nombre;" & vbLf &
+                    "DROP TABLE #Resultado;"
 
                 Dim resultado As New ResultadoBusqueda
+                Dim porId As New Dictionary(Of Integer, Tarjeta)
                 cn.Open()
                 Using rd = cmd.ExecuteReader()
                     While rd.Read()
                         resultado.Total = rd.GetInt32(rd.GetOrdinal("Total"))
+                        Dim tarjeta = TarjetasDatos.LeerTarjeta(rd)
+                        porId(tarjeta.Id) = tarjeta
                         resultado.Tarjetas.Add(New TarjetaEncontrada With {
-                            .Tarjeta = TarjetasDatos.LeerTarjeta(rd),
+                            .Tarjeta = tarjeta,
                             .TableroId = rd.GetInt32(rd.GetOrdinal("TableroId")),
                             .NombreTablero = rd.GetString(rd.GetOrdinal("NombreTablero"))
                         })
                     End While
+                    rd.NextResult()
+                    EtiquetasDatos.LeerEnTarjetas(rd, porId)
                 End Using
                 Return resultado
             End Using
@@ -170,10 +185,48 @@ WHERE (t.PropietarioId = @UsuarioId
                 If filtro.EnSubtareas Then
                     campos.Add("EXISTS (SELECT 1 FROM Subtareas s WHERE s.TarjetaId = c.Id AND s.Texto LIKE " & p & " ESCAPE '\')")
                 End If
+                Dim sinAlmohadilla = palabras(i).TrimStart("#"c)
+                If filtro.EnEtiquetas AndAlso sinAlmohadilla.Length > 0 Then
+                    Dim pe = "@PalabraEtiqueta" & i.ToString(CultureInfo.InvariantCulture)
+                    cmd.Parameters.Add(pe, SqlDbType.NVarChar, 410).Value = "%" & EscaparLike(sinAlmohadilla) & "%"
+                    campos.Add("EXISTS (SELECT 1 FROM TarjetaEtiquetas te JOIN Etiquetas e ON e.Id = te.EtiquetaId " &
+                               "WHERE te.TarjetaId = c.Id AND e.Nombre LIKE " & pe & " ESCAPE '\')")
+                End If
 
                 ' Sin campos marcados no puede haber coincidencias.
                 condiciones.Add(If(campos.Count = 0, "1 = 0", "(" & String.Join(" OR ", campos) & ")"))
             Next
+        End Sub
+
+        ' Etiquetas por nombre (sin distinguir mayúsculas, por la intercalación). Los nombres de parámetro
+        ' (@Etiqueta0, @Etiqueta1...) los genera el código; los valores van como parámetros.
+        Private Shared Sub AgregarEtiquetas(filtro As FiltroBusqueda, cmd As SqlCommand, condiciones As List(Of String))
+            Const deLaTarjeta = "SELECT 1 FROM TarjetaEtiquetas te JOIN Etiquetas e ON e.Id = te.EtiquetaId WHERE te.TarjetaId = c.Id"
+
+            If filtro.ModoEtiquetas = FiltroBusqueda.EtiquetasSin Then
+                condiciones.Add("NOT EXISTS (SELECT 1 FROM TarjetaEtiquetas te WHERE te.TarjetaId = c.Id)")
+                Return
+            End If
+
+            Dim nombres = If(filtro.Etiquetas, New List(Of String)).
+                          Where(AddressOf Etiqueta.EsNombreValido).
+                          Distinct(StringComparer.CurrentCultureIgnoreCase).Take(Etiqueta.MaximoPorTarjeta).ToList()
+            If nombres.Count = 0 Then Return
+
+            Dim parametros As New List(Of String)
+            For i = 0 To nombres.Count - 1
+                Dim p = "@Etiqueta" & i.ToString(CultureInfo.InvariantCulture)
+                cmd.Parameters.Add(p, SqlDbType.NVarChar, Etiqueta.LongitudMaxima).Value = nombres(i)
+                parametros.Add(p)
+            Next
+
+            If filtro.ModoEtiquetas = FiltroBusqueda.EtiquetasAlguna Then
+                condiciones.Add("EXISTS (" & deLaTarjeta & " AND e.Nombre IN (" & String.Join(", ", parametros) & "))")
+            Else
+                For Each p In parametros   ' todas
+                    condiciones.Add("EXISTS (" & deLaTarjeta & " AND e.Nombre = " & p & ")")
+                Next
+            End If
         End Sub
 
         ''' <summary>Rango de días inclusivo. Para columnas UTC convierte los límites del día local a UTC.</summary>

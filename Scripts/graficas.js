@@ -1,7 +1,8 @@
 /*
  * Gráficas de Estadisticas.aspx, sin dependencias.
  * Lee el JSON de #datos-graficas y dibuja con HTML/CSS:
- *  - barras horizontales (una serie: color de serie 1; "Sin asignar" en gris de baja énfasis),
+ *  - barras horizontales (una serie: color de serie 1; "Sin asignar" en gris de baja énfasis; opcionalmente
+ *    una muestra de color junto al nombre —p. ej. el de cada etiqueta— y un enlace),
  *  - una barra apilada de estados (paleta de estado + icono + etiqueta),
  *  - columnas por día.
  * Cada gráfica lleva tooltip (ratón y teclado) y una vista de tabla ("Ver tabla").
@@ -16,6 +17,12 @@
     var numero = new Intl.NumberFormat('es-ES');
 
     var ICONOS = { critico: '⚠', aviso: '◷', bien: '✓', neutro: '–' };
+    var COLOR = /^#[0-9a-f]{6}$/i;
+
+    // Solo rutas del propio sitio ("/..."), nunca "//otro-sitio" ni "javascript:".
+    function enlaceLocal(url) {
+        return typeof url === 'string' && url.charAt(0) === '/' && url.charAt(1) !== '/' && url.charAt(1) !== '\\';
+    }
 
     // ----- Utilidades DOM -----
 
@@ -116,8 +123,16 @@
 
         filas.forEach(function (f) {
             var fila = el('div', 'graf-fila');
-            var etiqueta = el('span', 'graf-etiqueta', f.e);
+            var etiqueta = el(enlaceLocal(f.url) ? 'a' : 'span', 'graf-etiqueta', f.e);
             etiqueta.title = f.e;
+            if (enlaceLocal(f.url)) { etiqueta.setAttribute('href', f.url); }
+            if (COLOR.test(f.color || '')) {
+                // La identidad la lleva una muestra junto al texto; el texto sigue en color de tinta.
+                var muestra = el('span', 'graf-muestra');
+                muestra.style.backgroundColor = f.color;
+                muestra.setAttribute('aria-hidden', 'true');
+                etiqueta.insertBefore(muestra, etiqueta.firstChild);
+            }
             var zona = el('span', 'graf-zona');
             var pct = maximo > 0 ? f.v / maximo * 100 : 0;
             var barra = el('span', 'graf-barra' + (f.gris ? ' graf-barra-gris' : ''));
@@ -236,5 +251,7 @@
     apilada('grafica-fechas', datos.fechas);
     columnas('grafica-por-dia', datos.porDia);
     barras('grafica-cambios-persona', datos.cambiosPersona, ['cambio', 'cambios'], ['Persona', 'Cambios'], 'No hubo cambios en este periodo.');
+    barras('grafica-por-etiqueta', datos.porEtiqueta || [], ['tarjeta', 'tarjetas'], ['Etiqueta', 'Tarjetas'],
+           'Todavía no hay tarjetas con etiquetas.');
     barras('grafica-cambios-tipo', datos.cambiosTipo, ['cambio', 'cambios'], ['Tipo', 'Cambios'], 'No hubo cambios en este periodo.');
 }());

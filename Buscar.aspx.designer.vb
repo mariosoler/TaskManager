@@ -86,4 +86,10 @@ Partial Public Class BuscarPagina
     Protected WithEvents chkCompartirBusqueda As Global.System.Web.UI.WebControls.CheckBox
 
     Protected WithEvents btnGuardarBusqueda As Global.System.Web.UI.WebControls.Button
+
+    Protected WithEvents chkEnEtiquetas As Global.System.Web.UI.WebControls.CheckBox
+
+    Protected WithEvents txtEtiquetasFiltro As Global.System.Web.UI.WebControls.TextBox
+
+    Protected WithEvents ddlModoEtiquetas As Global.System.Web.UI.WebControls.DropDownList
 End Class

@@ -58,6 +58,10 @@
                 <figcaption><h3>Fechas límite</h3><p class="grafica-subtitulo">Reparto de las tarjetas según su fecha límite</p></figcaption>
                 <div class="grafica-cuerpo"></div>
             </figure>
+            <figure class="grafica grafica-ancha" id="grafica-por-etiqueta">
+                <figcaption><h3>Tarjetas por etiqueta</h3><p class="grafica-subtitulo">Una tarjeta cuenta en cada una de sus etiquetas. Pulsa una etiqueta para ver sus tarjetas en el buscador.</p></figcaption>
+                <div class="grafica-cuerpo"></div>
+            </figure>
         </div>
 
         <h2 class="seccion-titulo">Actividad</h2>

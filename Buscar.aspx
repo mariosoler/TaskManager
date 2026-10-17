@@ -83,7 +83,22 @@
                         <asp:CheckBox ID="chkEnCodigo" runat="server" Text="Código" />
                         <asp:CheckBox ID="chkEnComentarios" runat="server" Text="Mensajes del chat" />
                         <asp:CheckBox ID="chkEnSubtareas" runat="server" Text="Subtareas" />
+                        <asp:CheckBox ID="chkEnEtiquetas" runat="server" Text="Etiquetas" Checked="true" />
                     </fieldset>
+                    <%-- Etiquetas: sugerencias al escribir "#" (Scripts/etiquetas.js en modo filtro) --%>
+                    <div class="campo campo-etiquetas campo-doble">
+                        <asp:Label runat="server" AssociatedControlID="txtEtiquetasFiltro" Text="Etiquetas" />
+                        <asp:TextBox ID="txtEtiquetasFiltro" runat="server" MaxLength="600" autocomplete="off" spellcheck="false"
+                            placeholder="#PLANIFICADOR_CABINAS #IT_CASES" />
+                    </div>
+                    <div class="campo">
+                        <asp:Label runat="server" AssociatedControlID="ddlModoEtiquetas" Text="Con las etiquetas" />
+                        <asp:DropDownList ID="ddlModoEtiquetas" runat="server">
+                            <asp:ListItem Value="todas" Text="Todas las indicadas" />
+                            <asp:ListItem Value="alguna" Text="Alguna de las indicadas" />
+                            <asp:ListItem Value="sin" Text="Sin ninguna etiqueta" />
+                        </asp:DropDownList>
+                    </div>
                     <div class="campo">
                         <asp:Label runat="server" AssociatedControlID="ddlLista" Text="Lista" />
                         <asp:DropDownList ID="ddlLista" runat="server" />
@@ -178,6 +193,11 @@
                                 <a href='<%#: UrlTarjeta(CType(Container.DataItem, TaskManager.Models.TarjetaEncontrada)) %>'><%#: Eval("Tarjeta.Titulo") %></a>
                                 <asp:PlaceHolder runat="server" Visible='<%# CBool(Eval("Tarjeta.TieneCodigo")) %>'><span class="info info-codigo" title="Tiene código">&lt;/&gt;</span></asp:PlaceHolder>
                                 <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("Tarjeta.NumComentarios")) > 0 %>'><span class="info" title="Mensajes de chat">&#128172; <%# Eval("Tarjeta.NumComentarios") %></span></asp:PlaceHolder>
+                                <asp:Repeater ID="rptEtiquetasResultado" runat="server" DataSource='<%# Eval("Tarjeta.Etiquetas") %>'>
+                                    <HeaderTemplate><span class="tarjeta-etiquetas"></HeaderTemplate>
+                                    <ItemTemplate><span class="etiqueta-tag" style='<%#: Eval("EstiloCss") %>'><%#: Eval("Nombre") %></span></ItemTemplate>
+                                    <FooterTemplate></span></FooterTemplate>
+                                </asp:Repeater>
                             </td>
                             <td><%# Formato.HtmlPrioridad(Eval("Tarjeta.Prioridad")) %></td>
                             <td><%#: Eval("NombreTablero") %><span class="secundario"><%#: Eval("Tarjeta.NombreLista") %></span></td>
@@ -198,4 +218,11 @@
             <p class="vacio">No hay tareas que coincidan con la búsqueda.</p>
         </asp:PlaceHolder>
     </div>
+</asp:Content>
+
+<asp:Content ID="cScripts" ContentPlaceHolderID="Scripts" runat="server">
+    <%-- Etiquetas para las sugerencias del filtro; "<", ">" y "&" van escapados --%>
+    <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
+    <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetasFiltro.ClientID %>', datos: 'etiquetas-datos', modo: 'filtro' };</script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
 </asp:Content>

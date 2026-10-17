@@ -200,12 +200,6 @@ Public Class TableroPagina
         Return String.Join(" ", {tarjeta.Titulo, tarjeta.Descripcion, tarjeta.NombreAsignado}.Where(Function(t) Not String.IsNullOrEmpty(t)))
     End Function
 
-    ''' <summary>Atributo style de una etiqueta (colores ya validados por Etiqueta.ColorSeguro).</summary>
-    Protected Shared Function EstiloEtiqueta(dato As Object) As String
-        Dim etiqueta = CType(dato, Etiqueta)
-        Return "background-color: " & etiqueta.ColorSeguro & "; color: " & etiqueta.Tinta
-    End Function
-
     ' ----- Chat (configuración para Scripts/chat.js) -----
 
     Protected ReadOnly Property TokenChat As String

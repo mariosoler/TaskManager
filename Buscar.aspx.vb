@@ -1,4 +1,5 @@
 Imports System.Globalization
+Imports System.Web.Script.Serialization
 Imports TaskManager.Datos
 Imports TaskManager.Models
 Imports TaskManager.Seguridad
@@ -39,6 +40,9 @@ Public Class BuscarPagina
             ' Buscar.aspx?tablero=N: búsqueda limitada a ese tablero (si el usuario tiene acceso).
             Seleccionar(ddlTablero, If(Request.QueryString("tablero"), "").Trim())
             CargarListas()
+            ' Buscar.aspx?etiqueta=NOMBRE: tarjetas con esa etiqueta (lo usan las estadísticas).
+            Dim etiquetaUrl = If(Request.QueryString("etiqueta"), "").Trim().TrimStart("#"c)
+            If Etiqueta.EsNombreValido(etiquetaUrl) Then txtEtiquetasFiltro.Text = "#" & etiquetaUrl & " "
         End If
         CargarGuardadas()
         Buscar()
@@ -142,6 +146,9 @@ Public Class BuscarPagina
         chkEnCodigo.Checked = filtro.EnCodigo
         chkEnComentarios.Checked = filtro.EnComentarios
         chkEnSubtareas.Checked = filtro.EnSubtareas
+        chkEnEtiquetas.Checked = filtro.EnEtiquetas
+        txtEtiquetasFiltro.Text = Etiqueta.ATexto(If(filtro.Etiquetas, New List(Of String)).Select(Function(n) New Etiqueta With {.Nombre = n}))
+        elegir(ddlModoEtiquetas, filtro.ModoEtiquetas)
 
         elegir(ddlTablero, entero(filtro.TableroId))
         CargarListas()
@@ -177,6 +184,19 @@ Public Class BuscarPagina
         Return String.IsNullOrEmpty(valor)
     End Function
 
+    ''' <summary>
+    ''' Etiquetas para las sugerencias del filtro (n, c = color, t = tinta, u = usos): las del tablero elegido
+    ''' o las de todos los tableros del usuario. Se buscan por nombre en todos ellos.
+    ''' </summary>
+    Protected ReadOnly Property EtiquetasJson As String
+        Get
+            Dim etiquetas = EtiquetasDatos.ListarParaBuscador(UsuarioId, TableroSeleccionado()).Select(
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos})
+            Dim json = New JavaScriptSerializer().Serialize(etiquetas.ToList())
+            Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+        End Get
+    End Property
+
     Protected Function TituloGuardada(guardada As BusquedaGuardada) As String
         Dim texto = If(guardada.EsPropia, "Tuya", "De " & guardada.NombreUsuario)
         If guardada.Compartida Then texto &= " · compartida con tus compañeros"
@@ -210,7 +230,8 @@ Public Class BuscarPagina
                           txtCreadaHasta.Text <> "" OrElse txtModificadaDesde.Text <> "" OrElse txtModificadaHasta.Text <> "" OrElse
                           ddlSubtareas.SelectedValue <> "" OrElse ddlCodigo.SelectedValue <> "" OrElse
                           ddlOrden.SelectedIndex > 0 OrElse Not chkEnTitulo.Checked OrElse Not chkEnDescripcion.Checked OrElse
-                          chkEnCodigo.Checked OrElse chkEnComentarios.Checked OrElse chkEnSubtareas.Checked
+                          chkEnCodigo.Checked OrElse chkEnComentarios.Checked OrElse chkEnSubtareas.Checked OrElse
+                          Not chkEnEtiquetas.Checked OrElse txtEtiquetasFiltro.Text.Trim() <> "" OrElse ddlModoEtiquetas.SelectedIndex > 0
     End Sub
 
     Private Sub CargarDesplegables()
@@ -278,6 +299,10 @@ Public Class BuscarPagina
             .EnCodigo = chkEnCodigo.Checked,
             .EnComentarios = chkEnComentarios.Checked,
             .EnSubtareas = chkEnSubtareas.Checked,
+            .EnEtiquetas = chkEnEtiquetas.Checked,
+            .Etiquetas = Etiqueta.Analizar(txtEtiquetasFiltro.Text, Nothing),
+            .ModoEtiquetas = If({FiltroBusqueda.EtiquetasAlguna, FiltroBusqueda.EtiquetasSin}.Contains(ddlModoEtiquetas.SelectedValue),
+                                ddlModoEtiquetas.SelectedValue, FiltroBusqueda.EtiquetasTodas),
             .TableroId = TableroSeleccionado(),
             .ListaId = Entero(ddlLista.SelectedValue),
             .Asignado = ddlAsignado.SelectedValue,
@@ -310,12 +335,20 @@ Public Class BuscarPagina
 
         agregar("Texto", txtTexto.Text.Trim())
         If txtTexto.Text.Trim() <> "" Then
-            Dim campos = {chkEnTitulo, chkEnDescripcion, chkEnCodigo, chkEnComentarios, chkEnSubtareas}.Where(Function(c) c.Checked).Select(Function(c) c.Text)
+            Dim campos = {chkEnTitulo, chkEnDescripcion, chkEnCodigo, chkEnComentarios, chkEnSubtareas, chkEnEtiquetas}.Where(Function(c) c.Checked).Select(Function(c) c.Text)
             agregar("Buscar en", String.Join(", ", campos))
         End If
         For Each ddl In {ddlTablero, ddlLista, ddlAsignado, ddlEstadoFecha, ddlPrioridad, ddlCambiadaPor, ddlSubtareas, ddlCodigo}
             If ddl.SelectedValue <> "" Then agregar(EtiquetaDe(ddl), ddl.SelectedItem.Text)
         Next
+        If ddlModoEtiquetas.SelectedValue = FiltroBusqueda.EtiquetasSin Then
+            agregar("Etiquetas", "Sin ninguna etiqueta")
+        Else
+            Dim nombresEtiquetas = Etiqueta.Analizar(txtEtiquetasFiltro.Text, Nothing)
+            If nombresEtiquetas.Count > 0 Then
+                agregar("Etiquetas", ddlModoEtiquetas.SelectedItem.Text & ": " & String.Join(", ", nombresEtiquetas))
+            End If
+        End If
         agregar("Nº de caso", txtCaso.Text.Trim())
         agregar("Fecha límite entre", Rango(txtLimiteDesde.Text, txtLimiteHasta.Text))
         agregar("Creada entre", Rango(txtCreadaDesde.Text, txtCreadaHasta.Text))

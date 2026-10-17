@@ -4,6 +4,7 @@
  *   no se comparten entre tableros); flechas para elegir, Enter/Tab para insertar, Esc para cerrar;
  * - debajo muestra cómo quedarán, con su color (las nuevas, punteadas: el color se asigna al guardar).
  * Datos en <script type="application/json" id="etiquetas-datos"> (ver TableroPagina.EtiquetasJson).
+ * Con cfg.modo = 'filtro' (buscador) los nombres que no existen se marcan como «no existe» en vez de «nueva».
  * Los textos se insertan con textContent y los colores se validan antes de usarlos.
  */
 (function () {
@@ -15,6 +16,7 @@
     var nodoDatos = document.getElementById(cfg.datos);
     if (!campo || !nodoDatos) { return; }   // el detalle de tarjeta está cerrado
 
+    var esFiltro = cfg.modo === 'filtro';
     var datos = [];
     try { datos = JSON.parse(nodoDatos.textContent) || []; } catch (e) { datos = []; }
 
@@ -77,6 +79,8 @@
             var dato = porNombre[clave];
             if (dato) {
                 vista.appendChild(chip(dato.n, dato));
+            } else if (esFiltro) {
+                vista.appendChild(chip(nombre, null, 'desconocida')).title = 'No hay ninguna etiqueta con ese nombre';
             } else {
                 vista.appendChild(chip(nombre, null, 'nueva')).title = 'Nueva en este tablero: el color se asigna al guardar';
             }

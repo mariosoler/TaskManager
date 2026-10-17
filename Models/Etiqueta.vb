@@ -45,6 +45,13 @@ Namespace Models
             End Get
         End Property
 
+        ''' <summary>Atributo style de la etiqueta de color (valores ya validados: ColorSeguro y Tinta).</summary>
+        Public ReadOnly Property EstiloCss As String
+            Get
+                Return "background-color: " & ColorSeguro & "; color: " & Tinta
+            End Get
+        End Property
+
         ''' <summary>Color de la paleta para la etiqueta número <paramref name="indice"/> (0, 1, 2...) de un tablero.</summary>
         Public Shared Function ColorPorIndice(indice As Integer) As String
             Return Paleta(Math.Abs(indice) Mod Paleta.Count)

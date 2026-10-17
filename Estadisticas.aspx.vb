@@ -46,6 +46,7 @@ Public Class EstadisticasPagina
             New Object() {"Fecha límite más adelante", est.VencenMasAdelante},
             New Object() {"Sin fecha límite", est.SinFecha},
             New Object() {"Sin asignar", est.SinAsignar},
+            New Object() {"Sin etiqueta", est.SinEtiqueta},
             New Object() {"Subtareas", est.SubtareasTotal},
             New Object() {"Subtareas completadas", est.SubtareasHechas},
             New Object() {"Mensajes de chat", est.Comentarios},
@@ -54,6 +55,9 @@ Public Class EstadisticasPagina
         })
         libro.AgregarHoja("Por lista", {"Lista", "Tarjetas"}, Filas(est.PorLista))
         libro.AgregarHoja("Por persona", {"Persona", "Tarjetas asignadas"}, Filas(est.PorPersona))
+        libro.AgregarHoja("Por etiqueta", {"Etiqueta", "Tarjetas", "Vencidas", "Sin asignar"},
+                          est.PorEtiqueta.Select(Function(d) New Object() {d.Etiqueta.Nombre, d.Tarjetas, d.Vencidas, d.SinAsignar}).
+                              Concat({New Object() {"Sin etiqueta", est.SinEtiqueta, Nothing, Nothing}}))
         libro.AgregarHoja("Fechas límite", {"Estado", "Tarjetas"}, Filas(SegmentosFechas(est)))
         libro.AgregarHoja("Actividad diaria", {"Día", "Cambios"},
                           est.CambiosPorDia.Select(Function(d) New Object() {d.Dia, d.Valor}))
@@ -119,10 +123,26 @@ Public Class EstadisticasPagina
                 .larga = cultura.TextInfo.ToTitleCase(d.Dia.ToString("ddd d MMM yyyy", cultura)),
                 .v = d.Valor})},
             {"cambiosPersona", est.CambiosPorPersona.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},
-            {"cambiosTipo", est.CambiosPorTipo.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})}
+            {"cambiosTipo", est.CambiosPorTipo.Select(Function(d) New With {.e = d.Etiqueta, .v = d.Valor})},
+            {"porEtiqueta", DatosPorEtiqueta(est)}
         }
         Dim json = New JavaScriptSerializer().Serialize(datos)
         Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+    End Function
+
+    ''' <summary>
+    ''' Barras de «Tarjetas por etiqueta»: cada etiqueta con su color (solo para la muestra junto al nombre; la barra
+    ''' usa el color de serie) y un enlace al buscador filtrado por ella; «Sin etiqueta» al final, en gris.
+    ''' </summary>
+    Private Function DatosPorEtiqueta(est As Estadisticas) As IEnumerable(Of Object)
+        Dim buscar = ResolveUrl("~/Buscar.aspx") & "?tablero=" & _tablero.Id.ToString(CultureInfo.InvariantCulture) & "&etiqueta="
+        Dim filas = est.PorEtiqueta.Select(Function(d) New With {
+            .e = d.Etiqueta.Nombre, .v = d.Tarjetas, .gris = False,
+            .color = d.Etiqueta.ColorSeguro, .url = buscar & HttpUtility.UrlEncode(d.Etiqueta.Nombre)}).ToList()
+        If est.SinEtiqueta > 0 AndAlso filas.Count > 0 Then
+            filas.Add(New With {.e = "Sin etiqueta", .v = est.SinEtiqueta, .gris = True, .color = "", .url = ""})
+        End If
+        Return filas.Cast(Of Object)()
     End Function
 
     ''' <summary>Fechas límite como segmentos de estado (Clave = estado para el color de estado).</summary>

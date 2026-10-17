@@ -71,7 +71,23 @@ ORDER BY Cantidad DESC, u.Nombre;
 SELECT h.Accion, COUNT(*) AS Cantidad
 FROM HistorialTarjeta h JOIN Tarjetas c ON c.Id = h.TarjetaId JOIN Listas l ON l.Id = c.ListaId
 WHERE l.TableroId = @TableroId AND h.Fecha >= @DesdeUtc
-GROUP BY h.Accion;"
+GROUP BY h.Accion;
+
+-- 8. Tarjetas por etiqueta (solo las que tienen alguna tarjeta), con vencidas y sin asignar
+SELECT e.Nombre, e.Color, COUNT(*) AS Tarjetas,
+       SUM(CASE WHEN c.FechaLimite < @Hoy THEN 1 ELSE 0 END) AS Vencidas,
+       SUM(CASE WHEN c.AsignadoA IS NULL THEN 1 ELSE 0 END) AS SinAsignar
+FROM Etiquetas e
+JOIN TarjetaEtiquetas te ON te.EtiquetaId = e.Id
+JOIN Tarjetas c ON c.Id = te.TarjetaId
+JOIN Listas l ON l.Id = c.ListaId
+WHERE e.TableroId = @TableroId AND l.TableroId = @TableroId
+GROUP BY e.Id, e.Nombre, e.Color
+ORDER BY Tarjetas DESC, e.Nombre;
+
+-- 9. Tarjetas sin ninguna etiqueta
+SELECT COUNT(*) FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
+WHERE l.TableroId = @TableroId AND NOT EXISTS (SELECT 1 FROM TarjetaEtiquetas te WHERE te.TarjetaId = c.Id);"
 
             Dim hoy = DateTime.Today
             Dim primerDia = hoy.AddDays(1 - dias)
@@ -130,6 +146,17 @@ GROUP BY h.Accion;"
                         .Etiqueta = t.Key,
                         .Valor = t.Value.Sum(Function(a) If(porAccion.ContainsKey(a), porAccion(a), 0))
                     }).ToList()
+
+                    rd.NextResult()
+                    While rd.Read()
+                        est.PorEtiqueta.Add(New DatoEtiqueta With {
+                            .Etiqueta = New Etiqueta With {.Nombre = rd.GetString(0), .Color = rd.GetString(1)},
+                            .Tarjetas = rd.GetInt32(2), .Vencidas = rd.GetInt32(3), .SinAsignar = rd.GetInt32(4)})
+                    End While
+
+                    rd.NextResult()
+                    rd.Read()
+                    est.SinEtiqueta = rd.GetInt32(0)
                 End Using
             End Using
             Return est

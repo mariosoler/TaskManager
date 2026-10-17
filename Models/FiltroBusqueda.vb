@@ -21,6 +21,11 @@ Namespace Models
         ' Prioridad: "1", "2", "3" (Models.Prioridad) o PrioridadSin
         Public Const PrioridadSin As String = "sin"
 
+        ' Etiquetas: cómo combinar las indicadas (o tarjetas sin ninguna etiqueta)
+        Public Const EtiquetasTodas As String = "todas"
+        Public Const EtiquetasAlguna As String = "alguna"
+        Public Const EtiquetasSin As String = "sin"
+
         ' Subtareas
         Public Const SubtareasSin As String = "sin"
         Public Const SubtareasPendientes As String = "pendientes"
@@ -42,6 +47,7 @@ Namespace Models
         Public Property EnCodigo As Boolean
         Public Property EnComentarios As Boolean
         Public Property EnSubtareas As Boolean
+        Public Property EnEtiquetas As Boolean = True     ' nombre de las etiquetas (sin "#")
 
         Public Property TableroId As Integer?
         Public Property ListaId As Integer?
@@ -60,6 +66,11 @@ Namespace Models
         ''' <summary>Tarjetas en cuyo historial aparece este usuario.</summary>
         Public Property CambiadaPor As Integer?
         Public Property Subtareas As String
+
+        ''' <summary>Nombres de etiqueta (sin "#"); se combinan según ModoEtiquetas. Las etiquetas son de cada tablero:
+        ''' se busca por nombre en todos los tableros del usuario.</summary>
+        Public Property Etiquetas As New List(Of String)
+        Public Property ModoEtiquetas As String = EtiquetasTodas
         Public Property ConCodigo As Boolean?
         Public Property Orden As String = OrdenModificada
 
@@ -84,6 +95,7 @@ Namespace Models
             agregar("enCodigo", logico(EnCodigo))
             agregar("enComentarios", logico(EnComentarios))
             agregar("enSubtareas", logico(EnSubtareas))
+            agregar("enEtiquetas", logico(EnEtiquetas))
             agregar("tablero", entero(TableroId))
             agregar("lista", entero(ListaId))
             agregar("asignado", Asignado)
@@ -98,6 +110,8 @@ Namespace Models
             agregar("modificadaHasta", fecha(ModificadaHasta))
             agregar("cambiadaPor", entero(CambiadaPor))
             agregar("subtareas", Subtareas)
+            agregar("etiquetas", String.Join(" ", If(Etiquetas, New List(Of String))))
+            agregar("modoEtiquetas", ModoEtiquetas)
             agregar("codigo", If(ConCodigo.HasValue, logico(ConCodigo.Value), Nothing))
             agregar("orden", Orden)
 
@@ -126,6 +140,7 @@ Namespace Models
                 .EnCodigo = logico("enCodigo", False),
                 .EnComentarios = logico("enComentarios", False),
                 .EnSubtareas = logico("enSubtareas", False),
+                .EnEtiquetas = logico("enEtiquetas", True),
                 .TableroId = entero("tablero"),
                 .ListaId = entero("lista"),
                 .Asignado = v("asignado"),
@@ -140,6 +155,9 @@ Namespace Models
                 .ModificadaHasta = fecha("modificadaHasta"),
                 .CambiadaPor = entero("cambiadaPor"),
                 .Subtareas = v("subtareas"),
+                .Etiquetas = If(v("etiquetas"), "").Split({" "c}, StringSplitOptions.RemoveEmptyEntries).
+                             Where(AddressOf Etiqueta.EsNombreValido).Take(Etiqueta.MaximoPorTarjeta).ToList(),
+                .ModoEtiquetas = If(v("modoEtiquetas"), EtiquetasTodas),
                 .ConCodigo = If(v("codigo") Is Nothing, CType(Nothing, Boolean?), v("codigo") = "1"),
                 .Orden = If(v("orden"), OrdenModificada)
             }

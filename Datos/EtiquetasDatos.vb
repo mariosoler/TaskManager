@@ -39,6 +39,39 @@ ORDER BY COUNT(te.TarjetaId) DESC, e.Nombre"
         End Function
 
         ''' <summary>
+        ''' Nombres de etiqueta para el filtro del buscador: los del tablero indicado o, sin tablero, los de todos los
+        ''' tableros del usuario (un nombre repetido en varios tableros sale una vez, sumando sus usos, con uno de sus colores).
+        ''' </summary>
+        Public Shared Function ListarParaBuscador(usuarioId As Integer, tableroId As Integer?) As List(Of Etiqueta)
+            Const sql = "
+WITH Accesibles AS (
+    SELECT t.Id FROM Tableros t
+    WHERE (@TableroId IS NULL OR t.Id = @TableroId)
+      AND (t.PropietarioId = @UsuarioId
+           OR EXISTS (SELECT 1 FROM MiembrosTablero m WHERE m.TableroId = t.Id AND m.UsuarioId = @UsuarioId))
+)
+SELECT MIN(e.Nombre) AS Nombre, MIN(e.Color) AS Color, COUNT(te.TarjetaId) AS Usos
+FROM Etiquetas e
+JOIN Accesibles a ON a.Id = e.TableroId
+LEFT JOIN TarjetaEtiquetas te ON te.EtiquetaId = e.Id
+GROUP BY e.Nombre
+ORDER BY COUNT(te.TarjetaId) DESC, MIN(e.Nombre)"
+
+            Dim etiquetas As New List(Of Etiqueta)
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = Db.ONulo(tableroId)
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    While rd.Read()
+                        etiquetas.Add(New Etiqueta With {.Nombre = rd.GetString(0), .Color = rd.GetString(1), .Usos = rd.GetInt32(2)})
+                    End While
+                End Using
+            End Using
+            Return etiquetas
+        End Function
+
+        ''' <summary>
         ''' Consulta de las etiquetas de las tarjetas del tablero: TarjetaId, Id, Nombre, Color (por nombre).
         ''' Requiere el parámetro @TableroId; opcionalmente se añade un filtro "AND c.Id = @TarjetaId".
         ''' </summary>
