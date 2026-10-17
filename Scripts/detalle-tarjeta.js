@@ -4,6 +4,9 @@
  *   (POST a Tarjeta.ashx tras una breve pausa); el botón Guardar se oculta.
  * - Pulsar fuera del modal lo cierra (como la ✕ o Esc). Antes de cerrar se guarda lo pendiente;
  *   si se está creando una tarjeta con datos escritos, se pide confirmación para descartarla.
+ * - Marcar una subtarea no recarga la página: al editar se guarda con Tarjeta.ashx (accion=subtarea);
+ *   al crear, el estado viaja con el siguiente envío del formulario (CheckedChanged en el servidor).
+ * - Tras un postback dentro del detalle (añadir/eliminar subtarea) se recupera su desplazamiento.
  * Sin JavaScript todo sigue funcionando con el botón Guardar (postback).
  */
 (function () {
@@ -49,6 +52,27 @@
         return null;
     }
 
+    /* POST a Tarjeta.ashx. Se resuelve con la respuesta JSON o se rechaza con un Error con el mensaje. */
+    function enviar(texto, keepalive) {
+        return fetch(cfg.url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            // keepalive deja terminar la petición aunque se recargue la página (máx. 64 KB de cuerpo).
+            keepalive: !!keepalive && texto.length < 60000,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Chat-Token': cfg.token },
+            body: texto
+        }).then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (datos) {
+                if (!r.ok || !datos.ok) { throw new Error(datos.error || 'No se han podido guardar los cambios.'); }
+                return datos;
+            });
+        });
+    }
+
+    function mostrarGuardado(datos) {
+        mostrar('✓ Guardado' + (datos.modificacion ? ' · ' + datos.modificacion : ''), 'ok');
+    }
+
     function hayCambios() { return guardadoValores !== null && cuerpo() !== guardadoValores; }
 
     /* Guarda si hay cambios. Devuelve una promesa que se resuelve con null (bien) o con el texto del error. */
@@ -67,24 +91,10 @@
 
         var enviado = cuerpo();
         mostrar('Guardando…', 'guardando');
-        enCurso = fetch(cfg.url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            // keepalive deja terminar la petición aunque se recargue la página (máx. 64 KB de cuerpo).
-            keepalive: !!alSalir && enviado.length < 60000,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Chat-Token': cfg.token },
-            body: enviado
-        }).then(function (r) {
-            return r.json().catch(function () { return {}; }).then(function (datos) {
-                if (!r.ok || !datos.ok) { throw new Error(datos.error || 'No se han podido guardar los cambios.'); }
-                guardadoValores = enviado;
-                if (datos.aviso) {
-                    mostrar(datos.aviso, 'error');
-                } else {
-                    mostrar('✓ Guardado' + (datos.modificacion ? ' · ' + datos.modificacion : ''), 'ok');
-                }
-                return null;
-            });
+        enCurso = enviar(enviado, alSalir).then(function (datos) {
+            guardadoValores = enviado;
+            if (datos.aviso) { mostrar(datos.aviso, 'error'); } else { mostrarGuardado(datos); }
+            return null;
         }).catch(function (e) {
             mostrar((e && e.message) || 'No se han podido guardar los cambios.', 'error');
             return (e && e.message) || 'error';
@@ -139,6 +149,62 @@
     fondo.addEventListener('click', function (e) {
         if (pulsadoEnFondo && e.target === fondo) { cerrar(); }
         pulsadoEnFondo = false;
+    });
+
+    // ----- Subtareas: marcar/desmarcar sin recargar -----
+    var progreso = document.getElementById('progresoSubtareas');
+
+    function actualizarProgreso() {
+        if (!progreso) { return; }
+        var casillas = fondo.querySelectorAll('.subtarea input[type=checkbox]');
+        var hechas = Array.prototype.filter.call(casillas, function (c) { return c.checked; }).length;
+        progreso.textContent = casillas.length ? hechas + '/' + casillas.length : '';
+    }
+
+    Array.prototype.forEach.call(fondo.querySelectorAll('.subtarea[data-subtarea-id]'), function (fila) {
+        var casilla = fila.querySelector('input[type=checkbox]');
+        if (!casilla) { return; }
+        // Quita el AutoPostBack (onclick="setTimeout('__doPostBack(...)')"): sin JS se sigue usando.
+        casilla.removeAttribute('onclick');
+        casilla.addEventListener('change', function () {
+            var marcada = casilla.checked;
+            fila.classList.toggle('completada', marcada);
+            actualizarProgreso();
+            if (!editando) { return; }   // al crear, el servidor lo lee en el siguiente envío
+
+            var p = new URLSearchParams();
+            p.set('accion', 'subtarea');
+            p.set('tablero', String(cfg.tablero));
+            p.set('tarjeta', String(cfg.tarjeta));
+            p.set('subtarea', fila.getAttribute('data-subtarea-id'));
+            p.set('completada', marcada ? '1' : '0');
+            enviar(p.toString(), false).then(mostrarGuardado).catch(function (e) {
+                // No se ha guardado: se deshace en pantalla.
+                casilla.checked = !marcada;
+                fila.classList.toggle('completada', !marcada);
+                actualizarProgreso();
+                mostrar((e && e.message) || 'No se ha podido guardar la subtarea.', 'error');
+            });
+        });
+    });
+
+    // ----- Desplazamiento del detalle tras un postback dentro de él -----
+    var CLAVE_SCROLL = 'TaskManager.detalle.scroll';
+    var claveDetalle = cfg.tablero + '/' + cfg.tarjeta;
+    try {
+        var previo = JSON.parse(sessionStorage.getItem(CLAVE_SCROLL) || 'null');
+        sessionStorage.removeItem(CLAVE_SCROLL);
+        // Solo si el servidor indica que es el mismo detalle (clase sin-animacion).
+        if (previo && previo.clave === claveDetalle && fondo.classList.contains('sin-animacion')) {
+            fondo.scrollTop = previo.top;
+        }
+    } catch (e) { /* sessionStorage no disponible: no pasa nada */ }
+
+    window.addEventListener('pagehide', function () {
+        if (cerrando) { return; }
+        try {
+            sessionStorage.setItem(CLAVE_SCROLL, JSON.stringify({ clave: claveDetalle, top: fondo.scrollTop }));
+        } catch (e) { /* sin sessionStorage */ }
     });
 
     if (!editando) { return; }

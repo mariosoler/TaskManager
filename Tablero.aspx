@@ -226,11 +226,12 @@
             </div>
 
             <div class="seccion">
-                <h3>Subtareas <span class="seccion-nota"><asp:Literal ID="litProgresoSubtareas" runat="server" /></span></h3>
+                <h3>Subtareas <span class="seccion-nota" id="progresoSubtareas"><asp:Literal ID="litProgresoSubtareas" runat="server" /></span></h3>
                 <asp:Repeater ID="rptSubtareas" runat="server">
                     <HeaderTemplate><ul class="subtareas"></HeaderTemplate>
                     <ItemTemplate>
-                        <li class='<%# If(CBool(Eval("Completada")), "subtarea completada", "subtarea") %>'>
+                        <%-- Scripts/detalle-tarjeta.js marca/desmarca sin recargar (data-subtarea-id); sin JS, AutoPostBack --%>
+                        <li class='<%# If(CBool(Eval("Completada")), "subtarea completada", "subtarea") %>' data-subtarea-id='<%# Eval("Id") %>'>
                             <asp:HiddenField ID="hfSubtareaId" runat="server" Value='<%# Eval("Id") %>' />
                             <asp:CheckBox ID="chkSubtarea" runat="server" Checked='<%# Eval("Completada") %>'
                                 AutoPostBack="true" OnCheckedChanged="chkSubtarea_CheckedChanged" />

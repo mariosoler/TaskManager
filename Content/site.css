@@ -602,6 +602,8 @@ textarea { resize: vertical; }
 .guardado-estado.error { color: #a11b12; font-weight: 600; }
 /* El fondo del modal cierra el detalle al pulsarlo */
 .modal-fondo { cursor: pointer; }
+/* Postback con el detalle ya abierto: sin animación de entrada (Tablero.aspx.vb, OnPreRender) */
+.modal-fondo.sin-animacion, .modal-fondo.sin-animacion > .modal { animation: none; }
 .modal-fondo > .modal { cursor: auto; }
 .modal h3 { font-size: 13px; padding-top: 14px; border-top: 1px solid var(--borde); text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); }
 .seccion { margin: 8px 0 16px; }

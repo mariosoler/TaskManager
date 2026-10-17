@@ -6,9 +6,12 @@ Imports TaskManager.Seguridad
 Imports TaskManager.Utilidades
 
 ''' <summary>
-''' Guardado automático del detalle de una tarjeta (JSON), usado por Scripts/detalle-tarjeta.js.
+''' Guardado sin recargar del detalle de una tarjeta (JSON), usado por Scripts/detalle-tarjeta.js.
 '''   POST tablero, tarjeta, titulo, caso, descripcion, prioridad, fechaLimite, asignado, etiquetas, codigo
-''' Guarda con TarjetasDatos.Actualizar (historial incluido) y devuelve el texto de última modificación.
+'''        -> guarda los campos con TarjetasDatos.Actualizar (historial incluido)
+'''   POST accion=subtarea, tablero, tarjeta, subtarea, completada (1/0)
+'''        -> marca o desmarca la subtarea con SubtareasDatos.CambiarEstado
+''' Devuelve el texto de última modificación de la tarjeta.
 ''' Mismo patrón que Chat.ashx: el usuario debe pertenecer al tablero, el POST exige el token anti-CSRF
 ''' (cabecera X-Chat-Token) y que el origen sea esta misma web.
 ''' </summary>
@@ -57,6 +60,18 @@ Public Class TarjetaHandler
             Return
         End If
 
+        If String.Equals(valores("accion"), "subtarea", StringComparison.Ordinal) Then
+            Dim subtareaId As Integer
+            If Not Integer.TryParse(valores("subtarea"), subtareaId) Then
+                Terminar(respuesta, 400, "Petición incorrecta.")
+                Return
+            End If
+            ' CambiarEstado incluye el TableroId en el WHERE y solo registra historial si el estado cambia.
+            SubtareasDatos.CambiarEstado(subtareaId, tableroId, valores("completada") = "1", usuarioId)
+            Responder(respuesta, tarjetaId, tableroId, Nothing)
+            Return
+        End If
+
         Dim errorTexto As String = Nothing
         Dim ignoradas As List(Of String) = Nothing
         Dim datos = EdicionTarjeta.Leer(valores("titulo"), valores("caso"), valores("fechaLimite"), valores("asignado"),
@@ -69,15 +84,18 @@ Public Class TarjetaHandler
 
         ' Actualizar incluye el TableroId en el WHERE: una tarjeta de otro tablero no se modifica.
         TarjetasDatos.Actualizar(tarjetaId, tableroId, datos, usuarioId)
+        Responder(respuesta, tarjetaId, tableroId, EdicionTarjeta.AvisoEtiquetas(ignoradas))
+    End Sub
+
+    Private Shared Sub Responder(respuesta As HttpResponse, tarjetaId As Integer, tableroId As Integer, aviso As String)
         Dim tarjeta = TarjetasDatos.Obtener(tarjetaId, tableroId)
         If tarjeta Is Nothing Then
             Terminar(respuesta, 404, "La tarjeta ya no existe.")
             Return
         End If
-
         respuesta.Write(New JavaScriptSerializer().Serialize(New With {
             .ok = True,
-            .aviso = EdicionTarjeta.AvisoEtiquetas(ignoradas),
+            .aviso = aviso,
             .modificacion = Formato.TextoModificacion(tarjeta.FechaModificacion, tarjeta.NombreModificador)
         }))
     End Sub

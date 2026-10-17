@@ -11,6 +11,9 @@ Public Class TableroPagina
     ' Tablero de la URL, cargado y autorizado en cada petición (también en los postbacks).
     Private _tablero As Tablero
 
+    ' Detalle abierto al empezar la petición ("tarjeta/lista"); si sigue igual al final, no se anima de nuevo.
+    Private _detalleAlCargar As String
+
     Private ReadOnly Property TableroId As Integer
         Get
             Return _tablero.Id
@@ -46,6 +49,7 @@ Public Class TableroPagina
         Dim id As Integer
         If Integer.TryParse(Request.QueryString("id"), id) Then _tablero = TablerosDatos.Obtener(id, UsuarioId)
         If _tablero Is Nothing Then Response.Redirect("~/Tableros.aspx")
+        If IsPostBack AndAlso pnlDetalle.Visible Then _detalleAlCargar = ClaveDetalle()
 
         Dim idTexto = _tablero.Id.ToString(CultureInfo.InvariantCulture)
         lnkBuscarTablero.HRef = "~/Buscar.aspx?tablero=" & idTexto
@@ -651,6 +655,10 @@ Public Class TableroPagina
 
         ' Guardado automático y cierre al pulsar fuera: solo con el detalle abierto.
         phScriptDetalle.Visible = pnlDetalle.Visible
+        ' Un postback dentro del detalle (añadir/eliminar subtarea…) no debe parecer que se cierra y se abre.
+        ' (Se fija siempre: CssClass se guarda en el ViewState y no debe arrastrarse al abrir otra tarjeta.)
+        Dim mismoDetalle = pnlDetalle.Visible AndAlso _detalleAlCargar IsNot Nothing AndAlso _detalleAlCargar = ClaveDetalle()
+        pnlDetalle.CssClass = If(mismoDetalle, "modal-fondo sin-animacion", "modal-fondo")
 
         ' Título editable al pulsarlo: solo propietario o Admin (el resto no recibe el cuadro de texto).
         pnlTituloEdicion.Visible = PuedeGestionarMiembros
@@ -666,6 +674,10 @@ Public Class TableroPagina
         pnlTablero.Style("--fondo-imagen") = FondosTablero.ImagenCss(TableroId, _tablero.Fondo)
         pnlTablero.CssClass = "tablero-pagina con-fondo"
     End Sub
+
+    Private Function ClaveDetalle() As String
+        Return TarjetaAbiertaId.ToString(CultureInfo.InvariantCulture) & "/" & ListaNuevaId.ToString(CultureInfo.InvariantCulture)
+    End Function
 
     Private Sub MostrarMensaje(mensaje As String, esError As Boolean)
         lblMensaje.Text = HttpUtility.HtmlEncode(mensaje)
