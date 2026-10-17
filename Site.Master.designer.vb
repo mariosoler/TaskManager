@@ -15,6 +15,10 @@ Partial Public Class SiteMaster
 
     Protected WithEvents lnkEstilos As Global.System.Web.UI.HtmlControls.HtmlLink
 
+    Protected WithEvents lnkIcono As Global.System.Web.UI.HtmlControls.HtmlLink
+
+    Protected WithEvents imgLogo As Global.System.Web.UI.HtmlControls.HtmlImage
+
     Protected WithEvents form1 As Global.System.Web.UI.HtmlControls.HtmlForm
 
     Protected WithEvents lnkInicio As Global.System.Web.UI.HtmlControls.HtmlAnchor

@@ -50,7 +50,6 @@ Public Class TableroPagina
         If Integer.TryParse(Request.QueryString("id"), id) Then _tablero = TablerosDatos.Obtener(id, UsuarioId)
         If _tablero Is Nothing Then Response.Redirect("~/Tableros.aspx")
 
-        Title = HttpUtility.HtmlEncode(_tablero.Nombre)
         Dim idTexto = _tablero.Id.ToString(CultureInfo.InvariantCulture)
         lnkBuscarTablero.HRef = "~/Buscar.aspx?tablero=" & idTexto
         lnkEstadisticas.HRef = "~/Estadisticas.aspx?id=" & idTexto
@@ -570,7 +569,6 @@ Public Class TableroPagina
         If TablerosDatos.CambiarNombre(TableroId, nombre, descripcion, UsuarioId) Then
             _tablero.Nombre = nombre
             _tablero.Descripcion = If(descripcion.Length = 0, Nothing, descripcion)
-            Title = HttpUtility.HtmlEncode(nombre)
             MostrarMensaje("Tablero actualizado.", False)
         End If
         CargarTablero()
@@ -582,7 +580,6 @@ Public Class TableroPagina
         If PuedeGestionarMiembros AndAlso nombre.Length > 0 AndAlso nombre <> _tablero.Nombre AndAlso
            TablerosDatos.CambiarNombre(TableroId, nombre, _tablero.Descripcion, UsuarioId) Then
             _tablero.Nombre = nombre
-            Title = HttpUtility.HtmlEncode(nombre)
         End If
         CargarTablero()
     End Sub

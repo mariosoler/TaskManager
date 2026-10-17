@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequestMode="Disabled" Title="Iniciar sesión" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Login.aspx.vb" Inherits="TaskManager.LoginPagina" %>
+﻿<%@ Page ValidateRequestMode="Disabled" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Login.aspx.vb" Inherits="TaskManager.LoginPagina" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">
     <asp:Panel ID="pnlLogin" runat="server" CssClass="tarjeta-acceso" DefaultButton="btnEntrar">

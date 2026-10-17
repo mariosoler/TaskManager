@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequestMode="Disabled" Title="Buscar tareas" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Buscar.aspx.vb" Inherits="TaskManager.BuscarPagina" %>
+﻿<%@ Page ValidateRequestMode="Disabled" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Buscar.aspx.vb" Inherits="TaskManager.BuscarPagina" %>
 <%@ Import Namespace="TaskManager.Utilidades" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">

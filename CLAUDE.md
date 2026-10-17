@@ -12,7 +12,7 @@ Guía para Claude Code al trabajar en este repositorio.
 
 ## Estructura
 
-- `Site.Master` — página maestra (barra superior, cerrar sesión).
+- `Site.Master` — página maestra (barra superior, cerrar sesión). La pestaña del navegador muestra **siempre «TaskManager»** (lo fija `SiteMaster.Page_PreRender`; las páginas no ponen título propio). El favicon y el logo de la barra se enlazan con versión (`Formato.UrlConVersion`) para que el navegador no use un icono antiguo en caché.
 - Páginas (`*.aspx` + `.aspx.vb` + `.aspx.designer.vb`; las clases se llaman `XxxPagina`):
   - `Login.aspx`, `Registro.aspx` — acceso (únicas páginas públicas).
   - `Tableros.aspx` — "Mis tableros": listar, crear y eliminar.

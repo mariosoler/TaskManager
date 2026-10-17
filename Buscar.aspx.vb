@@ -116,7 +116,6 @@ Public Class BuscarPagina
         End If
 
         BusquedaActivaId = guardada.Id
-        Title = "Buscar: " & HttpUtility.HtmlEncode(guardada.Nombre)
         If guardada.EsPropia Then
             ' Así, volver a guardar con el mismo nombre la actualiza.
             txtNombreBusqueda.Text = guardada.Nombre

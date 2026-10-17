@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequestMode="Disabled" Title="Estadísticas" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Estadisticas.aspx.vb" Inherits="TaskManager.EstadisticasPagina" %>
+﻿<%@ Page ValidateRequestMode="Disabled" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Estadisticas.aspx.vb" Inherits="TaskManager.EstadisticasPagina" %>
 <%@ Import Namespace="TaskManager.Utilidades" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">

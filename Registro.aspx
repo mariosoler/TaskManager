@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequestMode="Disabled" Title="Crear cuenta" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Registro.aspx.vb" Inherits="TaskManager.RegistroPagina" %>
+﻿<%@ Page ValidateRequestMode="Disabled" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Registro.aspx.vb" Inherits="TaskManager.RegistroPagina" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">
     <asp:Panel ID="pnlRegistro" runat="server" CssClass="tarjeta-acceso" DefaultButton="btnRegistrar">

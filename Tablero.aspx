@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequestMode="Disabled" Title="Tablero" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Tablero.aspx.vb" Inherits="TaskManager.TableroPagina" %>
+﻿<%@ Page ValidateRequestMode="Disabled" Language="vb" AutoEventWireup="false" MasterPageFile="~/Site.Master" CodeBehind="Tablero.aspx.vb" Inherits="TaskManager.TableroPagina" %>
 <%@ Import Namespace="TaskManager.Utilidades" %>
 
 <asp:Content ID="cContenido" ContentPlaceHolderID="Contenido" runat="server">

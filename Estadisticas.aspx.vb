@@ -28,7 +28,6 @@ Public Class EstadisticasPagina
         Dim dias As Integer
         If Integer.TryParse(Request.QueryString("dias"), dias) AndAlso PeriodosPermitidos.Contains(dias) Then _dias = dias
 
-        Title = HttpUtility.HtmlEncode("Estadísticas · " & _tablero.Nombre)
         _estadisticas = EstadisticasDatos.Obtener(_tablero.Id, _dias)
         Mostrar()
     End Sub
