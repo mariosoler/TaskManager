@@ -92,13 +92,42 @@
         origen = null;
     });
 
+    // ----- Desplegables de la cabecera (Fondo, Editar): solo uno abierto a la vez -----
+    function desplegablesAbiertos(excepto) {
+        return Array.prototype.filter.call(document.querySelectorAll('details.tablero-fondo[open]'),
+            function (d) { return d !== excepto; });
+    }
+
+    function cerrarDesplegables(excepto) {
+        var abiertos = desplegablesAbiertos(excepto);
+        abiertos.forEach(function (d) { d.removeAttribute('open'); });
+        return abiertos.length > 0;
+    }
+
+    // "toggle" no burbujea: se escucha en fase de captura.
+    document.addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (d.matches && d.matches('details.tablero-fondo') && d.open) { cerrarDesplegables(d); }
+    }, true);
+
     document.addEventListener('click', function (e) {
+        // Pulsar fuera de un desplegable abierto lo cierra.
+        cerrarDesplegables(cercano(e.target, 'details.tablero-fondo'));
+
         var tarjeta = cercano(e.target, '.tarjeta');
         if (tarjeta) { abrir(tarjeta); }
     });
 
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
+            // Esc cierra primero el desplegable abierto y devuelve el foco a su botón.
+            var abierto = desplegablesAbiertos(null)[0];
+            if (abierto) {
+                abierto.removeAttribute('open');
+                var resumen = abierto.querySelector('summary');
+                if (resumen) { resumen.focus(); }
+                return;
+            }
             // Dentro de un campo, Esc no cierra el detalle (se perderían los cambios sin guardar).
             if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { return; }
             var cerrar = document.getElementById(cfg.cerrar);
