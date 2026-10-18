@@ -771,8 +771,22 @@ textarea { resize: vertical; }
 }
 @keyframes aparecer { from { opacity: 0; } }
 @keyframes subir { from { opacity: 0; transform: translateY(12px) scale(.985); } }
-.modal-cabecera { display: flex; justify-content: space-between; align-items: center; }
-.modal-cabecera h2 { margin: 0; font-size: 18px; }
+.modal-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+/* Título de la tarjeta: cuadro de texto con aspecto de título; al pulsarlo se ve como campo editable */
+.campo-titulo-tarjeta { flex: 1; min-width: 0; margin: 0; }
+.modal input.titulo-tarjeta {
+    margin-left: -7px;
+    padding: 3px 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    cursor: text;
+}
+.modal input.titulo-tarjeta:hover { background: rgba(0, 40, 41, .05); border-color: transparent; }
+.modal input.titulo-tarjeta:focus, .modal input.titulo-tarjeta:placeholder-shown { background: #fff; border-color: var(--borde); }
+.modal input.titulo-tarjeta:focus { border-color: var(--primario); box-shadow: var(--anillo-foco); }
 .modal-cerrar {
     display: inline-flex;
     align-items: center;
@@ -787,7 +801,13 @@ textarea { resize: vertical; }
     transition: background-color var(--transicion), color var(--transicion);
 }
 .modal-cerrar:hover { background: rgba(0, 40, 41, .08); color: var(--texto); }
-.modal-subtitulo { margin: 4px 0 16px; color: var(--texto-suave); }
+.modal-subtitulo { margin: 2px 0 14px; color: var(--texto-suave); font-size: 13px; }
+/* Avisos de la fila caso / prioridad / fecha límite / asignada a (Scripts/detalle-tarjeta.js): icono + texto */
+.campo-alerta { display: none; margin-left: 4px; font-weight: 700; }
+.campo.vencida .campo-alerta { display: inline; color: #a11b12; }
+.campo.vencida input { border-color: var(--rojo); background: #fdf1f0; color: #a11b12; font-weight: 600; }
+.campo.sin-asignar .campo-alerta { display: inline; color: #7a5200; }
+.campo.sin-asignar select { border-color: #fab219; background-color: #fff8e6; }
 .campos-fila { display: flex; gap: 12px; }
 .campos-fila .campo { flex: 1; }
 .modal-acciones { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 20px; }

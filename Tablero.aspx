@@ -159,7 +159,7 @@
                                 <article class='<%# "tarjeta " & TaskManager.Models.Prioridad.ClaseCss(CType(Eval("Prioridad"), Integer?)) %>' draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'
                                     data-caso='<%#: Eval("Caso") %>' data-etiquetas='<%#: NombresEtiquetas(Container.DataItem) %>' data-texto='<%#: TextoBusqueda(Container.DataItem) %>'>
                                     <span class="tarjeta-titulo">
-                                        <span class="tarjeta-id" title="ID de la tarea">ID <%# Eval("Id") %></span>
+                                        <span class="tarjeta-id" title="ID de la tarea"><%# Eval("Id") %></span>
                                         <asp:PlaceHolder runat="server" Visible='<%# Eval("Caso") IsNot Nothing %>'>
                                             <span class="tarjeta-caso" title="Caso">#<%#: Eval("Caso") %></span>
                                         </asp:PlaceHolder>
@@ -215,15 +215,23 @@
   </asp:Panel>
 
     <asp:Panel ID="pnlDetalle" runat="server" Visible="false" CssClass="modal-fondo" DefaultButton="btnGuardarTarjeta">
-        <div class="modal modal-con-chat" role="dialog" aria-modal="true" aria-labelledby="tituloDetalle">
+        <div class="modal modal-con-chat" role="dialog" aria-modal="true" aria-label="Detalle de la tarjeta">
           <div class="modal-principal">
+            <%-- Título: parece texto y se edita al pulsarlo (cuadro de texto con aspecto de título) --%>
             <div class="modal-cabecera">
-                <h2 id="tituloDetalle"><asp:Literal ID="litTituloModal" runat="server" /></h2>
+                <div class="campo campo-titulo-tarjeta">
+                    <asp:Label runat="server" AssociatedControlID="txtTituloTarjeta" Text="Título" CssClass="solo-lectores" />
+                    <asp:TextBox ID="txtTituloTarjeta" runat="server" MaxLength="200" CssClass="titulo-tarjeta"
+                        placeholder="Título de la tarjeta" ToolTip="Pulsa para editar el título" />
+                    <asp:RequiredFieldValidator ID="rfvTituloTarjeta" runat="server" ControlToValidate="txtTituloTarjeta" ValidationGroup="Detalle"
+                        ErrorMessage="El título es obligatorio." Display="Dynamic" CssClass="validacion" />
+                </div>
                 <asp:LinkButton ID="btnCerrarDetalle" runat="server" CssClass="modal-cerrar" ToolTip="Cerrar (Esc)" CausesValidation="false">&times;</asp:LinkButton>
             </div>
-            <p class="modal-subtitulo">En la lista <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
+            <p class="modal-subtitulo"><asp:Literal ID="litDetallePrefijo" runat="server" /> <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
                 <asp:Literal ID="litFechasTarjeta" runat="server" Mode="Encode" /></p>
 
+            <%-- Avisos (Scripts/detalle-tarjeta.js): fecha límite superada y sin asignar, con icono y texto --%>
             <div class="campos-fila">
                 <div class="campo campo-caso">
                     <asp:Label runat="server" AssociatedControlID="txtCaso" Text="Caso" />
@@ -231,20 +239,6 @@
                     <asp:RegularExpressionValidator ID="revCaso" runat="server" ControlToValidate="txtCaso" ValidationGroup="Detalle"
                         ValidationExpression="^\s*[0-9]{1,20}\s*$" ErrorMessage="Solo números." Display="Dynamic" CssClass="validacion" />
                 </div>
-                <div class="campo">
-                    <asp:Label runat="server" AssociatedControlID="txtTituloTarjeta" Text="Título" />
-                    <asp:TextBox ID="txtTituloTarjeta" runat="server" MaxLength="200" />
-                    <asp:RequiredFieldValidator ID="rfvTituloTarjeta" runat="server" ControlToValidate="txtTituloTarjeta" ValidationGroup="Detalle"
-                        ErrorMessage="El título es obligatorio." Display="Dynamic" CssClass="validacion" />
-                </div>
-            </div>
-
-            <div class="campo">
-                <asp:Label runat="server" AssociatedControlID="txtDescripcionTarjeta" Text="Descripción" />
-                <asp:TextBox ID="txtDescripcionTarjeta" runat="server" TextMode="MultiLine" Rows="5" />
-            </div>
-
-            <div class="campos-fila">
                 <div class="campo">
                     <asp:Label runat="server" AssociatedControlID="ddlPrioridad" Text="Prioridad" />
                     <asp:DropDownList ID="ddlPrioridad" runat="server">
@@ -254,14 +248,19 @@
                         <asp:ListItem Value="3" Text="Baja" />
                     </asp:DropDownList>
                 </div>
-                <div class="campo">
-                    <asp:Label runat="server" AssociatedControlID="txtFechaLimite" Text="Fecha límite" />
+                <div class="campo campo-fecha-limite">
+                    <asp:Label runat="server" AssociatedControlID="txtFechaLimite">Fecha límite <span class="campo-alerta">&#9888; Vencida</span></asp:Label>
                     <asp:TextBox ID="txtFechaLimite" runat="server" TextMode="Date" />
                 </div>
-                <div class="campo">
-                    <asp:Label runat="server" AssociatedControlID="ddlAsignado" Text="Asignada a" />
+                <div class="campo campo-asignado">
+                    <asp:Label runat="server" AssociatedControlID="ddlAsignado">Asignada a <span class="campo-alerta">&#9888; Sin asignar</span></asp:Label>
                     <asp:DropDownList ID="ddlAsignado" runat="server" />
                 </div>
+            </div>
+
+            <div class="campo">
+                <asp:Label runat="server" AssociatedControlID="txtDescripcionTarjeta" Text="Descripción" />
+                <asp:TextBox ID="txtDescripcionTarjeta" runat="server" TextMode="MultiLine" Rows="5" />
             </div>
 
             <%-- Etiquetas: Scripts/etiquetas.js las pinta dentro del cuadro y pide el color de las nuevas --%>

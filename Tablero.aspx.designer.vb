@@ -347,13 +347,13 @@ Partial Public Class TableroPagina
     Protected WithEvents pnlDetalle As Global.System.Web.UI.WebControls.Panel
 
     '''<summary>
-    '''Control litTituloModal.
+    '''Control litDetallePrefijo.
     '''</summary>
     '''<remarks>
     '''Campo generado automáticamente.
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
-    Protected WithEvents litTituloModal As Global.System.Web.UI.WebControls.Literal
+    Protected WithEvents litDetallePrefijo As Global.System.Web.UI.WebControls.Literal
 
     '''<summary>
     '''Control btnCerrarDetalle.

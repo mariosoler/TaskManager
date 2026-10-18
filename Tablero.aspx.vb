@@ -288,7 +288,7 @@ Public Class TableroPagina
 
     ''' <summary>Rellena y muestra el modal, en modo creación (esNueva) o edición.</summary>
     Private Sub MostrarDetalle(tarjeta As Tarjeta, esNueva As Boolean)
-        litTituloModal.Text = If(esNueva, "Nueva tarjeta", "Detalle de la tarjeta")
+        litDetallePrefijo.Text = If(esNueva, "Nueva tarjeta en la lista", "En la lista")
         btnGuardarTarjeta.Text = If(esNueva, "Crear tarjeta", "Guardar")
         btnEliminarTarjeta.Visible = Not esNueva
         phHistorial.Visible = Not esNueva
@@ -323,7 +323,8 @@ Public Class TableroPagina
 
         CargarSubtareas()
         pnlDetalle.Visible = True
-        txtTituloTarjeta.Focus()
+        ' Al crear se empieza por el título; al abrir una existente, el título se edita al pulsarlo.
+        If esNueva Then txtTituloTarjeta.Focus()
     End Sub
 
     Private Sub CargarComentarios()

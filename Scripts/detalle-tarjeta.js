@@ -7,6 +7,7 @@
  * - Marcar una subtarea no recarga la página: al editar se guarda con Tarjeta.ashx (accion=subtarea);
  *   al crear, el estado viaja con el siguiente envío del formulario (CheckedChanged en el servidor).
  * - Tras un postback dentro del detalle (añadir/eliminar subtarea) se recupera su desplazamiento.
+ * - Avisa (icono + texto) de la fecha límite superada y de la tarjeta sin asignar.
  * Sin JavaScript todo sigue funcionando con el botón Guardar (postback).
  */
 (function () {
@@ -187,6 +188,28 @@
             });
         });
     });
+
+    // ----- Avisos: fecha límite superada y sin asignar (clases en el .campo; el CSS muestra icono y texto) -----
+    function hoyIso() {
+        var d = new Date();
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+
+    function marcarAvisos() {
+        var fecha = campos.fechaLimite, asignado = campos.asignado;
+        if (fecha && fecha.closest('.campo')) {
+            fecha.closest('.campo').classList.toggle('vencida', fecha.value !== '' && fecha.value < hoyIso());
+        }
+        if (asignado && asignado.closest('.campo')) {
+            asignado.closest('.campo').classList.toggle('sin-asignar', asignado.value === '');
+        }
+    }
+
+    ['input', 'change'].forEach(function (tipo) {
+        if (campos.fechaLimite) { campos.fechaLimite.addEventListener(tipo, marcarAvisos); }
+        if (campos.asignado) { campos.asignado.addEventListener(tipo, marcarAvisos); }
+    });
+    marcarAvisos();
 
     // ----- Desplazamiento del detalle tras un postback dentro de él -----
     var CLAVE_SCROLL = 'TaskManager.detalle.scroll';
