@@ -171,7 +171,8 @@
                                         <FooterTemplate></span></FooterTemplate>
                                     </asp:Repeater>
                                     <span class="tarjeta-info">
-                                        <%# Formato.HtmlPrioridad(Eval("Prioridad")) %>
+                                        <%-- La prioridad solo se ve en la franja de color del lateral; el texto queda para lectores de pantalla --%>
+                                        <%# Formato.HtmlPrioridadLectores(Eval("Prioridad")) %>
                                         <%# Formato.HtmlFechaLimite(Eval("FechaLimite")) %>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("SubtareasTotal")) > 0 %>'>
                                             <span class='<%# If(CInt(Eval("SubtareasHechas")) = CInt(Eval("SubtareasTotal")), "info info-subtareas completas", "info info-subtareas") %>'
@@ -182,7 +183,8 @@
                                         </asp:PlaceHolder>
                                         <span class="info info-modificada" title='<%#: TextoModificacion(Eval("FechaModificacion"), Eval("NombreModificador")) %>'>&#9998; <%#: Formato.FechaCorta(Eval("FechaModificacion")) %></span>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumAdjuntos")) > 0 %>'>
-                                            <span class="info" title="Adjuntos">&#128206; <%# Eval("NumAdjuntos") %></span>
+                                            <%-- Clip de línea (SVG con el color del texto), en lugar del emoji --%>
+                                            <span class="info info-adjuntos" title="Adjuntos"><svg class="icono-clip" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" /></svg><%# Eval("NumAdjuntos") %></span>
                                         </asp:PlaceHolder>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumComentarios")) > 0 %>'>
                                             <span class="info" title="Mensajes de chat">&#128172; <%# Eval("NumComentarios") %></span>

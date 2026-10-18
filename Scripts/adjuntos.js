@@ -7,6 +7,8 @@
  *   con animación de deslizamiento,
  *   Esc o ✕ para cerrar, abrir el original y eliminar); el resto de archivos se listan con su nombre (descarga),
  *   tamaño y quién los subió;
+ * - se conserva el nombre original del archivo, salvo las capturas de pantalla pegadas (llegan sin nombre propio,
+ *   como «image.png»), que se llaman Screenshot_AAAA-MM-DD_HH-MM-SS con la fecha y hora de la captura;
  * - cada adjunto tiene ✕ arriba a la derecha para eliminarlo (pide confirmación);
  * - solo en tarjetas ya creadas (al crear una tarjeta no hay Id al que asociarlos).
  * Datos iniciales en <script type="application/json" id="adjuntos-datos"> (TableroPagina.AdjuntosJson); el
@@ -303,7 +305,7 @@
         var archivo = cola.shift();
         mostrarEstado('Subiendo ' + (hechas + 1) + ' de ' + (hechas + cola.length + 1) + '…', 'guardando');
         var datos = datosBase('subir');
-        datos.append('archivo', archivo, archivo.name || 'captura.png');
+        datos.append('archivo', archivo, archivo.name || nombreCaptura(archivo));
         enviar(datos).then(function (nuevos) {
             adjuntos = nuevos;
             pintar();
@@ -357,6 +359,30 @@
     });
 
     // ----- Pegar del portapapeles (una captura o archivos copiados) -----
+    // Una captura de pantalla llega como imagen sin nombre propio (los navegadores la llaman «image.png»);
+    // un archivo copiado en el explorador conserva su nombre.
+    var NOMBRE_GENERICO = /^(image|imagen)\.(png|jpe?g|gif|webp|bmp)$/i;
+
+    function dosCifras(n) { return (n < 10 ? '0' : '') + n; }
+
+    // Screenshot_AAAA-MM-DD_HH-MM-SS.<ext> con la fecha de la captura (la del archivo del portapapeles, que es
+    // cuando se copió; si el navegador no la da, la de ahora). Sin «:» para que sea un nombre de archivo válido.
+    function nombreCaptura(archivo) {
+        var f = new Date(archivo.lastModified || Date.now());
+        var ext = (/^image\/(png|jpeg|gif|webp|bmp)$/.exec(archivo.type || '') || [null, 'png'])[1].replace('jpeg', 'jpg');
+        return 'Screenshot_' + f.getFullYear() + '-' + dosCifras(f.getMonth() + 1) + '-' + dosCifras(f.getDate()) + '_' +
+               dosCifras(f.getHours()) + '-' + dosCifras(f.getMinutes()) + '-' + dosCifras(f.getSeconds()) + '.' + ext;
+    }
+
+    function renombrarSiEsCaptura(archivo) {
+        if (!/^image\//.test(archivo.type || '') || (archivo.name && !NOMBRE_GENERICO.test(archivo.name))) { return archivo; }
+        try {
+            return new File([archivo], nombreCaptura(archivo), { type: archivo.type, lastModified: archivo.lastModified });
+        } catch (e) {
+            return archivo;   // navegador sin el constructor File: se sube con el nombre que traiga
+        }
+    }
+
     document.addEventListener('paste', function (e) {
         var datos = e.clipboardData;
         if (!datos || !datos.items) { return; }
@@ -364,7 +390,7 @@
         Array.prototype.forEach.call(datos.items, function (item) {
             if (item.kind === 'file') {
                 var archivo = item.getAsFile();
-                if (archivo) { archivos.push(archivo); }
+                if (archivo) { archivos.push(renombrarSiEsCaptura(archivo)); }
             }
         });
         if (!archivos.length) { return; }   // texto normal: se pega como siempre

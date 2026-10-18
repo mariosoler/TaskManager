@@ -602,8 +602,12 @@ textarea { resize: vertical; }
     font-weight: 700;
     font-family: Consolas, "Courier New", monospace;
 }
-.info-subtareas.completas { padding: 1px 6px; border-radius: 4px; background: var(--verde); color: #fff; }
+/* Subtareas todas hechas: solo el texto en verde (contraste con el blanco de la tarjeta: 6:1) */
+.info-subtareas.completas { color: var(--verde); font-weight: 600; }
 .info-codigo { font-family: Consolas, "Courier New", monospace; font-weight: 700; }
+/* Adjuntos de la tarjeta: clip de línea fina con el color del texto */
+.info-adjuntos { display: inline-flex; align-items: center; gap: 3px; }
+.icono-clip { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* Etiquetas (#tags): colores de Etiqueta.Paleta con su tinta (contraste AA); el texto siempre se ve. */
 .tarjeta-etiquetas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .etiqueta-tag {

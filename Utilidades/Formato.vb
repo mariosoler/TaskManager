@@ -46,6 +46,17 @@ Namespace Utilidades
                                  Models.Prioridad.ClaseCss(p), nombre.ToLowerInvariant(), nombre)
         End Function
 
+        ''' <summary>
+        ''' "Prioridad alta" solo para lectores de pantalla (en el tablero la prioridad se ve en la franja de color
+        ''' del lateral de la tarjeta, y el color no puede ser la única forma de transmitirla). Vacía si no tiene.
+        ''' </summary>
+        Public Shared Function HtmlPrioridadLectores(valor As Object) As String
+            If Not TypeOf valor Is Integer Then Return ""
+            Dim nombre = Models.Prioridad.Nombre(CInt(valor))
+            If nombre Is Nothing Then Return ""
+            Return "<span class=""solo-lectores"">Prioridad " & nombre.ToLowerInvariant() & "</span>"
+        End Function
+
         ''' <summary>Fecha guardada en UTC, en hora local del servidor y con el formato del usuario ("17/10/2026 14:32").</summary>
         Public Shared Function FechaLocal(valor As Object) As String
             If Not TypeOf valor Is DateTime Then Return ""
