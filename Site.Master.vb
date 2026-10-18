@@ -4,6 +4,12 @@ Imports TaskManager.Utilidades
 Public Class SiteMaster
     Inherits System.Web.UI.MasterPage
 
+    ''' <summary>
+    ''' Tablero en el que está el usuario (ya autorizado por la página: Tablero.aspx o Estadisticas.aspx).
+    ''' Con él, «Buscar» del menú superior busca en ese tablero y aparece «Estadísticas».
+    ''' </summary>
+    Public Property TableroActual As Integer?
+
     Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
         lnkEstilos.Href = Formato.UrlConVersion("~/Content/site.css")
         ' Con versión (?v=fecha del archivo): los navegadores guardan el favicon en caché con mucha insistencia.
@@ -19,6 +25,13 @@ Public Class SiteMaster
     Protected Sub Page_PreRender(sender As Object, e As EventArgs) Handles Me.PreRender
         Page.Title = "TaskManager"
         ' En PreRender y no en Load: si el usuario acaba de cambiar su nombre en «Mi perfil», ya sale el nuevo.
+        If TableroActual.HasValue Then
+            Dim id = TableroActual.Value.ToString(Globalization.CultureInfo.InvariantCulture)
+            lnkNavBuscar.HRef = "~/Buscar.aspx?tablero=" & id
+            lnkNavEstadisticas.HRef = "~/Estadisticas.aspx?id=" & id
+            lnkNavEstadisticas.Visible = True
+            If TypeOf Page Is EstadisticasPagina Then lnkNavEstadisticas.Attributes("aria-current") = "page"
+        End If
         If phUsuario.Visible Then
             Dim nombre = Autenticacion.NombreUsuarioActual()
             litNombreUsuario.Text = nombre

@@ -2,6 +2,8 @@
  * Tablero: arrastrar y soltar tarjetas entre listas y abrir su detalle.
  * Las acciones se envían al servidor con __doPostBack sobre LinkButtons ocultos
  * (ver window.TaskManagerTablero en Tablero.aspx).
+ * Una lista ordenada por fecha (data-orden, preferencia del usuario) no se reordena arrastrando dentro de
+ * ella; sí se pueden mover tarjetas a otra lista (en una lista ordenada aparecen donde les toque).
  */
 (function () {
     'use strict';
@@ -60,6 +62,16 @@
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
 
+        if (contenedor.getAttribute('data-orden')) {
+            // Ordenada por fecha: en su lista vuelve a su sitio; en otra, al final hasta recargar.
+            if (contenedor === origen.padre) {
+                if (arrastrada.nextSibling !== origen.siguiente) { origen.padre.insertBefore(arrastrada, origen.siguiente); }
+            } else if (contenedor.lastElementChild !== arrastrada) {
+                contenedor.appendChild(arrastrada);
+            }
+            return;
+        }
+
         var siguiente = tarjetaSiguiente(contenedor, e.clientY);
         if (siguiente) {
             if (arrastrada.nextElementSibling !== siguiente) { contenedor.insertBefore(arrastrada, siguiente); }
@@ -77,6 +89,7 @@
 
         var indice = indiceEn(contenedor, arrastrada);
         if (contenedor === origen.padre && indice === origen.indice) { return; }   // no ha cambiado
+        if (contenedor === origen.padre && contenedor.getAttribute('data-orden')) { return; }
 
         document.getElementById(cfg.tarjeta).value = arrastrada.getAttribute('data-tarjeta-id');
         document.getElementById(cfg.lista).value = contenedor.getAttribute('data-lista-id');
@@ -92,9 +105,11 @@
         origen = null;
     });
 
-    // ----- Desplegables de la cabecera (Fondo, Editar): solo uno abierto a la vez -----
+    // ----- Desplegables (Fondo, Editar, Listas ocultas y el menú ⋯ de cada lista): solo uno abierto a la vez -----
+    var DESPLEGABLE = 'details.tablero-fondo, details.lista-menu';
+
     function desplegablesAbiertos(excepto) {
-        return Array.prototype.filter.call(document.querySelectorAll('details.tablero-fondo[open]'),
+        return Array.prototype.filter.call(document.querySelectorAll('details.tablero-fondo[open], details.lista-menu[open]'),
             function (d) { return d !== excepto; });
     }
 
@@ -107,12 +122,12 @@
     // "toggle" no burbujea: se escucha en fase de captura.
     document.addEventListener('toggle', function (e) {
         var d = e.target;
-        if (d.matches && d.matches('details.tablero-fondo') && d.open) { cerrarDesplegables(d); }
+        if (d.matches && d.matches(DESPLEGABLE) && d.open) { cerrarDesplegables(d); }
     }, true);
 
     document.addEventListener('click', function (e) {
         // Pulsar fuera de un desplegable abierto lo cierra.
-        cerrarDesplegables(cercano(e.target, 'details.tablero-fondo'));
+        cerrarDesplegables(cercano(e.target, DESPLEGABLE));
 
         var tarjeta = cercano(e.target, '.tarjeta');
         if (tarjeta) { abrir(tarjeta); }

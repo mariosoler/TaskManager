@@ -47,6 +47,7 @@ CREATE TABLE Tarjetas (
     FechaModificacion DATETIME2 NOT NULL CONSTRAINT DF_Tarjetas_FechaModificacion DEFAULT SYSUTCDATETIME(),
     ModificadoPor INT NULL CONSTRAINT FK_Tarjetas_ModificadoPor REFERENCES Usuarios(Id),
     Prioridad     TINYINT NULL,           -- 1 = Alta, 2 = Media, 3 = Baja
+    FechaEnLista  DATETIME2 NOT NULL CONSTRAINT DF_Tarjetas_FechaEnLista DEFAULT SYSUTCDATETIME(), -- entrada en su lista actual
     CONSTRAINT CK_Tarjetas_Caso CHECK (Caso IS NULL OR (Caso <> N'' AND Caso NOT LIKE N'%[^0-9]%')),
     CONSTRAINT CK_Tarjetas_Prioridad CHECK (Prioridad IS NULL OR Prioridad BETWEEN 1 AND 3)
 );
@@ -63,12 +64,27 @@ CREATE TABLE HistorialTarjeta (
     ValorNuevo    NVARCHAR(500) NULL
 );
 
+-- Preferencias de vista de cada usuario en cada lista (solo para él): ocultarla y ordenar sus tarjetas.
+-- Orden = clave de Models/OrdenLista (lista blanca); NULL = orden manual. Sin fila = visible y en orden manual.
+-- Sin cascada desde Usuarios (Listas ya llega en cascada desde Usuarios a través de Tableros).
+CREATE TABLE PreferenciasLista (
+    UsuarioId INT NOT NULL REFERENCES Usuarios(Id),
+    ListaId   INT NOT NULL REFERENCES Listas(Id) ON DELETE CASCADE,
+    Oculta    BIT NOT NULL CONSTRAINT DF_PreferenciasLista_Oculta DEFAULT 0,
+    Orden     VARCHAR(20) NULL,
+    CONSTRAINT PK_PreferenciasLista PRIMARY KEY (UsuarioId, ListaId)
+);
+
 CREATE TABLE Subtareas (
     Id         INT IDENTITY(1,1) PRIMARY KEY,
     TarjetaId  INT NOT NULL REFERENCES Tarjetas(Id) ON DELETE CASCADE,
     Texto      NVARCHAR(300) NOT NULL,
     Completada BIT NOT NULL DEFAULT 0,
-    Posicion   INT NOT NULL DEFAULT 0
+    Posicion   INT NOT NULL DEFAULT 0,
+    -- Tarjeta del mismo tablero a la que enlaza la subtarea (opcional). Sin FK: una segunda FK a Tarjetas con
+    -- ON DELETE SET NULL daría varias rutas de cascada (SQL Server no lo permite); al mostrarla se comprueba
+    -- que la tarjeta sigue existiendo en el tablero y, si no, se muestra Texto (título al enlazarla).
+    TarjetaEnlazadaId INT NULL
 );
 
 -- Etiquetas (#tags) de un tablero. Nombre sin "#", único por tablero (sin distinguir mayúsculas).

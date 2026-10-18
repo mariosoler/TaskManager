@@ -6,8 +6,9 @@ Namespace Datos
 
     ''' <summary>
     ''' Etiquetas (#tags) de las tarjetas. Son de cada tablero y no se comparten entre tableros: todos los
-    ''' métodos reciben el TableroId ya autorizado y lo usan en el WHERE. Una etiqueta se crea al usarla por primera vez en el tablero,
-    ''' con el siguiente color de Etiqueta.Paleta, y se conserva aunque deje de usarse (sirve de sugerencia).
+    ''' métodos reciben el TableroId ya autorizado y lo usan en el WHERE. Una etiqueta se crea desde el cuadro de
+    ''' etiquetas con el color elegido (Crear) o, si no existe al guardar la tarjeta, con el siguiente color de
+    ''' Etiqueta.Paleta (Asignar); se conserva aunque deje de usarse (sirve de sugerencia).
     ''' </summary>
     Public NotInheritable Class EtiquetasDatos
 
@@ -69,6 +70,34 @@ ORDER BY COUNT(te.TarjetaId) DESC, MIN(e.Nombre)"
                 End Using
             End Using
             Return etiquetas
+        End Function
+
+        ''' <summary>
+        ''' Crea en el tablero una etiqueta sin usar con el color elegido (cuadro de etiquetas, antes de asignarla).
+        ''' Si ya existe una con ese nombre (sin distinguir mayúsculas) no la cambia y devuelve esa. Quien llama ha
+        ''' validado el nombre (Etiqueta.EsNombreValido) y el color (Etiqueta.EsColorDePaleta).
+        ''' </summary>
+        Public Shared Function Crear(tableroId As Integer, nombre As String, color As String) As Etiqueta
+            Const sql = "
+SET XACT_ABORT ON;
+BEGIN TRAN;
+IF NOT EXISTS (SELECT 1 FROM Etiquetas WITH (UPDLOCK, HOLDLOCK) WHERE TableroId = @TableroId AND Nombre = @Nombre)
+    INSERT INTO Etiquetas (TableroId, Nombre, Color) VALUES (@TableroId, @Nombre, @Color);
+SELECT e.Id, e.Nombre, e.Color, (SELECT COUNT(*) FROM TarjetaEtiquetas te WHERE te.EtiquetaId = e.Id)
+FROM Etiquetas e WHERE e.TableroId = @TableroId AND e.Nombre = @Nombre;
+COMMIT;"
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, Etiqueta.LongitudMaxima).Value = nombre
+                cmd.Parameters.Add("@Color", SqlDbType.NVarChar, 7).Value = color.ToLowerInvariant()
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    If Not rd.Read() Then Return Nothing
+                    Return New Etiqueta With {
+                        .Id = rd.GetInt32(0), .Nombre = rd.GetString(1), .Color = rd.GetString(2), .Usos = rd.GetInt32(3)}
+                End Using
+            End Using
         End Function
 
         ''' <summary>

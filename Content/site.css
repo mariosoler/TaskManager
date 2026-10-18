@@ -76,12 +76,17 @@ textarea { resize: vertical; }
 
 .oculto { display: none !important; }
 
-/* Barras de desplazamiento finas (listas, chat, tablero) */
-* { scrollbar-width: thin; scrollbar-color: rgba(0, 40, 41, .28) transparent; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* Barras de desplazamiento siempre visibles (detalle de tarjeta, vista previa, chat, listas, tablero): sin rueda
+   del ratón hay que poder arrastrarlas. En Chrome/Edge se dibujan con ::-webkit-scrollbar; NO usar ahí
+   scrollbar-width/scrollbar-color: con ellos pasan a barras superpuestas que se ocultan hasta pasar el ratón. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(0, 40, 41, .28) padding-box; }
-::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 40, 41, .45); }
+::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(0, 40, 41, .4) padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 40, 41, .6); }
+/* Firefox (no tiene ::-webkit-scrollbar): barra normal con los mismos colores */
+@supports not selector(::-webkit-scrollbar) {
+    * { scrollbar-color: rgba(0, 40, 41, .4) transparent; }
+}
 
 /* ===== Botones y mensajes ===== */
 .boton {
@@ -157,6 +162,9 @@ textarea { resize: vertical; }
 .barra .boton-claro { background: rgba(255, 255, 255, .14); color: #fff; }
 .barra .boton-claro:hover { background: rgba(255, 255, 255, .26); }
 .barra .avatar { background: var(--acento); color: var(--primario); }
+/* Versión de la aplicación, junto al logo de la barra */
+.barra-marca { display: flex; align-items: center; gap: 10px; }
+.version-app { padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, .14); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; cursor: default; }
 .barra .logo-icono { border-radius: 7px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .55); }
 
 .avatar {
@@ -278,18 +286,18 @@ textarea { resize: vertical; }
 }
 .tablero-pagina > .mensaje { margin: 12px 16px 0; }
 
-/* Búsqueda rápida del tablero (Scripts/busqueda-rapida.js) */
+/* Búsqueda rápida del tablero (Scripts/busqueda-rapida.js), en la cabecera entre el título y los miembros */
 .busqueda-rapida {
     display: flex;
     align-items: center;
+    flex: 1 1 320px;
     gap: 8px;
-    align-self: flex-end;       /* alineada a la derecha */
-    width: calc(100% - 32px);
-    max-width: 800px;
-    margin: 12px 16px 0;
+    align-self: center;
+    max-width: 560px;
     padding: 0 12px;
     border-radius: var(--radio);
     background: rgba(255, 255, 255, .94);
+    color: var(--texto);
     box-shadow: 0 1px 2px rgba(0, 40, 41, .2);
 }
 .busqueda-rapida:focus-within { box-shadow: 0 0 0 2px var(--acento), 0 1px 2px rgba(0, 40, 41, .2); }
@@ -363,7 +371,7 @@ textarea { resize: vertical; }
        crea contextos de apilamiento y, sin esto, los desplegables (Fondo, Editar) quedarían detrás. */
     position: relative;
     z-index: 5;                 /* bajo la barra (9) y el modal (10) */
-    padding: 14px 20px;
+    padding: 10px 20px;
     background: var(--fondo-tablero);
     color: #fff;
     box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset;
@@ -387,6 +395,10 @@ textarea { resize: vertical; }
     outline: 2px solid var(--acento);
 }
 .tablero-descripcion { margin: 0; opacity: .85; }
+.tablero-descripcion:empty { display: none; }
+/* Título del tablero con Editar, Fondo y Listas ocultas a su lado */
+.tablero-titulo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.tablero-titulo-fila .tablero-enlaces { margin-top: 0; }
 .volver { color: #fff; opacity: .85; text-decoration: none; font-size: 12px; transition: opacity var(--transicion); }
 .volver:hover { opacity: 1; text-decoration: underline; }
 
@@ -497,6 +509,41 @@ textarea { resize: vertical; }
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
+/* Lista ordenada por fecha (preferencia del usuario) y menú ⋯ de la lista */
+.lista-orden { padding: 0 6px; border-radius: 10px; background: var(--primario-claro); color: var(--primario-oscuro); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.lista-menu { position: relative; }
+.lista-menu summary { list-style: none; padding: 0 6px; border-radius: 4px; color: var(--texto-suave); font-size: 16px; line-height: 20px; cursor: pointer; }
+.lista-menu summary::-webkit-details-marker { display: none; }
+.lista-menu summary:hover, .lista-menu[open] summary { background: rgba(0, 40, 41, .1); color: var(--texto); }
+.lista-menu summary:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+.lista-menu-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    padding: 6px;
+    border-radius: var(--radio);
+    background: #fff;
+    color: var(--texto);
+    box-shadow: var(--sombra-3);
+    animation: subir .16s ease-out;
+}
+/* El desenfoque de cada lista crea su propio contexto de apilamiento: con el menú abierto, la lista va delante de las demás. */
+.lista:has(.lista-menu[open]) { position: relative; z-index: 4; }
+.lista-menu-seccion { padding: 4px 8px 2px; font-size: 11px; font-weight: 600; color: var(--texto-suave); }
+.lista-menu-opcion { display: block; padding: 6px 8px 6px 26px; border-radius: 6px; color: var(--texto); font-size: 13px; text-decoration: none; position: relative; }
+.lista-menu-opcion:hover, .lista-menu-opcion:focus-visible { background: var(--primario-claro); }
+.lista-menu-opcion.activa { font-weight: 600; }
+.lista-menu-opcion.activa::before { content: "✓"; position: absolute; left: 9px; color: var(--primario); }
+.lista-menu-separador { height: 1px; margin: 6px 4px; background: var(--borde); }
+/* Desplegable «Listas ocultas» de la cabecera */
+.listas-ocultas-panel { width: 300px; gap: 4px; }
+.lista-oculta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 6px; color: var(--texto); text-decoration: none; }
+.lista-oculta:hover, .lista-oculta:focus-visible { background: var(--primario-claro); }
+.lista-oculta-titulo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .lista-acciones a { padding: 2px 4px; color: var(--texto-suave); text-decoration: none; font-size: 11px; border-radius: 4px; transition: background-color var(--transicion), color var(--transicion); }
 .lista-acciones a:hover { background: rgba(0, 40, 41, .1); color: var(--texto); }
 .lista-acciones a.peligro { font-size: 15px; }
@@ -504,20 +551,13 @@ textarea { resize: vertical; }
 
 .tarjetas { display: flex; flex-direction: column; gap: 8px; min-height: 12px; padding: 2px 4px 2px 2px; overflow-y: auto; }
 
-/* Barra de desplazamiento lateral siempre visible en las listas de tarjetas y en el detalle (sin rueda del ratón
-   hay que poder arrastrarla). Con scrollbar-width/scrollbar-color (regla global de arriba) Chrome y Edge usan
-   barras superpuestas que se ocultan; con "auto" vuelven a aplicar ::-webkit-scrollbar, que se ve siempre. */
-.tarjetas, .modal-fondo { scrollbar-width: auto; scrollbar-color: auto; }
-.tarjetas::-webkit-scrollbar, .modal-fondo::-webkit-scrollbar { width: 12px; }
+/* Carril de la barra marcado en las listas y, sobre el fondo oscuro del detalle, barra clara (ver regla global arriba). */
 .tarjetas::-webkit-scrollbar-track { border-radius: 10px; background: rgba(0, 40, 41, .08); }
-.tarjetas::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(0, 40, 41, .45) padding-box; }
-.tarjetas::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 40, 41, .65); }
 .modal-fondo::-webkit-scrollbar-track { background: rgba(255, 255, 255, .12); }
-.modal-fondo::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 10px; background: rgba(255, 255, 255, .6) padding-box; }
+.modal-fondo::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, .6); }
 .modal-fondo::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, .85); }
-/* Firefox (no tiene ::-webkit-scrollbar): barra normal con colores visibles */
 @supports not selector(::-webkit-scrollbar) {
-    .tarjetas { scrollbar-color: rgba(0, 40, 41, .45) rgba(0, 40, 41, .08); }
+    .tarjetas { scrollbar-color: rgba(0, 40, 41, .4) rgba(0, 40, 41, .08); }
     .modal-fondo { scrollbar-color: rgba(255, 255, 255, .6) rgba(255, 255, 255, .12); }
 }
 
@@ -538,6 +578,18 @@ textarea { resize: vertical; }
 .tarjeta:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
 .tarjeta.arrastrando { opacity: .4; transform: none; }
 .tarjeta-titulo { display: block; }
+/* ID de la tarea, delante del nº de caso */
+.tarjeta-id {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: rgba(0, 40, 41, .07);
+    color: var(--texto-suave);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
 .tarjeta-caso {
     display: inline-block;
     margin-right: 4px;
@@ -576,8 +628,81 @@ textarea { resize: vertical; }
 .etiqueta-tag.invalida { background: #fbeceb; color: #a11b12; text-decoration: line-through; }
 .campo-etiquetas { position: relative; }
 .campo-ayuda { display: block; margin-top: 4px; font-size: 11px; color: var(--texto-suave); }
-.etiquetas-vista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.etiquetas-vista:empty { display: none; }
+/* Cuadro de etiquetas (Scripts/etiquetas.js): las etiquetas se pintan dentro, con su color, antes del texto */
+.etiquetas-caja {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 38px;
+    padding: 4px 6px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: #fff;
+    cursor: text;
+    transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+.etiquetas-caja:hover { border-color: #b9c2c2; }
+.etiquetas-caja:focus-within { border-color: var(--primario); box-shadow: var(--anillo-foco); }
+.etiquetas-caja input.etiquetas-entrada { flex: 1 1 120px; width: auto; min-width: 80px; padding: 4px; border: 0; background: transparent; box-shadow: none; }
+.etiquetas-caja .etiqueta-tag { display: inline-flex; align-items: center; gap: 2px; padding: 1px 3px 1px 8px; font-size: 12px; line-height: 20px; }
+.etiquetas-caja .etiqueta-tag.nueva, .etiquetas-caja .etiqueta-tag.desconocida { padding-left: 7px; }
+.etiqueta-nombre { overflow: hidden; text-overflow: ellipsis; }
+.etiqueta-quitar {
+    order: 2;                   /* tras el texto " · nueva" / " · no existe" (::after) */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    opacity: .8;
+}
+.etiqueta-quitar:hover { opacity: 1; background: rgba(0, 0, 0, .18); }
+.etiquetas-aviso { display: block; margin-top: 4px; font-size: 12px; color: #a11b12; }
+.etiquetas-aviso:empty { display: none; }
+
+/* Cuadro para crear una etiqueta nueva y elegir su color */
+.etiqueta-nueva {
+    position: absolute;
+    z-index: 31;
+    left: 0;
+    width: min(100%, 320px);
+    margin-top: 4px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 8px 24px rgba(0, 40, 41, .2);
+}
+.etiqueta-nueva-titulo { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.etiqueta-nueva-vista { margin-bottom: 10px; }
+.etiqueta-nueva-vista .etiqueta-tag { font-size: 13px; line-height: 22px; padding: 1px 10px; }
+.etiqueta-nueva-colores { display: grid; grid-template-columns: repeat(6, 32px); gap: 8px; margin-bottom: 12px; }
+.etiqueta-color {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.etiqueta-color[aria-checked=true] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--texto); }
+.etiqueta-color:focus-visible { outline: 2px solid var(--primario); outline-offset: 4px; border-radius: 50%; }
+.etiqueta-nueva-error { margin: 0 0 10px; font-size: 12px; color: #a11b12; }
+.etiqueta-nueva-error:empty { display: none; }
+.etiqueta-nueva-acciones { display: flex; justify-content: flex-end; gap: 8px; }
 .etiquetas-sugerencias {
     position: absolute;
     z-index: 30;
@@ -693,6 +818,35 @@ textarea { resize: vertical; }
 .subtarea:hover .subtarea-eliminar { visibility: visible; }
 .subtarea-eliminar:hover { color: var(--rojo); }
 .nueva-subtarea input[type=text] { flex: 1; width: auto; }
+/* Subtarea enlazada a otra tarjeta: su título subrayado (Scripts/subtareas-enlace.js para enlazarla) */
+.subtarea-enlace { color: var(--primario); text-decoration: underline; text-underline-offset: 2px; }
+.subtarea-enlace:hover { color: var(--primario-oscuro); text-decoration-thickness: 2px; }
+.subtarea.completada .subtarea-enlace { color: var(--texto-suave); text-decoration: underline line-through; }
+.subtarea-enlace-roto { color: var(--texto-suave); font-style: italic; }
+.nueva-subtarea { position: relative; }
+.subtarea-enlazar { white-space: nowrap; }
+.subtarea-enlazar.activo { background: var(--primario-claro); color: var(--primario); box-shadow: inset 0 0 0 1px var(--primario); }
+.subtarea-sugerencias {
+    position: absolute;
+    z-index: 30;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 280px;
+    margin: 4px 0 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 8px 24px rgba(0, 40, 41, .2);
+}
+.subtarea-sugerencias li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.subtarea-sugerencias li small { flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-suave); }
+.subtarea-sugerencias li.activa, .subtarea-sugerencias li:hover { background: var(--primario-claro); }
+.subtarea-sugerencias li.vacia { color: var(--texto-suave); cursor: default; background: none; }
+.subtarea-sugerencia-titulo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ----- Editor markdown ----- */
 .editor-md { border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; transition: border-color var(--transicion), box-shadow var(--transicion); }
@@ -795,7 +949,7 @@ textarea { resize: vertical; }
 .barra-nav a { position: relative; padding: 6px 12px; border-radius: 6px; color: #fff; text-decoration: none; font-weight: 600; transition: background-color var(--transicion); }
 .barra-nav a:hover { background: rgba(255, 255, 255, .14); }
 .barra-nav a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 2px; border-radius: 2px; background: var(--acento); transform: scaleX(0); transition: transform var(--transicion); }
-.barra-nav a:hover::after, .barra-nav a:focus-visible::after { transform: scaleX(1); }
+.barra-nav a:hover::after, .barra-nav a:focus-visible::after, .barra-nav a[aria-current=page]::after { transform: scaleX(1); }
 .barra a:focus-visible { outline-color: var(--acento); }
 .tablero-enlaces { display: flex; gap: 6px; margin-top: 6px; }
 .tablero-enlaces > a { padding: 3px 10px; border-radius: 12px; background: rgba(255, 255, 255, .18); color: #fff; text-decoration: none; font-size: 12px; transition: background-color var(--transicion); }

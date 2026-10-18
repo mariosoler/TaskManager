@@ -12,11 +12,16 @@
 <body>
     <form id="form1" runat="server">
         <header class="barra">
-            <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo"><img id="imgLogo" runat="server" alt="" class="logo-icono" /><span class="logo-texto">Task<span>Manager</span></span></a>
+            <div class="barra-marca">
+                <a id="lnkInicio" runat="server" href="~/Tableros.aspx" class="logo"><img id="imgLogo" runat="server" alt="" class="logo-icono" /><span class="logo-texto">Task<span>Manager</span></span></a>
+                <span class="version-app" title="Versión preliminar: aún no se ha publicado la 1.0">v<%: TaskManager.Utilidades.Formato.VersionApp() %></span>
+            </div>
             <asp:PlaceHolder ID="phNavegacion" runat="server" Visible="false">
                 <nav class="barra-nav">
                     <a runat="server" href="~/Tableros.aspx">Tableros</a>
-                    <a runat="server" href="~/Buscar.aspx">Buscar</a>
+                    <a id="lnkNavBuscar" runat="server" href="~/Buscar.aspx">Buscar</a>
+                    <%-- Solo dentro de un tablero (Tablero.aspx, Estadisticas.aspx): ver SiteMaster.TableroActual --%>
+                    <a id="lnkNavEstadisticas" runat="server" visible="false">Estadísticas</a>
                 </nav>
             </asp:PlaceHolder>
             <asp:PlaceHolder ID="phUsuario" runat="server" Visible="false">

@@ -24,6 +24,7 @@ Public Class EstadisticasPagina
         Dim id As Integer
         If Integer.TryParse(Request.QueryString("id"), id) Then _tablero = TablerosDatos.Obtener(id, UsuarioId)
         If _tablero Is Nothing Then Response.Redirect("~/Tableros.aspx")
+        CType(Master, SiteMaster).TableroActual = _tablero.Id
 
         _dias = PeriodoPorDefecto
         Dim dias As Integer

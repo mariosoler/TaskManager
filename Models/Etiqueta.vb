@@ -4,7 +4,8 @@ Namespace Models
 
     ''' <summary>
     ''' Etiqueta (#tag) de un tablero (tabla Etiquetas). El nombre se guarda sin "#" y es único por tablero
-    ''' sin distinguir mayúsculas. El color se asigna automáticamente de <see cref="Paleta"/>.
+    ''' sin distinguir mayúsculas. El color sale de <see cref="Paleta"/>: lo elige quien la crea desde el
+    ''' cuadro de etiquetas o, si se crea al guardar (sin JavaScript), el siguiente de la paleta.
     ''' </summary>
     Public Class Etiqueta
 
@@ -18,6 +19,12 @@ Namespace Models
         Public Shared ReadOnly Paleta As IReadOnlyList(Of String) = New List(Of String) From {
             "#1f6fc5", "#e8710a", "#1f845a", "#7c4dcc", "#c2185b", "#f2b705",
             "#007a80", "#455a64", "#5c6bc0", "#8d6e63", "#c4380f"
+        }.AsReadOnly()
+
+        ''' <summary>Nombre de cada color de <see cref="Paleta"/> (mismo orden), para el selector de color.</summary>
+        Public Shared ReadOnly NombresPaleta As IReadOnlyList(Of String) = New List(Of String) From {
+            "Azul", "Naranja", "Verde", "Violeta", "Frambuesa", "Amarillo",
+            "Turquesa", "Gris pizarra", "Índigo", "Marrón", "Teja"
         }.AsReadOnly()
 
         ' Letras y dígitos (de cualquier alfabeto), "_" y "-". Sin espacios: el espacio separa etiquetas.
@@ -60,6 +67,11 @@ Namespace Models
         ''' <summary>Blanco si contrasta al menos 4,5:1 con el fondo; si no, la tinta oscura de la aplicación.</summary>
         Public Shared Function TintaPara(fondo As String) As String
             Return If(Contraste(fondo, "#ffffff") >= 4.5, "#ffffff", "#212121")
+        End Function
+
+        ''' <summary>Solo se aceptan colores de la paleta (todos con contraste validado).</summary>
+        Public Shared Function EsColorDePaleta(color As String) As Boolean
+            Return color IsNot Nothing AndAlso Paleta.Contains(color.ToLowerInvariant())
         End Function
 
         Public Shared Function EsNombreValido(nombre As String) As Boolean

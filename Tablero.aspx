@@ -6,16 +6,33 @@
     <div class="tablero-cabecera">
         <div>
             <a href="Tableros.aspx" class="volver">&larr; Mis tableros</a>
+            <%-- Título con Editar, Fondo y Listas ocultas al lado (Buscar y Estadísticas están en el menú superior) --%>
+            <div class="tablero-titulo-fila">
             <h1 id="h1Titulo" runat="server"><span id="spnTitulo" runat="server" class="titulo-texto"><asp:Literal ID="litNombre" runat="server" Mode="Encode" /></span></h1>
             <%-- Edición del nombre al pulsar el título (propietario o Admin), en Scripts/tablero.js --%>
             <asp:Panel ID="pnlTituloEdicion" runat="server" CssClass="titulo-edicion oculto" DefaultButton="btnGuardarTitulo">
                 <asp:TextBox ID="txtTitulo" runat="server" MaxLength="150" CssClass="titulo-input" aria-label="Nombre del tablero" />
                 <asp:Button ID="btnGuardarTitulo" runat="server" Text="Guardar" CssClass="oculto" CausesValidation="false" />
             </asp:Panel>
-            <p class="tablero-descripcion"><asp:Literal ID="litDescripcion" runat="server" Mode="Encode" /></p>
             <div class="tablero-enlaces">
-                <a id="lnkBuscarTablero" runat="server">&#128269; Buscar en este tablero</a>
-                <a id="lnkEstadisticas" runat="server">&#128202; Estadísticas</a>
+                <%-- Listas que este usuario ha ocultado (solo para él): pulsar una la vuelve a mostrar --%>
+                <asp:PlaceHolder ID="phListasOcultas" runat="server" Visible="false">
+                    <details class="tablero-fondo">
+                        <summary>&#128065; Listas ocultas (<asp:Literal ID="litListasOcultas" runat="server" />)</summary>
+                        <div class="tablero-fondo-panel listas-ocultas-panel">
+                            <span class="fondo-seccion">Ocultas solo para ti. Pulsa una para mostrarla.</span>
+                            <asp:Repeater ID="rptListasOcultas" runat="server">
+                                <ItemTemplate>
+                                    <asp:LinkButton ID="lnkMostrarLista" runat="server" CssClass="lista-oculta" CausesValidation="false"
+                                        CommandName="MostrarLista" CommandArgument='<%# Eval("Id") %>' ToolTip="Mostrar la lista">
+                                        <span class="lista-oculta-titulo"><%#: Eval("Titulo") %></span>
+                                        <span class="lista-contador"><%# Eval("Tarjetas.Count") %></span>
+                                    </asp:LinkButton>
+                                </ItemTemplate>
+                            </asp:Repeater>
+                        </div>
+                    </details>
+                </asp:PlaceHolder>
                 <asp:PlaceHolder ID="phEditarTablero" runat="server">
                     <details class="tablero-fondo">
                         <summary>&#9998; Editar</summary>
@@ -56,6 +73,17 @@
                     </details>
                 </asp:PlaceHolder>
             </div>
+            </div>
+            <p class="tablero-descripcion"><asp:Literal ID="litDescripcion" runat="server" Mode="Encode" /></p>
+        </div>
+
+        <%-- Búsqueda rápida: filtra las tarjetas mientras se escribe, sin recargar (Scripts/busqueda-rapida.js) --%>
+        <div class="busqueda-rapida" role="search">
+            <span class="busqueda-rapida-icono" aria-hidden="true">&#128269;</span>
+            <input type="search" id="busquedaRapida" class="busqueda-rapida-campo" autocomplete="off" spellcheck="false"
+                placeholder="Buscar en el tablero…  (#104512 o #ETIQUETA)" aria-label="Buscar tarjetas en el tablero"
+                aria-describedby="busquedaRapidaResultado" />
+            <span id="busquedaRapidaResultado" class="busqueda-rapida-resultado" aria-live="polite"></span>
         </div>
 
         <div class="miembros">
@@ -86,15 +114,6 @@
 
     <asp:Label ID="lblMensaje" runat="server" CssClass="mensaje" Visible="false" EnableViewState="false" />
 
-    <%-- Búsqueda rápida: filtra las tarjetas mientras se escribe, sin recargar (Scripts/busqueda-rapida.js) --%>
-    <div class="busqueda-rapida" role="search">
-        <span class="busqueda-rapida-icono" aria-hidden="true">&#128269;</span>
-        <input type="search" id="busquedaRapida" class="busqueda-rapida-campo" autocomplete="off" spellcheck="false"
-            placeholder="Buscar en el tablero…  (#104512 o #ETIQUETA)" aria-label="Buscar tarjetas en el tablero"
-            aria-describedby="busquedaRapidaResultado" />
-        <span id="busquedaRapidaResultado" class="busqueda-rapida-resultado" aria-live="polite"></span>
-    </div>
-
     <div class="tablero">
         <asp:Repeater ID="rptListas" runat="server">
             <ItemTemplate>
@@ -102,6 +121,26 @@
                     <header class="lista-cabecera">
                         <h2><%#: Eval("Titulo") %></h2>
                         <span class="lista-contador" data-total='<%# Eval("Tarjetas.Count") %>'><%# Eval("Tarjetas.Count") %></span>
+                        <asp:PlaceHolder runat="server" Visible='<%# Not CType(Eval("Orden"), TaskManager.Models.OrdenLista).EsManual %>'>
+                            <span class="lista-orden" title='<%#: "Ordenada para ti por: " & CType(Eval("Orden"), TaskManager.Models.OrdenLista).Texto %>'><%#: CType(Eval("Orden"), TaskManager.Models.OrdenLista).Corto %></span>
+                        </asp:PlaceHolder>
+                        <%-- Menú de la lista: ordenar las tarjetas y ocultarla (preferencias solo de este usuario) --%>
+                        <details class="lista-menu">
+                            <summary title="Opciones de la lista" aria-label="Opciones de la lista">&#8943;</summary>
+                            <div class="lista-menu-panel">
+                                <span class="lista-menu-seccion">Ordenar tarjetas (solo para ti)</span>
+                                <asp:Repeater ID="rptOrdenes" runat="server" DataSource='<%# TaskManager.Models.OrdenLista.Opciones %>' OnItemCommand="rptOrdenes_ItemCommand">
+                                    <ItemTemplate>
+                                        <asp:LinkButton ID="lnkOrden" runat="server" CausesValidation="false" CommandName="Ordenar"
+                                            CommandArgument='<%# ArgumentoOrden(Container) %>'
+                                            CssClass='<%# If(EsOrdenActual(Container), "lista-menu-opcion activa", "lista-menu-opcion") %>'><%#: Eval("Texto") %></asp:LinkButton>
+                                    </ItemTemplate>
+                                </asp:Repeater>
+                                <span class="lista-menu-separador"></span>
+                                <asp:LinkButton ID="lnkOcultarLista" runat="server" CssClass="lista-menu-opcion" CausesValidation="false"
+                                    CommandName="OcultarLista" CommandArgument='<%# Eval("Id") %>'>&#128065; Ocultar lista (solo para ti)</asp:LinkButton>
+                            </div>
+                        </details>
                         <span class="lista-acciones">
                             <asp:LinkButton ID="lnkIzquierda" runat="server" ToolTip="Mover a la izquierda" CausesValidation="false"
                                 CommandName="MoverIzquierda" CommandArgument='<%# Eval("Id") %>'>&#9664;</asp:LinkButton>
@@ -113,12 +152,14 @@
                         </span>
                     </header>
 
-                    <div class="tarjetas" data-lista-id='<%# Eval("Id") %>'>
+                    <%-- data-orden: la lista está ordenada por fecha (Scripts/tablero.js no reordena dentro de ella) --%>
+                    <div class="tarjetas" data-lista-id='<%# Eval("Id") %>' data-orden='<%#: CType(Eval("Orden"), TaskManager.Models.OrdenLista).Clave %>'>
                         <asp:Repeater ID="rptTarjetas" runat="server" DataSource='<%# Eval("Tarjetas") %>'>
                             <ItemTemplate>
                                 <article class='<%# "tarjeta " & TaskManager.Models.Prioridad.ClaseCss(CType(Eval("Prioridad"), Integer?)) %>' draggable="true" tabindex="0" data-tarjeta-id='<%# Eval("Id") %>'
                                     data-caso='<%#: Eval("Caso") %>' data-etiquetas='<%#: NombresEtiquetas(Container.DataItem) %>' data-texto='<%#: TextoBusqueda(Container.DataItem) %>'>
                                     <span class="tarjeta-titulo">
+                                        <span class="tarjeta-id" title="ID de la tarea">ID <%# Eval("Id") %></span>
                                         <asp:PlaceHolder runat="server" Visible='<%# Eval("Caso") IsNot Nothing %>'>
                                             <span class="tarjeta-caso" title="Caso">#<%#: Eval("Caso") %></span>
                                         </asp:PlaceHolder>
@@ -223,12 +264,12 @@
                 </div>
             </div>
 
-            <%-- Etiquetas: sugerencias mientras se escribe y vista previa en Scripts/etiquetas.js --%>
+            <%-- Etiquetas: Scripts/etiquetas.js las pinta dentro del cuadro y pide el color de las nuevas --%>
             <div class="campo campo-etiquetas">
                 <asp:Label runat="server" AssociatedControlID="txtEtiquetas" Text="Etiquetas" />
                 <asp:TextBox ID="txtEtiquetas" runat="server" MaxLength="600" autocomplete="off" spellcheck="false"
                     placeholder="#PLANIFICADOR_CABINAS #urgente" aria-describedby="ayudaEtiquetas" />
-                <small id="ayudaEtiquetas" class="campo-ayuda">Escribe # para ver las etiquetas ya creadas. Separa con espacios; letras, números, _ y -. Máximo 10.</small>
+                <small id="ayudaEtiquetas" class="campo-ayuda">Escribe para ver las etiquetas del tablero; espacio o Enter para añadirla. Si es nueva, eliges su color. Letras, números, _ y -. Máximo 10.</small>
             </div>
 
             <div class="seccion">
@@ -241,7 +282,8 @@
                             <asp:HiddenField ID="hfSubtareaId" runat="server" Value='<%# Eval("Id") %>' />
                             <asp:CheckBox ID="chkSubtarea" runat="server" Checked='<%# Eval("Completada") %>'
                                 AutoPostBack="true" OnCheckedChanged="chkSubtarea_CheckedChanged" />
-                            <asp:Label runat="server" AssociatedControlID="chkSubtarea" Text='<%#: Eval("Texto") %>' />
+                            <%-- HtmlSubtarea codifica el texto (y pone el enlace si la subtarea enlaza a otra tarjeta) --%>
+                            <asp:Label runat="server" AssociatedControlID="chkSubtarea" Text='<%# HtmlSubtarea(Container.DataItem) %>' />
                             <asp:LinkButton ID="lnkEliminarSubtarea" runat="server" CssClass="subtarea-eliminar" ToolTip="Eliminar subtarea"
                                 CommandName="Eliminar" CommandArgument='<%# Eval("Id") %>' CausesValidation="false">&times;</asp:LinkButton>
                         </li>
@@ -250,6 +292,8 @@
                 </asp:Repeater>
                 <asp:Panel ID="pnlNuevaSubtarea" runat="server" CssClass="form-linea nueva-subtarea" DefaultButton="btnAgregarSubtarea">
                     <asp:TextBox ID="txtNuevaSubtarea" runat="server" MaxLength="300" placeholder="Añadir una subtarea…" />
+                    <%-- Id de la tarjeta a enlazar (lo rellena Scripts/subtareas-enlace.js; el servidor lo valida) --%>
+                    <asp:HiddenField ID="hfSubtareaEnlace" runat="server" />
                     <asp:Button ID="btnAgregarSubtarea" runat="server" Text="Añadir" CssClass="boton boton-claro" CausesValidation="false" />
                 </asp:Panel>
             </div>
@@ -366,7 +410,19 @@
     </script>
     <%-- Etiquetas para las sugerencias (solo con el detalle abierto); "<", ">" y "&" van escapados --%>
     <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
-    <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetas.ClientID %>', datos: 'etiquetas-datos' };</script>
+    <%-- Colores para las etiquetas nuevas: valores fijos del código (Etiqueta.Paleta) --%>
+    <script type="application/json" id="etiquetas-paleta"><%= PaletaJson %></script>
+    <script>
+        window.TaskManagerEtiquetas = {
+            campo: '<%= txtEtiquetas.ClientID %>',
+            datos: 'etiquetas-datos',
+            paleta: 'etiquetas-paleta',
+            url: '<%= ResolveUrl("~/Tarjeta.ashx") %>',
+            token: '<%= TokenChat %>',
+            tablero: <%= TableroIdTexto %>,
+            tarjeta: <%= TarjetaEdicionTexto %>
+        };
+    </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
     <script>window.TaskManagerBusquedaRapida = { campo: 'busquedaRapida', resultado: 'busquedaRapidaResultado', tablero: <%= TableroIdTexto %> };</script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/busqueda-rapida.js") %>"></script>
@@ -409,6 +465,17 @@
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/detalle-tarjeta.js") %>"></script>
+    <%-- Tarjetas que se pueden enlazar desde una subtarea; "<", ">" y "&" van escapados --%>
+    <script type="application/json" id="tarjetas-enlazables"><%= TarjetasEnlazablesJson %></script>
+    <script>
+        window.TaskManagerEnlaceSubtarea = {
+            campo: '<%= txtNuevaSubtarea.ClientID %>',
+            boton: '<%= btnAgregarSubtarea.ClientID %>',
+            enlace: '<%= hfSubtareaEnlace.ClientID %>',
+            datos: 'tarjetas-enlazables'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/subtareas-enlace.js") %>"></script>
     </asp:PlaceHolder>
     <script>
         window.TaskManagerChat = {

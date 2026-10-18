@@ -129,6 +129,8 @@
     <Content Include="database\migraciones\005_busquedas_guardadas.sql" />
     <Content Include="database\migraciones\006_etiquetas.sql" />
     <Content Include="database\migraciones\007_perfil_usuario.sql" />
+    <Content Include="database\migraciones\008_subtareas_enlace.sql" />
+    <Content Include="database\migraciones\009_preferencias_listas.sql" />
     <Content Include="database\demo\tablero_demo_aplicaciones.sql" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
@@ -139,6 +141,7 @@
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
     <Content Include="Scripts\detalle-tarjeta.js" />
+    <Content Include="Scripts\subtareas-enlace.js" />
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
@@ -211,6 +214,7 @@
     <Compile Include="Models\HistorialTarjeta.vb" />
     <Compile Include="Models\Lista.vb" />
     <Compile Include="Models\Miembro.vb" />
+    <Compile Include="Models\OrdenLista.vb" />
     <Compile Include="Models\Prioridad.vb" />
     <Compile Include="Models\Subtarea.vb" />
     <Compile Include="Models\Tablero.vb" />

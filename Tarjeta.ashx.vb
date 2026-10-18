@@ -11,7 +11,10 @@ Imports TaskManager.Utilidades
 '''        -> guarda los campos con TarjetasDatos.Actualizar (historial incluido)
 '''   POST accion=subtarea, tablero, tarjeta, subtarea, completada (1/0)
 '''        -> marca o desmarca la subtarea con SubtareasDatos.CambiarEstado
-''' Devuelve el texto de última modificación de la tarjeta.
+'''   POST accion=etiqueta, tablero, tarjeta (0 al crear una tarjeta), nombre, color
+'''        -> crea en el tablero la etiqueta con el color elegido (EtiquetasDatos.Crear) y la devuelve
+'''           ({ etiqueta: { n, c, t, u } }); no modifica la tarjeta: se asigna al guardarla.
+''' Las demás devuelven el texto de última modificación de la tarjeta.
 ''' Mismo patrón que Chat.ashx: el usuario debe pertenecer al tablero, el POST exige el token anti-CSRF
 ''' (cabecera X-Chat-Token) y que el origen sea esta misma web.
 ''' </summary>
@@ -57,6 +60,27 @@ Public Class TarjetaHandler
 
         If TablerosDatos.Obtener(tableroId, usuarioId) Is Nothing Then
             Terminar(respuesta, 403, "No tienes acceso a este tablero.")
+            Return
+        End If
+
+        If String.Equals(valores("accion"), "etiqueta", StringComparison.Ordinal) Then
+            Dim nombre = If(valores("nombre"), "").Trim().TrimStart("#"c)
+            Dim color = valores("color")
+            If Not Etiqueta.EsNombreValido(nombre) Then
+                Terminar(respuesta, 400, "Nombre de etiqueta no válido: solo letras, números, _ y -, hasta " &
+                         Etiqueta.LongitudMaxima & " caracteres.")
+                Return
+            End If
+            If Not Etiqueta.EsColorDePaleta(color) Then
+                Terminar(respuesta, 400, "Elige uno de los colores propuestos.")
+                Return
+            End If
+            ' Crear usa el TableroId autorizado: la etiqueta solo existe en este tablero.
+            Dim creada = EtiquetasDatos.Crear(tableroId, nombre, color)
+            respuesta.Write(New JavaScriptSerializer().Serialize(New With {
+                .ok = True,
+                .etiqueta = New With {.n = creada.Nombre, .c = creada.ColorSeguro, .t = creada.Tinta, .u = creada.Usos}
+            }))
             Return
         End If
 

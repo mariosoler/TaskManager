@@ -85,7 +85,7 @@
                         <asp:CheckBox ID="chkEnSubtareas" runat="server" Text="Subtareas" />
                         <asp:CheckBox ID="chkEnEtiquetas" runat="server" Text="Etiquetas" Checked="true" />
                     </fieldset>
-                    <%-- Etiquetas: sugerencias al escribir "#" (Scripts/etiquetas.js en modo filtro) --%>
+                    <%-- Etiquetas: se pintan dentro del cuadro, con sugerencias al escribir (Scripts/etiquetas.js en modo filtro) --%>
                     <div class="campo campo-etiquetas campo-doble">
                         <asp:Label runat="server" AssociatedControlID="txtEtiquetasFiltro" Text="Etiquetas" />
                         <asp:TextBox ID="txtEtiquetasFiltro" runat="server" MaxLength="600" autocomplete="off" spellcheck="false"

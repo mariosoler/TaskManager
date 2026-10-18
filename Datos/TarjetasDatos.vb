@@ -15,7 +15,7 @@ Namespace Datos
         ' Columnas que lee LeerTarjeta. No incluye Codigo (NVARCHAR(MAX)): en listados basta con TieneCodigo.
         Friend Const SqlColumnasTarjeta As String = "
        c.Id, c.ListaId, l.Titulo AS NombreLista, c.Titulo, c.Descripcion, c.Posicion, c.FechaLimite,
-       c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.Caso, CAST(c.Prioridad AS INT) AS Prioridad,
+       c.AsignadoA, u.Nombre AS NombreAsignado, c.FechaCreacion, c.FechaEnLista, c.Caso, CAST(c.Prioridad AS INT) AS Prioridad,
        c.FechaModificacion, um.Nombre AS NombreModificador,
        CAST(CASE WHEN c.Codigo IS NULL OR c.Codigo = N'' THEN 0 ELSE 1 END AS BIT) AS TieneCodigo,
        (SELECT COUNT(*) FROM Comentarios co WHERE co.TarjetaId = c.Id) AS NumComentarios,
@@ -29,6 +29,31 @@ LEFT JOIN Usuarios u ON u.Id = c.AsignadoA
 LEFT JOIN Usuarios um ON um.Id = c.ModificadoPor"
 
         Friend Const SqlSelectTarjetas As String = "SELECT" & SqlColumnasTarjeta & SqlFromTarjetas
+
+        ''' <summary>
+        ''' Tarjetas del tablero para enlazarlas desde una subtarea (Id, Titulo, Caso, NombreLista), en el orden
+        ''' del tablero (listas y posición).
+        ''' </summary>
+        Public Shared Function ListarParaEnlazar(tableroId As Integer) As List(Of Tarjeta)
+            Const sql = "
+SELECT c.Id, c.Titulo, c.Caso, l.Titulo AS NombreLista
+FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
+WHERE l.TableroId = @TableroId
+ORDER BY l.Posicion, c.Posicion, c.Id"
+
+            Dim tarjetas As New List(Of Tarjeta)
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cn.Open()
+                Using rd = cmd.ExecuteReader()
+                    While rd.Read()
+                        tarjetas.Add(New Tarjeta With {
+                            .Id = rd.GetInt32(0), .Titulo = rd.GetString(1), .Caso = Db.Texto(rd, "Caso"), .NombreLista = rd.GetString(3)})
+                    End While
+                End Using
+            End Using
+            Return tarjetas
+        End Function
 
         ''' <summary>Tarjeta completa (incluido Codigo) si pertenece al tablero; Nothing en caso contrario.</summary>
         Public Shared Function Obtener(tarjetaId As Integer, tableroId As Integer) As Tarjeta
@@ -96,7 +121,7 @@ SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
 
                     Dim posicion = 0
                     For Each subtarea In subtareas
-                        SubtareasDatos.Insertar(cn, tx, tarjetaId, subtarea.Texto, subtarea.Completada, posicion)
+                        SubtareasDatos.Insertar(cn, tx, tarjetaId, tableroId, subtarea, posicion)
                         posicion += 1
                     Next
                     EtiquetasDatos.Asignar(cn, tx, tarjetaId, tableroId, NombresEtiquetas(datos))
@@ -265,7 +290,9 @@ DECLARE @Pos INT = CASE WHEN @Indice < 0 THEN 0 WHEN @Indice > @Total THEN @Tota
 WITH o AS (SELECT Posicion, ROW_NUMBER() OVER (ORDER BY Posicion, Id) - 1 AS N
            FROM Tarjetas WHERE ListaId = @ListaDestinoId AND Id <> @TarjetaId)
 UPDATE o SET Posicion = CASE WHEN N >= @Pos THEN N + 1 ELSE N END;
-UPDATE Tarjetas SET ListaId = @ListaDestinoId, Posicion = @Pos WHERE Id = @TarjetaId;
+UPDATE Tarjetas SET ListaId = @ListaDestinoId, Posicion = @Pos,
+       FechaEnLista = CASE WHEN @Origen <> @ListaDestinoId THEN SYSUTCDATETIME() ELSE FechaEnLista END
+WHERE Id = @TarjetaId;
 WITH o AS (SELECT Posicion, ROW_NUMBER() OVER (ORDER BY Posicion, Id) - 1 AS N
            FROM Tarjetas WHERE ListaId = @Origen)
 UPDATE o SET Posicion = N;
@@ -312,6 +339,7 @@ SELECT (SELECT Titulo FROM Listas WHERE Id = @Origen) AS Origen,
                 .AsignadoA = Db.Entero(rd, "AsignadoA"),
                 .NombreAsignado = Db.Texto(rd, "NombreAsignado"),
                 .FechaCreacion = rd.GetDateTime(rd.GetOrdinal("FechaCreacion")),
+                .FechaEnLista = rd.GetDateTime(rd.GetOrdinal("FechaEnLista")),
                 .Caso = Db.Texto(rd, "Caso"),
                 .Prioridad = Db.Entero(rd, "Prioridad"),
                 .TieneCodigo = rd.GetBoolean(rd.GetOrdinal("TieneCodigo")),

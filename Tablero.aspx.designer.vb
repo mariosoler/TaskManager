@@ -86,22 +86,31 @@ Partial Public Class TableroPagina
     Protected WithEvents litDescripcion As Global.System.Web.UI.WebControls.Literal
 
     '''<summary>
-    '''Control lnkBuscarTablero.
+    '''Control phListasOcultas.
     '''</summary>
     '''<remarks>
     '''Campo generado automáticamente.
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
-    Protected WithEvents lnkBuscarTablero As Global.System.Web.UI.HtmlControls.HtmlAnchor
+    Protected WithEvents phListasOcultas As Global.System.Web.UI.WebControls.PlaceHolder
 
     '''<summary>
-    '''Control lnkEstadisticas.
+    '''Control litListasOcultas.
     '''</summary>
     '''<remarks>
     '''Campo generado automáticamente.
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
-    Protected WithEvents lnkEstadisticas As Global.System.Web.UI.HtmlControls.HtmlAnchor
+    Protected WithEvents litListasOcultas As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
+    '''Control rptListasOcultas.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents rptListasOcultas As Global.System.Web.UI.WebControls.Repeater
 
     '''<summary>
     '''Control phEditarTablero.
@@ -489,6 +498,15 @@ Partial Public Class TableroPagina
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
     Protected WithEvents txtNuevaSubtarea As Global.System.Web.UI.WebControls.TextBox
+
+    '''<summary>
+    '''Control hfSubtareaEnlace.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents hfSubtareaEnlace As Global.System.Web.UI.WebControls.HiddenField
 
     '''<summary>
     '''Control btnAgregarSubtarea.

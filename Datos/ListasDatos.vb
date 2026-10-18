@@ -12,9 +12,16 @@ Namespace Datos
         Private Sub New()
         End Sub
 
-        ''' <summary>Listas del tablero ordenadas por posición, cada una con sus tarjetas.</summary>
-        Public Shared Function ListarConTarjetas(tableroId As Integer) As List(Of Lista)
-            Dim sql = "SELECT Id, TableroId, Titulo, Posicion FROM Listas WHERE TableroId = @TableroId ORDER BY Posicion, Id;" &
+        ''' <summary>
+        ''' Listas del tablero ordenadas por posición, cada una con sus tarjetas, con las preferencias de
+        ''' <paramref name="usuarioId"/> (oculta y orden): las tarjetas ya vienen en el orden que ha elegido.
+        ''' </summary>
+        Public Shared Function ListarConTarjetas(tableroId As Integer, usuarioId As Integer) As List(Of Lista)
+            Dim sql = "
+SELECT l.Id, l.TableroId, l.Titulo, l.Posicion, CAST(ISNULL(p.Oculta, 0) AS BIT) AS Oculta, p.Orden
+FROM Listas l
+LEFT JOIN PreferenciasLista p ON p.ListaId = l.Id AND p.UsuarioId = @UsuarioId
+WHERE l.TableroId = @TableroId ORDER BY l.Posicion, l.Id;" &
                       TarjetasDatos.SqlSelectTarjetas & " WHERE l.TableroId = @TableroId ORDER BY c.ListaId, c.Posicion, c.Id;" &
                       EtiquetasDatos.SqlEtiquetasDeTarjetas & " ORDER BY e.Nombre;"
 
@@ -24,6 +31,7 @@ Namespace Datos
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
                 cn.Open()
                 Using rd = cmd.ExecuteReader()
                     While rd.Read()
@@ -31,7 +39,9 @@ Namespace Datos
                             .Id = rd.GetInt32(0),
                             .TableroId = rd.GetInt32(1),
                             .Titulo = rd.GetString(2),
-                            .Posicion = rd.GetInt32(3)
+                            .Posicion = rd.GetInt32(3),
+                            .Oculta = rd.GetBoolean(4),
+                            .Orden = OrdenLista.Buscar(Db.Texto(rd, "Orden"))
                         }
                         listas.Add(lista)
                         porId(lista.Id) = lista
@@ -49,8 +59,64 @@ Namespace Datos
                     EtiquetasDatos.LeerEnTarjetas(rd, tarjetas)
                 End Using
             End Using
+            For Each lista In listas
+                lista.Tarjetas = lista.Orden.Aplicar(lista.Tarjetas)
+            Next
             Return listas
         End Function
+
+        ''' <summary>Oculta o vuelve a mostrar la lista solo para <paramref name="usuarioId"/>.</summary>
+        Public Shared Sub Ocultar(listaId As Integer, tableroId As Integer, usuarioId As Integer, oculta As Boolean)
+            Const sql = "
+SET XACT_ABORT ON;
+BEGIN TRAN;
+IF EXISTS (SELECT 1 FROM Listas WHERE Id = @ListaId AND TableroId = @TableroId)
+BEGIN
+    UPDATE PreferenciasLista WITH (UPDLOCK, HOLDLOCK) SET Oculta = @Oculta WHERE UsuarioId = @UsuarioId AND ListaId = @ListaId;
+    IF @@ROWCOUNT = 0
+        INSERT INTO PreferenciasLista (UsuarioId, ListaId, Oculta) VALUES (@UsuarioId, @ListaId, @Oculta);
+    " & SqlQuitarPreferenciaVacia & "
+END
+COMMIT;"
+            GuardarPreferencia(sql, listaId, tableroId, usuarioId,
+                               Sub(cmd) cmd.Parameters.Add("@Oculta", SqlDbType.Bit).Value = oculta)
+        End Sub
+
+        ''' <summary>
+        ''' Orden de las tarjetas de la lista solo para <paramref name="usuarioId"/>: clave de OrdenLista
+        ''' (validada por quien llama) o Nothing para el orden manual.
+        ''' </summary>
+        Public Shared Sub CambiarOrden(listaId As Integer, tableroId As Integer, usuarioId As Integer, orden As String)
+            Const sql = "
+SET XACT_ABORT ON;
+BEGIN TRAN;
+IF EXISTS (SELECT 1 FROM Listas WHERE Id = @ListaId AND TableroId = @TableroId)
+BEGIN
+    UPDATE PreferenciasLista WITH (UPDLOCK, HOLDLOCK) SET Orden = @Orden WHERE UsuarioId = @UsuarioId AND ListaId = @ListaId;
+    IF @@ROWCOUNT = 0
+        INSERT INTO PreferenciasLista (UsuarioId, ListaId, Orden) VALUES (@UsuarioId, @ListaId, @Orden);
+    " & SqlQuitarPreferenciaVacia & "
+END
+COMMIT;"
+            GuardarPreferencia(sql, listaId, tableroId, usuarioId,
+                               Sub(cmd) cmd.Parameters.Add("@Orden", SqlDbType.VarChar, OrdenLista.LongitudMaximaClave).Value = Db.ONulo(orden))
+        End Sub
+
+        ' Una preferencia con los valores predeterminados (visible y orden manual) no hace falta guardarla.
+        Private Const SqlQuitarPreferenciaVacia As String =
+            "DELETE FROM PreferenciasLista WHERE UsuarioId = @UsuarioId AND ListaId = @ListaId AND Oculta = 0 AND Orden IS NULL;"
+
+        Private Shared Sub GuardarPreferencia(sql As String, listaId As Integer, tableroId As Integer, usuarioId As Integer,
+                                              parametro As Action(Of SqlCommand))
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
+                cmd.Parameters.Add("@ListaId", SqlDbType.Int).Value = listaId
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.Int).Value = usuarioId
+                parametro(cmd)
+                cn.Open()
+                cmd.ExecuteNonQuery()
+            End Using
+        End Sub
 
         ''' <summary>Listas del tablero (sin tarjetas), ordenadas por posición.</summary>
         Public Shared Function Listar(tableroId As Integer) As List(Of Lista)

@@ -78,6 +78,18 @@ Namespace Utilidades
             Return url & "?v=" & System.IO.File.GetLastWriteTimeUtc(archivo).Ticks.ToString(CultureInfo.InvariantCulture)
         End Function
 
+        ''' <summary>
+        ''' Versión de la aplicación ("0.9.0-beta"), tomada de AssemblyInformationalVersion en
+        ''' My Project/AssemblyInfo.vb: es el único sitio donde hay que cambiarla.
+        ''' </summary>
+        Public Shared Function VersionApp() As String
+            Dim ensamblado = GetType(Formato).Assembly
+            Dim atributo = DirectCast(Attribute.GetCustomAttribute(ensamblado, GetType(System.Reflection.AssemblyInformationalVersionAttribute)),
+                                      System.Reflection.AssemblyInformationalVersionAttribute)
+            If atributo IsNot Nothing Then Return atributo.InformationalVersion
+            Return ensamblado.GetName().Version.ToString(3)
+        End Function
+
         Private Shared Function ALocal(utc As DateTime) As DateTime
             Return DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime()
         End Function

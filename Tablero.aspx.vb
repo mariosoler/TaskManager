@@ -51,9 +51,8 @@ Public Class TableroPagina
         If _tablero Is Nothing Then Response.Redirect("~/Tableros.aspx")
         If IsPostBack AndAlso pnlDetalle.Visible Then _detalleAlCargar = ClaveDetalle()
 
-        Dim idTexto = _tablero.Id.ToString(CultureInfo.InvariantCulture)
-        lnkBuscarTablero.HRef = "~/Buscar.aspx?tablero=" & idTexto
-        lnkEstadisticas.HRef = "~/Estadisticas.aspx?id=" & idTexto
+        ' Buscar en este tablero y Estadísticas están en el menú superior.
+        CType(Master, SiteMaster).TableroActual = _tablero.Id
 
         If Not IsPostBack Then
             CargarTablero()
@@ -86,9 +85,48 @@ Public Class TableroPagina
                 ListasDatos.Mover(listaId, TableroId, 1)
             Case "EliminarLista"
                 ListasDatos.Eliminar(listaId, TableroId)
+            Case "OcultarLista"
+                ListasDatos.Ocultar(listaId, TableroId, UsuarioId, True)
         End Select
         CargarTablero()
     End Sub
+
+    ''' <summary>«Listas ocultas» de la cabecera: volver a mostrar una lista (solo para este usuario).</summary>
+    Protected Sub rptListasOcultas_ItemCommand(source As Object, e As RepeaterCommandEventArgs) Handles rptListasOcultas.ItemCommand
+        Dim listaId As Integer
+        If e.CommandName = "MostrarLista" AndAlso Integer.TryParse(CStr(e.CommandArgument), listaId) Then
+            ListasDatos.Ocultar(listaId, TableroId, UsuarioId, False)
+        End If
+        CargarTablero()
+    End Sub
+
+    ''' <summary>Menú «⋯» de una lista: ordenar sus tarjetas (solo para este usuario). Argumento "listaId|clave".</summary>
+    Protected Sub rptOrdenes_ItemCommand(source As Object, e As RepeaterCommandEventArgs)
+        If e.CommandName <> "Ordenar" Then Return
+        Dim partes = CStr(e.CommandArgument).Split("|"c)
+        Dim listaId As Integer
+        If partes.Length <> 2 OrElse Not Integer.TryParse(partes(0), NumberStyles.None, CultureInfo.InvariantCulture, listaId) Then Return
+        Dim clave = partes(1)
+        If clave.Length = 0 Then
+            ListasDatos.CambiarOrden(listaId, TableroId, UsuarioId, Nothing)
+        ElseIf OrdenLista.EsClaveValida(clave) Then
+            ListasDatos.CambiarOrden(listaId, TableroId, UsuarioId, clave)
+        End If
+        CargarTablero()
+    End Sub
+
+    ''' <summary>Lista del elemento del repetidor de órdenes (anidado en el de listas).</summary>
+    Private Shared Function ListaDeOrden(item As RepeaterItem) As Lista
+        Return CType(CType(item.NamingContainer.NamingContainer, RepeaterItem).DataItem, Lista)
+    End Function
+
+    Protected Shared Function ArgumentoOrden(item As RepeaterItem) As String
+        Return ListaDeOrden(item).Id.ToString(CultureInfo.InvariantCulture) & "|" & CType(item.DataItem, OrdenLista).Clave
+    End Function
+
+    Protected Shared Function EsOrdenActual(item As RepeaterItem) As Boolean
+        Return ListaDeOrden(item).Orden Is item.DataItem
+    End Function
 
     Protected Sub lnkMoverTarjeta_Click(sender As Object, e As EventArgs) Handles lnkMoverTarjeta.Click
         Dim tarjetaId, listaId, indice As Integer
@@ -165,6 +203,15 @@ Public Class TableroPagina
                 Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos})
             Dim json = New JavaScriptSerializer().Serialize(etiquetas.ToList())
             Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+        End Get
+    End Property
+
+    ''' <summary>Colores que se pueden elegir al crear una etiqueta (c = color, t = tinta, n = nombre del color).</summary>
+    Protected Shared ReadOnly Property PaletaJson As String
+        Get
+            Dim colores = Etiqueta.Paleta.Select(
+                Function(c, i) New With {.c = c, .t = Etiqueta.TintaPara(c), .n = Etiqueta.NombresPaleta(i)})
+            Return New JavaScriptSerializer().Serialize(colores.ToList())
         End Get
     End Property
 
@@ -443,14 +490,24 @@ Public Class TableroPagina
     End Property
 
     Protected Sub btnAgregarSubtarea_Click(sender As Object, e As EventArgs) Handles btnAgregarSubtarea.Click
-        Dim textoSubtarea = Texto(txtNuevaSubtarea.Text, 300)
+        ' Enlace a otra tarjeta (Scripts/subtareas-enlace.js): solo de este tablero y no la propia; el texto es su título.
+        Dim enlazada As Tarjeta = Nothing
+        Dim enlazadaId As Integer
+        If Integer.TryParse(hfSubtareaEnlace.Value, NumberStyles.None, CultureInfo.InvariantCulture, enlazadaId) AndAlso
+           enlazadaId <> TarjetaAbiertaId Then
+            enlazada = TarjetasDatos.Obtener(enlazadaId, TableroId)
+        End If
+        hfSubtareaEnlace.Value = ""
+
+        Dim textoSubtarea = Texto(If(enlazada IsNot Nothing, enlazada.Titulo, txtNuevaSubtarea.Text), 300)
+        Dim idEnlace = If(enlazada IsNot Nothing, CType(enlazada.Id, Integer?), Nothing)
         If textoSubtarea.Length > 0 Then
             If CreandoTarjeta Then
                 Dim pendientes = SubtareasPendientes
-                pendientes.Add(New Subtarea With {.Texto = textoSubtarea})
+                pendientes.Add(New Subtarea With {.Texto = textoSubtarea, .TarjetaEnlazadaId = idEnlace})
                 SubtareasPendientes = pendientes
             Else
-                SubtareasDatos.Crear(TarjetaAbiertaId, TableroId, textoSubtarea, UsuarioId)
+                SubtareasDatos.Crear(TarjetaAbiertaId, TableroId, textoSubtarea, UsuarioId, idEnlace)
                 CargarTablero()
                 CargarActividad()
             End If
@@ -497,8 +554,11 @@ Public Class TableroPagina
     Private Sub CargarSubtareas()
         Dim subtareas As List(Of Subtarea)
         If CreandoTarjeta Then
+            ' Las pendientes enlazadas muestran el título que tenía la tarjeta al enlazarla.
             subtareas = SubtareasPendientes.Select(
-                Function(s, i) New Subtarea With {.Id = i, .Texto = s.Texto, .Completada = s.Completada}).ToList()
+                Function(s, i) New Subtarea With {.Id = i, .Texto = s.Texto, .Completada = s.Completada,
+                                                  .TarjetaEnlazadaId = s.TarjetaEnlazadaId,
+                                                  .TituloEnlazada = If(s.TarjetaEnlazadaId.HasValue, s.Texto, Nothing)}).ToList()
         Else
             subtareas = SubtareasDatos.Listar(TarjetaAbiertaId, TableroId)
         End If
@@ -509,6 +569,40 @@ Public Class TableroPagina
         litProgresoSubtareas.Text = If(subtareas.Count = 0, "",
                                        String.Format(CultureInfo.InvariantCulture, "{0}/{1}", hechas, subtareas.Count))
     End Sub
+
+    ''' <summary>
+    ''' Texto de la subtarea ya codificado. Si enlaza a una tarjeta del tablero, su título actual subrayado con
+    ''' enlace para abrirla (al crear una tarjeta, en otra pestaña para no perderla); si esa tarjeta ya no existe,
+    ''' el título que tenía al enlazarla.
+    ''' </summary>
+    Protected Function HtmlSubtarea(dato As Object) As String
+        Dim s = CType(dato, Subtarea)
+        If Not s.TarjetaEnlazadaId.HasValue Then Return HttpUtility.HtmlEncode(s.Texto)
+        If s.TituloEnlazada Is Nothing Then
+            Return "<span class=""subtarea-enlace-roto"" title=""La tarjeta enlazada ya no existe"">" &
+                   HttpUtility.HtmlEncode(s.Texto) & "</span>"
+        End If
+        Dim url = ResolveUrl("~/Tablero.aspx?id=" & TableroIdTexto & "&tarjeta=" &
+                             s.TarjetaEnlazadaId.Value.ToString(CultureInfo.InvariantCulture))
+        Return "<a class=""subtarea-enlace"" href=""" & HttpUtility.HtmlAttributeEncode(url) & """ title=""Abrir la tarjeta""" &
+               If(CreandoTarjeta, " target=""_blank"" rel=""noopener""", "") & ">" &
+               HttpUtility.HtmlEncode(s.TituloEnlazada) & "</a>"
+    End Function
+
+    ''' <summary>
+    ''' Tarjetas del tablero que se pueden enlazar desde una subtarea (i = Id, t = título, c = caso, l = lista),
+    ''' sin la que está abierta. Vacío si el detalle está cerrado. Los signos menor, mayor y ampersand van escapados.
+    ''' </summary>
+    Protected ReadOnly Property TarjetasEnlazablesJson As String
+        Get
+            If Not pnlDetalle.Visible Then Return "[]"
+            Dim tarjetas = TarjetasDatos.ListarParaEnlazar(TableroId).
+                Where(Function(t) t.Id <> TarjetaAbiertaId).
+                Select(Function(t) New With {.i = t.Id, .t = t.Titulo, .c = If(t.Caso, ""), .l = t.NombreLista})
+            Dim json = New JavaScriptSerializer().Serialize(tarjetas.ToList())
+            Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+        End Get
+    End Property
 
     ' ----- Miembros -----
 
@@ -630,8 +724,15 @@ Public Class TableroPagina
         litNombre.Text = _tablero.Nombre
         litDescripcion.Text = If(_tablero.Descripcion, "")
 
-        rptListas.DataSource = ListasDatos.ListarConTarjetas(TableroId)
+        ' Ocultar y ordenar son preferencias de cada usuario: las listas ocultas van al desplegable de la cabecera.
+        Dim listas = ListasDatos.ListarConTarjetas(TableroId, UsuarioId)
+        rptListas.DataSource = listas.Where(Function(l) Not l.Oculta).ToList()
         rptListas.DataBind()
+        Dim ocultas = listas.Where(Function(l) l.Oculta).ToList()
+        rptListasOcultas.DataSource = ocultas
+        rptListasOcultas.DataBind()
+        phListasOcultas.Visible = ocultas.Count > 0
+        litListasOcultas.Text = ocultas.Count.ToString(CultureInfo.InvariantCulture)
 
         rptMiembros.DataSource = TablerosDatos.ListarMiembros(TableroId)
         rptMiembros.DataBind()

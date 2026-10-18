@@ -25,6 +25,24 @@ Partial Public Class SiteMaster
 
     Protected WithEvents phNavegacion As Global.System.Web.UI.WebControls.PlaceHolder
 
+    '''<summary>
+    '''Control lnkNavBuscar.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents lnkNavBuscar As Global.System.Web.UI.HtmlControls.HtmlAnchor
+
+    '''<summary>
+    '''Control lnkNavEstadisticas.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents lnkNavEstadisticas As Global.System.Web.UI.HtmlControls.HtmlAnchor
+
     Protected WithEvents phUsuario As Global.System.Web.UI.WebControls.PlaceHolder
 
     Protected WithEvents litIniciales As Global.System.Web.UI.WebControls.Literal

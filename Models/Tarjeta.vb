@@ -13,6 +13,9 @@ Namespace Models
         Public Property NumComentarios As Integer
         Public Property FechaCreacion As DateTime
 
+        ''' <summary>Cuándo entró la tarjeta en su lista actual (UTC): al crearla o al moverla a otra lista.</summary>
+        Public Property FechaEnLista As DateTime
+
         ''' <summary>1 = Alta, 2 = Media, 3 = Baja (ver Models.Prioridad) o Nothing.</summary>
         Public Property Prioridad As Integer?
 
