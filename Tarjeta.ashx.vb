@@ -13,7 +13,7 @@ Imports TaskManager.Utilidades
 '''        -> marca o desmarca la subtarea con SubtareasDatos.CambiarEstado
 '''   POST accion=etiqueta, tablero, tarjeta (0 al crear una tarjeta), nombre, color
 '''        -> crea en el tablero la etiqueta con el color elegido (EtiquetasDatos.Crear) y la devuelve
-'''           ({ etiqueta: { n, c, t, u } }); no modifica la tarjeta: se asigna al guardarla.
+'''           ({ etiqueta: { n, c, f, t, u } }); color = clave de ColorEtiqueta (sólido o degradado); no modifica la tarjeta: se asigna al guardarla.
 ''' Las demás devuelven el texto de última modificación de la tarjeta.
 ''' Mismo patrón que Chat.ashx: el usuario debe pertenecer al tablero, el POST exige el token anti-CSRF
 ''' (cabecera X-Chat-Token) y que el origen sea esta misma web.
@@ -79,7 +79,7 @@ Public Class TarjetaHandler
             Dim creada = EtiquetasDatos.Crear(tableroId, nombre, color)
             respuesta.Write(New JavaScriptSerializer().Serialize(New With {
                 .ok = True,
-                .etiqueta = New With {.n = creada.Nombre, .c = creada.ColorSeguro, .t = creada.Tinta, .u = creada.Usos}
+                .etiqueta = New With {.n = creada.Nombre, .c = creada.ColorSeguro, .f = creada.FondoCss, .t = creada.Tinta, .u = creada.Usos}
             }))
             Return
         End If

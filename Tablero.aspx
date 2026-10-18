@@ -181,6 +181,9 @@
                                             <span class="info info-codigo" title="Tiene código">&lt;/&gt;</span>
                                         </asp:PlaceHolder>
                                         <span class="info info-modificada" title='<%#: TextoModificacion(Eval("FechaModificacion"), Eval("NombreModificador")) %>'>&#9998; <%#: Formato.FechaCorta(Eval("FechaModificacion")) %></span>
+                                        <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumAdjuntos")) > 0 %>'>
+                                            <span class="info" title="Adjuntos">&#128206; <%# Eval("NumAdjuntos") %></span>
+                                        </asp:PlaceHolder>
                                         <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("NumComentarios")) > 0 %>'>
                                             <span class="info" title="Mensajes de chat">&#128172; <%# Eval("NumComentarios") %></span>
                                         </asp:PlaceHolder>
@@ -219,6 +222,10 @@
           <div class="modal-principal">
             <%-- Título: parece texto y se edita al pulsarlo (cuadro de texto con aspecto de título) --%>
             <div class="modal-cabecera">
+                <%-- ID de la tarjeta junto al título (no al crearla: aún no tiene) --%>
+                <asp:PlaceHolder ID="phDetalleId" runat="server">
+                    <span class="tarjeta-id detalle-id" title="ID de la tarea"><asp:Literal ID="litDetalleId" runat="server" /></span>
+                </asp:PlaceHolder>
                 <div class="campo campo-titulo-tarjeta">
                     <asp:Label runat="server" AssociatedControlID="txtTituloTarjeta" Text="Título" CssClass="solo-lectores" />
                     <asp:TextBox ID="txtTituloTarjeta" runat="server" MaxLength="200" CssClass="titulo-tarjeta"
@@ -231,7 +238,8 @@
             <p class="modal-subtitulo"><asp:Literal ID="litDetallePrefijo" runat="server" /> <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
                 <asp:Literal ID="litFechasTarjeta" runat="server" Mode="Encode" /></p>
 
-            <%-- Avisos (Scripts/detalle-tarjeta.js): fecha límite superada y sin asignar, con icono y texto --%>
+            <%-- Avisos (Scripts/detalle-tarjeta.js): sin prioridad, fecha límite superada y sin asignar, con icono y texto;
+                 el selector de prioridad toma el color de la elegida (el texto la nombra: el color nunca va solo) --%>
             <div class="campos-fila">
                 <div class="campo campo-caso">
                     <asp:Label runat="server" AssociatedControlID="txtCaso" Text="Caso" />
@@ -239,8 +247,8 @@
                     <asp:RegularExpressionValidator ID="revCaso" runat="server" ControlToValidate="txtCaso" ValidationGroup="Detalle"
                         ValidationExpression="^\s*[0-9]{1,20}\s*$" ErrorMessage="Solo números." Display="Dynamic" CssClass="validacion" />
                 </div>
-                <div class="campo">
-                    <asp:Label runat="server" AssociatedControlID="ddlPrioridad" Text="Prioridad" />
+                <div class="campo campo-prioridad">
+                    <asp:Label runat="server" AssociatedControlID="ddlPrioridad">Prioridad <span class="campo-alerta">&#9888; Sin prioridad</span></asp:Label>
                     <asp:DropDownList ID="ddlPrioridad" runat="server">
                         <asp:ListItem Value="" Text="Sin prioridad" />
                         <asp:ListItem Value="1" Text="Alta" />
@@ -295,6 +303,29 @@
                     <asp:HiddenField ID="hfSubtareaEnlace" runat="server" />
                     <asp:Button ID="btnAgregarSubtarea" runat="server" Text="Añadir" CssClass="boton boton-claro" CausesValidation="false" />
                 </asp:Panel>
+            </div>
+
+            <%-- Adjuntos (Scripts/adjuntos.js): arrastrarlos a la tarjeta, pegar del portapapeles o elegir archivos;
+                 las imágenes en miniatura (visor emergente al pulsarlas) y el resto en lista --%>
+            <div class="seccion seccion-adjuntos">
+                <h3>Adjuntos <span class="seccion-nota" id="totalAdjuntos"></span></h3>
+                <asp:PlaceHolder ID="phAdjuntosNueva" runat="server" Visible="false">
+                    <p class="campo-ayuda">Crea la tarjeta para poder adjuntarle archivos.</p>
+                </asp:PlaceHolder>
+                <asp:PlaceHolder ID="phAdjuntos" runat="server">
+                    <div id="adjuntosGaleria" class="adjuntos-galeria" hidden="hidden"></div>
+                    <ul id="adjuntosLista" class="adjuntos-lista" hidden="hidden"></ul>
+                    <div id="adjuntosZona" class="adjuntos-zona">
+                        <span class="adjuntos-zona-icono" aria-hidden="true">&#128206;</span>
+                        <span>Arrastra archivos a la tarjeta o pega una captura (Ctrl+V).
+                            <label for="adjuntosSelector" class="adjuntos-elegir">Elegir archivos…</label></span>
+                        <%-- Sin name: no viaja con los postbacks del formulario (adjuntos.js lo envía a Adjuntos.ashx) --%>
+                        <input type="file" id="adjuntosSelector" class="solo-lectores" multiple="multiple" />
+                        <small>Cualquier tipo de archivo, hasta 10 MB cada uno. Las imágenes se ven en miniatura.</small>
+                    </div>
+                    <p id="adjuntosEstado" class="adjuntos-estado" role="status"></p>
+                    <noscript><p class="campo-ayuda">Para subir y ver los adjuntos hace falta JavaScript.</p></noscript>
+                </asp:PlaceHolder>
             </div>
 
             <div class="seccion">
@@ -409,7 +440,7 @@
     </script>
     <%-- Etiquetas para las sugerencias (solo con el detalle abierto); "<", ">" y "&" van escapados --%>
     <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
-    <%-- Colores para las etiquetas nuevas: valores fijos del código (Etiqueta.Paleta) --%>
+    <%-- Colores para las etiquetas nuevas: valores fijos del código (ColorEtiqueta.Todos) --%>
     <script type="application/json" id="etiquetas-paleta"><%= PaletaJson %></script>
     <script>
         window.TaskManagerEtiquetas = {
@@ -475,6 +506,26 @@
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/subtareas-enlace.js") %>"></script>
+    <%-- Adjuntos de la tarjeta abierta; "<", ">" y "&" van escapados --%>
+    <script type="application/json" id="adjuntos-datos"><%= AdjuntosJson %></script>
+    <script>
+        window.TaskManagerAdjuntos = {
+            url: '<%= ResolveUrl("~/Adjuntos.ashx") %>',
+            token: '<%= TokenChat %>',
+            tablero: <%= TableroIdTexto %>,
+            tarjeta: <%= TarjetaEdicionTexto %>,
+            tamanoMaximo: <%= TaskManager.Utilidades.AdjuntosTarjeta.TamanoMaximo %>,
+            modal: '.modal-con-chat',
+            datos: 'adjuntos-datos',
+            galeria: 'adjuntosGaleria',
+            lista: 'adjuntosLista',
+            zona: 'adjuntosZona',
+            selector: 'adjuntosSelector',
+            estado: 'adjuntosEstado',
+            total: 'totalAdjuntos'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/adjuntos.js") %>"></script>
     </asp:PlaceHolder>
     <script>
         window.TaskManagerChat = {

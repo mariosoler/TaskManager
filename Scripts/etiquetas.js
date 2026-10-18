@@ -5,7 +5,7 @@
  * - mientras se escribe sugiere las etiquetas que ya existen (las más usadas primero; en el tablero, solo las
  *   suyas: no se comparten entre tableros); flechas para elegir, Enter/Tab para añadir, Esc para cerrar;
  * - en el detalle de tarjeta, una etiqueta que no existe abre un cuadro para confirmar que se crea y elegir su
- *   color: se crea en el tablero con Tarjeta.ashx (accion=etiqueta) y se asigna a la tarjeta al guardarla;
+ *   color (sólido o degradado): se crea en el tablero con Tarjeta.ashx (accion=etiqueta) y se asigna a la tarjeta al guardarla;
  * - con cfg.modo = 'filtro' (buscador) no se crean etiquetas: las que no existen se marcan «no existe».
  * El TextBox original queda oculto con "#A #B " (lo que leen el servidor y el guardado automático). Sin
  * JavaScript se escribe en él tal cual, y las etiquetas nuevas toman el siguiente color de la paleta al guardar.
@@ -25,6 +25,9 @@
     var MAXIMO_SUGERENCIAS = 8;
     var NOMBRE = /^[\p{L}\p{N}_-]{1,50}$/u;
     var COLOR = /^#[0-9a-f]{6}$/i;
+    // Fondo de una etiqueta: un color o un degradado de dos colores (los genera el servidor; se validan igualmente).
+    var FONDO = /^(#[0-9a-f]{6}|linear-gradient\(135deg, #[0-9a-f]{6}, #[0-9a-f]{6}\))$/i;
+    var CLAVE_COLOR = /^(#[0-9a-f]{6}|grad:[a-z0-9-]{1,25})$/;
     var SEPARADOR = /[\s,;]+/;
 
     function leerJson(nodo) {
@@ -36,8 +39,10 @@
     var esFiltro = cfg.modo === 'filtro';
     var datos = leerJson(nodoDatos);
     var paleta = esFiltro ? [] : leerJson(document.getElementById(cfg.paleta)).filter(function (p) {
-        return COLOR.test(p.c) && COLOR.test(p.t);
+        return COLOR.test(p.c) && COLOR.test(p.t) && FONDO.test(p.f) && CLAVE_COLOR.test(p.k);
     });
+    // Solo los sólidos se asignan automáticamente: el color propuesto se elige entre ellos, como en el servidor.
+    var numSolidos = paleta.filter(function (p) { return !p.g; }).length || paleta.length;
     // Sin paleta o sin dirección no se puede preguntar: las nuevas se crean al guardar, como sin JavaScript.
     var puedeCrear = !esFiltro && paleta.length > 0 && !!cfg.url;
 
@@ -111,7 +116,7 @@
         span.className = 'etiqueta-tag' + (clase ? ' ' + clase : '');
         span.textContent = texto;
         if (dato && COLOR.test(dato.c) && COLOR.test(dato.t)) {
-            span.style.backgroundColor = dato.c;
+            if (dato.f && FONDO.test(dato.f)) { span.style.background = dato.f; } else { span.style.backgroundColor = dato.c; }
             span.style.color = dato.t;
         }
         return span;
@@ -286,6 +291,7 @@
     var elegido = 0;       // índice del color elegido en la paleta
     var enviando = false;
     var dialogo, vistaNueva, colores, errorNueva, botonCrear, botonCancelar;
+    var botones = [];      // un botón por color de la paleta (mismo índice)
 
     function enCola(nombre) {
         var c = clave(nombre);
@@ -308,21 +314,37 @@
         vistaNueva.className = 'etiqueta-nueva-vista';
         dialogo.appendChild(vistaNueva);
 
+        // Un solo grupo de opciones (las flechas recorren todos los colores), en dos rejillas: colores y degradados.
         colores = document.createElement('div');
         colores.className = 'etiqueta-nueva-colores';
         colores.setAttribute('role', 'radiogroup');
         colores.setAttribute('aria-label', 'Color de la etiqueta');
+        var rejillas = {};
+        [['solidos', 'Colores'], ['degradados', 'Degradados']].forEach(function (s) {
+            var rotuloRejilla = document.createElement('span');
+            rotuloRejilla.className = 'etiqueta-nueva-seccion';
+            rotuloRejilla.textContent = s[1];
+            var rejilla = document.createElement('div');
+            rejilla.className = 'etiqueta-nueva-rejilla';
+            colores.appendChild(rotuloRejilla);
+            colores.appendChild(rejilla);
+            rejillas[s[0]] = { rotulo: rotuloRejilla, rejilla: rejilla };
+        });
         paleta.forEach(function (p, i) {
             var b = document.createElement('button');
             b.type = 'button';
-            b.className = 'etiqueta-color';
+            b.className = 'etiqueta-color' + (p.g ? ' degradado' : '');
             b.setAttribute('role', 'radio');
-            b.setAttribute('aria-label', p.n);
+            b.setAttribute('aria-label', (p.g ? 'Degradado ' : '') + p.n);
             b.title = p.n;
-            b.style.backgroundColor = p.c;
+            b.style.background = p.f;
             b.style.color = p.t;
             b.addEventListener('click', function () { marcarColor(i, true); });
-            colores.appendChild(b);
+            rejillas[p.g ? 'degradados' : 'solidos'].rejilla.appendChild(b);
+            botones.push(b);
+        });
+        Object.keys(rejillas).forEach(function (k) {
+            if (!rejillas[k].rejilla.children.length) { rejillas[k].rotulo.classList.add('oculto'); }
         });
         dialogo.appendChild(colores);
 
@@ -368,7 +390,7 @@
 
     function marcarColor(indice, enfocar) {
         elegido = indice;
-        Array.prototype.forEach.call(colores.children, function (b, i) {
+        botones.forEach(function (b, i) {
             var marcado = i === indice;
             b.setAttribute('aria-checked', marcado ? 'true' : 'false');
             b.tabIndex = marcado ? 0 : -1;
@@ -376,7 +398,7 @@
         });
         vistaNueva.textContent = '';
         vistaNueva.appendChild(chip(cola[0] || '', paleta[indice]));
-        if (enfocar) { colores.children[indice].focus(); }
+        if (enfocar) { botones[indice].focus(); }
     }
 
     function pedirCreacion(nombre) {
@@ -388,10 +410,10 @@
         if (!dialogo) { crearDialogo(); }
         cerrar();
         errorNueva.textContent = '';
-        // Propone el mismo color que asignaría el servidor (el siguiente de la paleta en este tablero).
-        marcarColor(datos.length % paleta.length, false);
+        // Propone el mismo color que asignaría el servidor (el siguiente sólido en este tablero).
+        marcarColor(datos.length % numSolidos, false);
         dialogo.classList.remove('oculto');
-        colores.children[elegido].focus();
+        botones[elegido].focus();
     }
 
     /* Quita la primera de la cola (creada o cancelada) y pregunta por la siguiente, si hay. */
@@ -416,7 +438,7 @@
         p.set('tablero', String(cfg.tablero));
         p.set('tarjeta', String(cfg.tarjeta || 0));
         p.set('nombre', cola[0]);
-        p.set('color', paleta[elegido].c);
+        p.set('color', paleta[elegido].k);
         fetch(cfg.url, {
             method: 'POST',
             credentials: 'same-origin',

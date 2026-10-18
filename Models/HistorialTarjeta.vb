@@ -11,6 +11,11 @@ Namespace Models
         Public Const SubtareaReabierta As String = "SubtareaReabierta"
         Public Const SubtareaEliminada As String = "SubtareaEliminada"
         Public Const Comentada As String = "Comentario"
+        Public Const AdjuntoAgregado As String = "AdjuntoAgregado"    ' valor nuevo = nombre del archivo
+        Public Const AdjuntoEliminado As String = "AdjuntoEliminado"  ' valor nuevo = nombre del archivo
+        ' Anteriores a los adjuntos (solo fotos); se siguen mostrando en el historial.
+        Public Const FotoAgregada As String = "FotoAgregada"
+        Public Const FotoEliminada As String = "FotoEliminada"
 
         ' Campos (solo con Accion = Editada)
         Public Const CampoTitulo As String = "Titulo"

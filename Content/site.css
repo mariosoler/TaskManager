@@ -14,6 +14,7 @@
     --primario: #005e60;          /* evergreen */
     --primario-oscuro: #004746;   /* evergreen 900 */
     --primario-claro: #e4f1f1;    /* evergreen 200 */
+    --prioridad-baja: #1f6fc5;    /* azul de la prioridad baja (blanco encima: 5,07:1) */
     --acento: #c8ff08;            /* urgency green */
     --fondo-tablero: #005e60;
     --lista: #eaebeb;
@@ -675,7 +676,7 @@ textarea { resize: vertical; }
     position: absolute;
     z-index: 31;
     left: 0;
-    width: min(100%, 320px);
+    width: min(100%, 300px);
     margin-top: 4px;
     padding: 12px;
     background: #fff;
@@ -686,13 +687,16 @@ textarea { resize: vertical; }
 .etiqueta-nueva-titulo { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
 .etiqueta-nueva-vista { margin-bottom: 10px; }
 .etiqueta-nueva-vista .etiqueta-tag { font-size: 13px; line-height: 22px; padding: 1px 10px; }
-.etiqueta-nueva-colores { display: grid; grid-template-columns: repeat(6, 32px); gap: 8px; margin-bottom: 12px; }
+.etiqueta-nueva-colores { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.etiqueta-nueva-seccion { font-size: 11px; font-weight: 600; color: var(--texto-suave); }
+.etiqueta-nueva-rejilla { display: grid; grid-template-columns: repeat(7, 30px); gap: 8px; }
 .etiqueta-color {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     border: 0;
     border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08);   /* borde suave para los colores claros */
     font: inherit;
     font-size: 15px;
     font-weight: 700;
@@ -774,6 +778,9 @@ textarea { resize: vertical; }
 .modal-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 /* Título de la tarjeta: cuadro de texto con aspecto de título; al pulsarlo se ve como campo editable */
 .campo-titulo-tarjeta { flex: 1; min-width: 0; margin: 0; }
+/* ID de la tarjeta junto al título del detalle (a la altura del texto del título) */
+.tarjeta-id.detalle-id { flex-shrink: 0; margin: 8px 0 0; padding: 1px 7px; font-size: 13px; }
+.detalle-id ~ .campo-titulo-tarjeta input.titulo-tarjeta { margin-left: 0; }
 .modal input.titulo-tarjeta {
     margin-left: -7px;
     padding: 3px 6px;
@@ -806,8 +813,16 @@ textarea { resize: vertical; }
 .campo-alerta { display: none; margin-left: 4px; font-weight: 700; }
 .campo.vencida .campo-alerta { display: inline; color: #a11b12; }
 .campo.vencida input { border-color: var(--rojo); background: #fdf1f0; color: #a11b12; font-weight: 600; }
-.campo.sin-asignar .campo-alerta { display: inline; color: #7a5200; }
-.campo.sin-asignar select { border-color: #fab219; background-color: #fff8e6; }
+.campo.sin-asignar .campo-alerta, .campo.sin-prioridad .campo-alerta { display: inline; color: #7a5200; }
+.campo.sin-asignar select, .campo.sin-prioridad select { border-color: #fab219; background-color: #fff8e6; }
+/* Selector de prioridad: sin colorear (fondo blanco y texto normal, también en la lista desplegable);
+   solo el borde, del color de la prioridad elegida, la señala. El texto nombra la prioridad. */
+.modal select.prioridad-alta { border-color: #d03b3b; }
+.modal select.prioridad-media { border-color: #fab219; }
+.modal select.prioridad-baja { border-color: var(--prioridad-baja); }
+/* --- Estilo de borde diferente (a prueba): franja gruesa a la izquierda, como la de las tarjetas del tablero.
+       Para deshacerlo basta con borrar esta regla (queda el borde normal del color de la prioridad). --- */
+.modal select.prioridad-alta, .modal select.prioridad-media, .modal select.prioridad-baja { border-left-width: 6px; padding-left: 7px; }
 .campos-fila { display: flex; gap: 12px; }
 .campos-fila .campo { flex: 1; }
 .modal-acciones { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 20px; }
@@ -826,6 +841,78 @@ textarea { resize: vertical; }
 .seccion { margin: 8px 0 16px; }
 .seccion-nota { font-weight: normal; color: var(--texto-suave); font-size: 12px; margin-left: 4px; text-transform: none; letter-spacing: normal; }
 .campo-caso { flex: 0 0 110px !important; }
+
+/* ----- Adjuntos de la tarjeta (Scripts/adjuntos.js): miniaturas, lista, zona para soltar/pegar y visor ----- */
+.adjuntos-galeria { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.adjunto-foto { position: relative; }
+.adjunto-miniatura { display: block; width: 96px; height: 72px; padding: 0; border: 1px solid var(--borde); border-radius: 6px; background: #1f2626; overflow: hidden; cursor: zoom-in; }
+.adjunto-miniatura img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--transicion); }
+.adjunto-miniatura:hover img { transform: scale(1.05); }
+.adjunto-miniatura:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+.adjunto-eliminar {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: 11px;
+    line-height: 22px;
+    cursor: pointer;
+    transition: background-color var(--transicion);
+}
+.adjunto-eliminar:hover, .adjunto-eliminar:focus-visible { background: var(--rojo); outline: 2px solid #fff; outline-offset: 1px; }
+.adjuntos-lista { list-style: none; margin: 0 0 10px; padding: 0; }
+.adjunto-archivo { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px 36px 6px 8px; border-radius: 6px; }
+.adjunto-archivo:hover { background: var(--lista); }
+.adjunto-icono { font-size: 20px; }
+.adjunto-datos { display: flex; flex-direction: column; min-width: 0; }
+.adjunto-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--primario); font-weight: 600; }
+.adjunto-datos small { color: var(--texto-suave); font-size: 11px; }
+.adjunto-eliminar-fila { top: 50%; right: 8px; margin-top: -11px; background: rgba(0, 40, 41, .12); color: var(--texto); }
+.adjuntos-zona { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 12px; border: 2px dashed var(--borde); border-radius: var(--radio); color: var(--texto-suave); font-size: 13px; }
+.adjuntos-zona small { flex-basis: 100%; font-size: 11px; }
+.adjuntos-zona.subiendo { opacity: .7; }
+.adjuntos-zona:focus-within { border-color: var(--primario); }
+.adjuntos-zona-icono { font-size: 18px; }
+.adjuntos-elegir { color: var(--primario); font-weight: 600; text-decoration: underline; cursor: pointer; }
+.adjuntos-estado { margin: 6px 0 0; font-size: 12px; color: var(--texto-suave); }
+.adjuntos-estado:empty { display: none; }
+.adjuntos-estado.ok { color: var(--verde); }
+.adjuntos-estado.error { color: #a11b12; font-weight: 600; }
+.adjuntos-estado.guardando { font-style: italic; }
+/* Arrastrando archivos sobre la tarjeta: se marca todo el detalle y la zona de adjuntos */
+.modal.soltar-adjuntos { box-shadow: 0 0 0 3px var(--primario), var(--sombra-3); }
+.modal.soltar-adjuntos .adjuntos-zona { border-color: var(--primario); background: var(--primario-claro); color: var(--primario-oscuro); }
+/* Visor emergente de imágenes (encima del detalle de la tarjeta) */
+.visor-fondo { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; background: rgba(10, 16, 16, .88); animation: aparecer .15s ease-out; }
+.visor-fondo[hidden] { display: none; }
+.visor { position: relative; display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: calc(100% - 56px); }
+/* Cambio de imagen en el visor (Scripts/adjuntos.js): desliza desde el lado hacia el que se avanza */
+@keyframes visor-desde-derecha { from { opacity: 0; transform: translateX(60px); } }
+@keyframes visor-desde-izquierda { from { opacity: 0; transform: translateX(-60px); } }
+@keyframes visor-aparece { from { opacity: 0; transform: scale(.94); } }
+.visor-imagen.visor-desde-derecha { animation: visor-desde-derecha .28s cubic-bezier(.2, .8, .3, 1); }
+.visor-imagen.visor-desde-izquierda { animation: visor-desde-izquierda .28s cubic-bezier(.2, .8, .3, 1); }
+.visor-imagen.visor-aparece { animation: visor-aparece .22s ease-out; }
+.visor-imagen { display: block; max-width: min(1200px, 92vw); max-height: calc(100vh - 120px); object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); background: #1f2626; }
+.visor-cerrar, .visor-nav { position: absolute; border: 0; border-radius: 50%; cursor: pointer; }
+.visor-cerrar { top: 8px; right: 8px; width: 36px; height: 36px; background: rgba(0, 0, 0, .65); color: #fff; font-size: 16px; }
+.visor-cerrar:hover, .visor-cerrar:focus-visible { background: #000; outline: 2px solid #fff; }
+.visor-nav { top: 50%; width: 44px; height: 44px; margin-top: -22px; background: rgba(255, 255, 255, .88); color: var(--texto); font-size: 28px; line-height: 1; }
+.visor-nav:hover, .visor-nav:focus-visible { background: #fff; outline: 2px solid var(--acento); }
+.visor-nav[hidden] { display: none; }
+.visor-anterior { left: 8px; }
+.visor-siguiente { right: 8px; }
+.visor-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; color: #fff; font-size: 13px; }
+.visor-pie { opacity: .9; }
+.visor-accion { padding: 5px 12px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, .16); color: #fff; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+.visor-accion:hover, .visor-accion:focus-visible { background: rgba(255, 255, 255, .3); outline: 2px solid #fff; }
+.visor-eliminar:hover, .visor-eliminar:focus-visible { background: var(--rojo); }
 
 /* ----- Subtareas ----- */
 .subtareas { list-style: none; margin: 0 0 8px; padding: 0; }
@@ -1215,7 +1302,7 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
 .leyenda-muestra.otras, .leyenda-muestra.prio-sin { background-color: var(--enfasis-bajo); color: var(--tinta); }
 .anillo-seg.prio-alta { stroke: var(--estado-critico); } .leyenda-muestra.prio-alta { background-color: var(--estado-critico); }
 .anillo-seg.prio-media { stroke: var(--estado-aviso); } .leyenda-muestra.prio-media { background-color: var(--estado-aviso); color: var(--tinta); }
-.anillo-seg.prio-baja { stroke: var(--serie-1); } .leyenda-muestra.prio-baja { background-color: var(--serie-1); }
+.anillo-seg.prio-baja { stroke: var(--prioridad-baja); } .leyenda-muestra.prio-baja { background-color: var(--prioridad-baja); }
 
 /* Tabla dentro de una tarjeta de gráfica (Próximos vencimientos) */
 .grafica .tabla-incrustada { margin-top: 12px; border: 1px solid var(--borde); box-shadow: none; }
@@ -1273,11 +1360,11 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
 }
 .etiqueta-prioridad.prioridad-alta { background: #d03b3b; color: #fff; }
 .etiqueta-prioridad.prioridad-media { background: #fab219; color: #3d2e00; }
-.etiqueta-prioridad.prioridad-baja { background: var(--primario); color: #fff; }
+.etiqueta-prioridad.prioridad-baja { background: var(--prioridad-baja); color: #fff; }
 /* Franja de color en el borde izquierdo de la tarjeta (la pinta .tarjeta con --franja) */
 .tarjeta.prioridad-alta { --franja: #d03b3b; }
 .tarjeta.prioridad-media { --franja: #fab219; }
-.tarjeta.prioridad-baja { --franja: var(--primario); }
+.tarjeta.prioridad-baja { --franja: var(--prioridad-baja); }
 .tarjeta.prioridad-alta, .tarjeta.prioridad-media, .tarjeta.prioridad-baja { padding-left: 14px; }
 
 /* ===== Buscador y estadísticas sobre fondo evergreen =====

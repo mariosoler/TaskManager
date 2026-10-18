@@ -11,6 +11,7 @@ Namespace Models
         Public Property AsignadoA As Integer?
         Public Property NombreAsignado As String
         Public Property NumComentarios As Integer
+        Public Property NumAdjuntos As Integer
         Public Property FechaCreacion As DateTime
 
         ''' <summary>Cuándo entró la tarjeta en su lista actual (UTC): al crearla o al moverla a otra lista.</summary>

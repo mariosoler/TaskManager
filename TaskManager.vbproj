@@ -117,6 +117,7 @@
     <Content Include="Content\fuentes\outfit.woff2" />
     <Content Include="Content\fuentes\Outfit-OFL.txt" />
     <Content Include="Fondo.ashx" />
+    <Content Include="Adjuntos.ashx" />
     <Content Include="Tarjeta.ashx" />
     <Content Include="Usuarios.ashx" />
     <!-- Scripts de la base de datos: se copian al publicar (bloqueados por HTTP en Web.config) -->
@@ -131,6 +132,10 @@
     <Content Include="database\migraciones\007_perfil_usuario.sql" />
     <Content Include="database\migraciones\008_subtareas_enlace.sql" />
     <Content Include="database\migraciones\009_preferencias_listas.sql" />
+    <Content Include="database\migraciones\010_etiquetas_degradados.sql" />
+    <Content Include="database\migraciones\011_fotos_tarjetas.sql" />
+    <Content Include="database\migraciones\012_adjuntos_tarjetas.sql" />
+    <Content Include="database\migraciones_todas.sql" />
     <Content Include="database\demo\tablero_demo_aplicaciones.sql" />
     <Content Include="Default.aspx" />
     <Content Include="Estadisticas.aspx" />
@@ -141,6 +146,7 @@
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
     <Content Include="Scripts\detalle-tarjeta.js" />
+    <Content Include="Scripts\adjuntos.js" />
     <Content Include="Scripts\subtareas-enlace.js" />
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />
@@ -173,6 +179,9 @@
     <Compile Include="Fondo.ashx.vb">
       <DependentUpon>Fondo.ashx</DependentUpon>
     </Compile>
+    <Compile Include="Adjuntos.ashx.vb">
+      <DependentUpon>Adjuntos.ashx</DependentUpon>
+    </Compile>
     <Compile Include="Tarjeta.ashx.vb">
       <DependentUpon>Tarjeta.ashx</DependentUpon>
     </Compile>
@@ -182,6 +191,7 @@
     <Compile Include="Datos\BusquedaDatos.vb" />
     <Compile Include="Datos\BusquedasGuardadasDatos.vb" />
     <Compile Include="Datos\EtiquetasDatos.vb" />
+    <Compile Include="Datos\AdjuntosDatos.vb" />
     <Compile Include="Datos\ComentariosDatos.vb" />
     <Compile Include="Datos\Db.vb" />
     <Compile Include="Datos\EstadisticasDatos.vb" />
@@ -208,6 +218,8 @@
     <Compile Include="Models\BusquedaGuardada.vb" />
     <Compile Include="Models\Etiqueta.vb" />
     <Compile Include="Models\FormatoFecha.vb" />
+    <Compile Include="Models\AdjuntoTarjeta.vb" />
+    <Compile Include="Models\ColorEtiqueta.vb" />
     <Compile Include="Models\Comentario.vb" />
     <Compile Include="Models\Estadisticas.vb" />
     <Compile Include="Models\FiltroBusqueda.vb" />
@@ -265,6 +277,8 @@
     <Compile Include="Utilidades\EdicionTarjeta.vb" />
     <Compile Include="Utilidades\ExportacionExcel.vb" />
     <Compile Include="Utilidades\FondosTablero.vb" />
+    <Compile Include="Utilidades\AdjuntosTarjeta.vb" />
+    <Compile Include="Utilidades\ImagenSubida.vb" />
     <Compile Include="Utilidades\Formato.vb" />
     <Compile Include="Utilidades\LibroExcel.vb" />
     <Compile Include="Global.asax.vb">

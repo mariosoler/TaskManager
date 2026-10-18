@@ -24,8 +24,10 @@ Public Class TablerosPagina
         Dim tableroId As Integer
         If e.CommandName = "Eliminar" AndAlso Integer.TryParse(CStr(e.CommandArgument), tableroId) Then
             Dim tablero = TablerosDatos.Obtener(tableroId, UsuarioId)
-            If TablerosDatos.Eliminar(tableroId, UsuarioId) Then
+            Dim archivosAdjuntos As List(Of String) = Nothing
+            If TablerosDatos.Eliminar(tableroId, UsuarioId, archivosAdjuntos) Then
                 FondosTablero.Eliminar(tablero?.Fondo)
+                AdjuntosTarjeta.EliminarArchivos(archivosAdjuntos)
             Else
                 lblMensaje.Text = "Solo el propietario puede eliminar el tablero."
                 lblMensaje.Visible = True

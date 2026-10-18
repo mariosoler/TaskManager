@@ -64,6 +64,22 @@ CREATE TABLE HistorialTarjeta (
     ValorNuevo    NVARCHAR(500) NULL
 );
 
+-- Archivos adjuntos de las tarjetas (de cualquier tipo). Archivo = nombre generado por la aplicación
+-- (<tarjetaId>_<guid>.<ext>; .bin si no es una imagen) dentro de la carpeta appSettings RutaAdjuntosTarjetas;
+-- Nombre = nombre original, solo para mostrarlo y como nombre de descarga. EsImagen = JPG/PNG/GIF/WebP comprobada
+-- por su contenido (se muestra en miniatura). Al borrar una tarjeta, lista o tablero, la aplicación borra los archivos.
+CREATE TABLE AdjuntosTarjeta (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    TarjetaId   INT NOT NULL REFERENCES Tarjetas(Id) ON DELETE CASCADE,
+    Archivo     NVARCHAR(100) NOT NULL,
+    Nombre      NVARCHAR(255) NOT NULL,
+    EsImagen    BIT NOT NULL,
+    Tamano      INT NOT NULL,                       -- bytes
+    SubidoPor   INT NOT NULL REFERENCES Usuarios(Id),
+    FechaSubida DATETIME2 NOT NULL CONSTRAINT DF_AdjuntosTarjeta_FechaSubida DEFAULT SYSUTCDATETIME()
+);
+CREATE INDEX IX_AdjuntosTarjeta_Tarjeta ON AdjuntosTarjeta (TarjetaId);
+
 -- Preferencias de vista de cada usuario en cada lista (solo para él): ocultarla y ordenar sus tarjetas.
 -- Orden = clave de Models/OrdenLista (lista blanca); NULL = orden manual. Sin fila = visible y en orden manual.
 -- Sin cascada desde Usuarios (Listas ya llega en cascada desde Usuarios a través de Tableros).
@@ -88,13 +104,16 @@ CREATE TABLE Subtareas (
 );
 
 -- Etiquetas (#tags) de un tablero. Nombre sin "#", único por tablero (sin distinguir mayúsculas).
--- Color asignado automáticamente de Etiqueta.Paleta.
+-- Color de la lista blanca Models/ColorEtiqueta (sólido o degradado).
 CREATE TABLE Etiquetas (
     Id        INT IDENTITY(1,1) PRIMARY KEY,
     TableroId INT NOT NULL REFERENCES Tableros(Id) ON DELETE CASCADE,
     Nombre    NVARCHAR(50) NOT NULL,
-    Color     NVARCHAR(7)  NOT NULL DEFAULT '#3b82f6',
-    CONSTRAINT CK_Etiquetas_Color CHECK (Color LIKE '#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]')
+    -- "#rrggbb" o "grad:<clave>" de un degradado (lista blanca en Models/ColorEtiqueta.vb).
+    Color     NVARCHAR(30) NOT NULL CONSTRAINT DF_Etiquetas_Color DEFAULT '#1f6fc5',
+    CONSTRAINT CK_Etiquetas_Color CHECK (
+        Color LIKE '#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]'
+        OR (Color LIKE 'grad:_%' AND Color NOT LIKE 'grad:%[^a-z0-9-]%'))
 );
 CREATE UNIQUE INDEX UX_Etiquetas_Tablero_Nombre ON Etiquetas (TableroId, Nombre);
 

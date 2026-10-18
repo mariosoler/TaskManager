@@ -1,8 +1,8 @@
 /*
  * Subtareas enlazadas a otra tarjeta del tablero (detalle de tarjeta):
  * - el botón «🔗 Enlazar tarjeta», junto a «Añadir», cambia el cuadro de nueva subtarea a modo búsqueda;
- * - al escribir sugiere tarjetas del tablero por título, nº de caso o lista (varias palabras = todas; sin
- *   distinguir mayúsculas ni acentos); ↑/↓ eligen, Enter o clic enlazan, Esc vuelve a la subtarea normal;
+ * - al escribir sugiere tarjetas del tablero por ID, título, nº de caso o lista (varias palabras = todas; sin
+ *   distinguir mayúsculas ni acentos; si un número es justo el ID de una tarjeta, esa sale la primera); ↑/↓ eligen, Enter o clic enlazan, Esc vuelve a la subtarea normal;
  * - enlazar pone el Id en el HiddenField y pulsa «Añadir» (postback normal: el servidor comprueba que la tarjeta
  *   es de este tablero y usa su título). La subtarea muestra el título actual de la tarjeta, subrayado.
  * Datos en <script type="application/json" id="tarjetas-enlazables"> (TableroPagina.TarjetasEnlazablesJson).
@@ -33,7 +33,7 @@
     function normalizar(texto) {
         return String(texto || '').normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
     }
-    tarjetas.forEach(function (t) { t.buscable = normalizar(t.t + ' ' + t.c + ' ' + t.l); });
+    tarjetas.forEach(function (t) { t.buscable = normalizar(t.i + ' ' + t.t + ' ' + t.c + ' ' + t.l); });
 
     // ----- Elementos -----
     var enlazar = document.createElement('button');
@@ -66,7 +66,7 @@
         enlazar.setAttribute('aria-pressed', activo ? 'true' : 'false');
         enlazar.classList.toggle('activo', activo);
         boton.classList.toggle('oculto', activo);   // en modo búsqueda no se añade texto libre
-        campo.placeholder = activo ? 'Busca la tarjeta por título, nº de caso o lista…' : placeholderNormal;
+        campo.placeholder = activo ? 'Busca la tarjeta por ID, título, nº de caso o lista…' : placeholderNormal;
         if (activo) {
             campo.setAttribute('role', 'combobox');
             campo.setAttribute('aria-autocomplete', 'list');
@@ -95,9 +95,12 @@
 
     function sugerir() {
         var palabras = normalizar(campo.value).replace(/^#/, '').split(/\s+/).filter(Boolean);
-        opciones = tarjetas.filter(function (t) {
+        var coinciden = tarjetas.filter(function (t) {
             return palabras.every(function (p) { return t.buscable.indexOf(p) >= 0; });
-        }).slice(0, MAXIMO);
+        });
+        // La tarjeta cuyo ID es exactamente uno de los números escritos va la primera.
+        var exacta = coinciden.filter(function (t) { return palabras.indexOf(String(t.i)) >= 0; });
+        opciones = exacta.concat(coinciden.filter(function (t) { return exacta.indexOf(t) < 0; })).slice(0, MAXIMO);
 
         lista.textContent = '';
         if (opciones.length === 0) {
@@ -114,7 +117,7 @@
             titulo.className = 'subtarea-sugerencia-titulo';
             titulo.textContent = t.t;
             var nota = document.createElement('small');
-            nota.textContent = (t.c ? '#' + t.c + ' · ' : '') + t.l;
+            nota.textContent = 'ID ' + t.i + ' · ' + (t.c ? '#' + t.c + ' · ' : '') + t.l;
             li.appendChild(titulo);
             li.appendChild(nota);
             li.addEventListener('mousedown', function (e) {

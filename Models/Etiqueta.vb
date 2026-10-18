@@ -1,31 +1,14 @@
-Imports System.Globalization
-
 Namespace Models
 
     ''' <summary>
     ''' Etiqueta (#tag) de un tablero (tabla Etiquetas). El nombre se guarda sin "#" y es único por tablero
-    ''' sin distinguir mayúsculas. El color sale de <see cref="Paleta"/>: lo elige quien la crea desde el
-    ''' cuadro de etiquetas o, si se crea al guardar (sin JavaScript), el siguiente de la paleta.
+    ''' sin distinguir mayúsculas. El color es de la lista blanca <see cref="ColorEtiqueta"/> (sólidos y degradados):
+    ''' lo elige quien la crea desde el cuadro de etiquetas o, si se crea al guardar (sin JavaScript), el siguiente sólido.
     ''' </summary>
     Public Class Etiqueta
 
         Public Const LongitudMaxima As Integer = 50
         Public Const MaximoPorTarjeta As Integer = 10
-
-        ''' <summary>
-        ''' Colores en el orden en que se asignan a las etiquetas nuevas de un tablero (la primera, el primero...).
-        ''' Todos validados con contraste AA (4,5:1) frente a su tinta (ver <see cref="TintaPara"/>).
-        ''' </summary>
-        Public Shared ReadOnly Paleta As IReadOnlyList(Of String) = New List(Of String) From {
-            "#1f6fc5", "#e8710a", "#1f845a", "#7c4dcc", "#c2185b", "#f2b705",
-            "#007a80", "#455a64", "#5c6bc0", "#8d6e63", "#c4380f"
-        }.AsReadOnly()
-
-        ''' <summary>Nombre de cada color de <see cref="Paleta"/> (mismo orden), para el selector de color.</summary>
-        Public Shared ReadOnly NombresPaleta As IReadOnlyList(Of String) = New List(Of String) From {
-            "Azul", "Naranja", "Verde", "Violeta", "Frambuesa", "Amarillo",
-            "Turquesa", "Gris pizarra", "Índigo", "Marrón", "Teja"
-        }.AsReadOnly()
 
         ' Letras y dígitos (de cualquier alfabeto), "_" y "-". Sin espacios: el espacio separa etiquetas.
         Private Shared ReadOnly NombreValido As New Regex("^[\p{L}\p{N}_\-]{1," & LongitudMaxima & "}$")
@@ -38,40 +21,55 @@ Namespace Models
         ''' <summary>Número de tarjetas que la usan (solo en EtiquetasDatos.ListarDeTablero).</summary>
         Public Property Usos As Integer
 
-        ''' <summary>Color de fondo seguro para CSS (si el guardado no es válido, el primero de la paleta).</summary>
+        ''' <summary>
+        ''' Color de la lista blanca guardado en <see cref="Color"/>; un #rrggbb antiguo que no está en ella se usa
+        ''' tal cual (validado); cualquier otro valor, el primer sólido.
+        ''' </summary>
+        Public ReadOnly Property ColorElegido As ColorEtiqueta
+            Get
+                Dim elegido = ColorEtiqueta.Buscar(Color)
+                If elegido IsNot Nothing Then Return elegido
+                If Color IsNot Nothing AndAlso ColorValido.IsMatch(Color) Then Return ColorEtiqueta.DeHex(Color)
+                Return ColorEtiqueta.Solidos(0)
+            End Get
+        End Property
+
+        ''' <summary>Un solo color seguro (#rrggbb; en un degradado, el primero): muestras de las gráficas, etc.</summary>
         Public ReadOnly Property ColorSeguro As String
             Get
-                Return If(Color IsNot Nothing AndAlso ColorValido.IsMatch(Color), Color.ToLowerInvariant(), Paleta(0))
+                Return ColorElegido.Desde
+            End Get
+        End Property
+
+        ''' <summary>Fondo CSS seguro: el color o el degradado (generado con colores validados).</summary>
+        Public ReadOnly Property FondoCss As String
+            Get
+                Return ColorElegido.FondoCss
             End Get
         End Property
 
         ''' <summary>Color del texto sobre el fondo de la etiqueta.</summary>
         Public ReadOnly Property Tinta As String
             Get
-                Return TintaPara(ColorSeguro)
+                Return ColorElegido.Tinta
             End Get
         End Property
 
-        ''' <summary>Atributo style de la etiqueta de color (valores ya validados: ColorSeguro y Tinta).</summary>
+        ''' <summary>Atributo style de la etiqueta de color (valores ya validados: FondoCss y Tinta).</summary>
         Public ReadOnly Property EstiloCss As String
             Get
-                Return "background-color: " & ColorSeguro & "; color: " & Tinta
+                Return "background: " & FondoCss & "; color: " & Tinta
             End Get
         End Property
 
-        ''' <summary>Color de la paleta para la etiqueta número <paramref name="indice"/> (0, 1, 2...) de un tablero.</summary>
+        ''' <summary>Color sólido para la etiqueta número <paramref name="indice"/> (0, 1, 2...) de un tablero.</summary>
         Public Shared Function ColorPorIndice(indice As Integer) As String
-            Return Paleta(Math.Abs(indice) Mod Paleta.Count)
+            Return ColorEtiqueta.Solidos(Math.Abs(indice) Mod ColorEtiqueta.Solidos.Count).Clave
         End Function
 
-        ''' <summary>Blanco si contrasta al menos 4,5:1 con el fondo; si no, la tinta oscura de la aplicación.</summary>
-        Public Shared Function TintaPara(fondo As String) As String
-            Return If(Contraste(fondo, "#ffffff") >= 4.5, "#ffffff", "#212121")
-        End Function
-
-        ''' <summary>Solo se aceptan colores de la paleta (todos con contraste validado).</summary>
+        ''' <summary>Solo se aceptan colores de la lista blanca (todos con contraste validado).</summary>
         Public Shared Function EsColorDePaleta(color As String) As Boolean
-            Return color IsNot Nothing AndAlso Paleta.Contains(color.ToLowerInvariant())
+            Return ColorEtiqueta.Buscar(color) IsNot Nothing
         End Function
 
         Public Shared Function EsNombreValido(nombre As String) As Boolean
@@ -103,19 +101,6 @@ Namespace Models
         Public Shared Function ATexto(etiquetas As IEnumerable(Of Etiqueta)) As String
             Dim texto = String.Join(" ", etiquetas.Select(Function(e) "#" & e.Nombre))
             Return If(texto.Length = 0, "", texto & " ")
-        End Function
-
-        Private Shared Function Contraste(a As String, b As String) As Double
-            Dim la = Luminancia(a), lb = Luminancia(b)
-            Return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05)
-        End Function
-
-        Private Shared Function Luminancia(hex As String) As Double
-            Dim canal = Function(i As Integer)
-                            Dim v = Integer.Parse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255.0
-                            Return If(v <= 0.03928, v / 12.92, Math.Pow((v + 0.055) / 1.055, 2.4))
-                        End Function
-            Return 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5)
         End Function
 
     End Class

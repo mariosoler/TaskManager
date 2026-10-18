@@ -160,21 +160,27 @@ SELECT @TableroId, @Titulo, ISNULL(MAX(Posicion) + 1, 0) FROM Listas WHERE Table
             End Using
         End Sub
 
-        Public Shared Sub Eliminar(listaId As Integer, tableroId As Integer)
+        ''' <summary>Elimina la lista con sus tarjetas y devuelve los archivos de sus adjuntos (para borrarlos después).</summary>
+        Public Shared Function Eliminar(listaId As Integer, tableroId As Integer) As List(Of String)
             Dim sql = "
 SET XACT_ABORT ON;
 BEGIN TRAN;
+" & AdjuntosDatos.SqlDeclararAdjuntos & "
+INSERT INTO @Adjuntos
+SELECT f.Archivo FROM AdjuntosTarjeta f JOIN Tarjetas c ON c.Id = f.TarjetaId JOIN Listas l ON l.Id = c.ListaId
+WHERE l.Id = @ListaId AND l.TableroId = @TableroId;
 DELETE FROM Listas WHERE Id = @ListaId AND TableroId = @TableroId;" &
                 Db.SqlRenumerarListas & "
-COMMIT;"
+COMMIT;
+SELECT Archivo FROM @Adjuntos;"
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@ListaId", SqlDbType.Int).Value = listaId
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Return AdjuntosDatos.LeerArchivos(cmd)
             End Using
-        End Sub
+        End Function
 
         ''' <summary>Intercambia la lista con su vecina (direccion = -1 izquierda, +1 derecha).</summary>
         Public Shared Sub Mover(listaId As Integer, tableroId As Integer, direccion As Integer)

@@ -13,10 +13,19 @@ Instalación nueva
 
 Actualizar una base ya existente
 --------------------------------
-Ejecutar en orden las migraciones de la carpeta "migraciones" (001, 002, ...) que falten.
-Son idempotentes: se pueden repetir sin problema, así que en caso de duda se pueden ejecutar todas.
+Las migraciones son idempotentes: se pueden repetir sin problema, así que en caso de duda se pueden
+ejecutar todas. Dos formas:
 
-   sqlcmd -S <servidor> -d TaskManager -E -i migraciones\006_etiquetas.sql
+a) Todas de una vez, con migraciones_todas.sql (todas las de la carpeta "migraciones", en orden):
+
+   sqlcmd -S <servidor> -d TaskManager -E -b -i migraciones_todas.sql
+
+b) Una a una, en orden (001, 002, ...), las de la carpeta "migraciones" que falten:
+
+   sqlcmd -S <servidor> -d TaskManager -E -b -i migraciones\006_etiquetas.sql
+
+migraciones_todas.sql se genera con GenerarMigracionesTodas.ps1 (está en el proyecto; no se publica)
+y no se edita a mano.
 
 Datos de demostración (opcional)
 --------------------------------

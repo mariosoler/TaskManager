@@ -190,7 +190,7 @@ Public Class BuscarPagina
     Protected ReadOnly Property EtiquetasJson As String
         Get
             Dim etiquetas = EtiquetasDatos.ListarParaBuscador(UsuarioId, TableroSeleccionado()).Select(
-                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos})
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .f = e.FondoCss, .t = e.Tinta, .u = e.Usos})
             Dim json = New JavaScriptSerializer().Serialize(etiquetas.ToList())
             Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
         End Get

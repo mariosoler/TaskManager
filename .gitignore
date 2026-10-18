@@ -45,6 +45,8 @@ appSettings.config
 App_Data/*.mdf
 App_Data/*.ldf
 App_Data/Fondos/
+App_Data/Adjuntos/
+App_Data/FotosSubidas/
 
 # ===== Frontend (solo si usas React/Vue) =====
 node_modules/

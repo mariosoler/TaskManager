@@ -7,8 +7,8 @@ Namespace Datos
     ''' <summary>
     ''' Etiquetas (#tags) de las tarjetas. Son de cada tablero y no se comparten entre tableros: todos los
     ''' métodos reciben el TableroId ya autorizado y lo usan en el WHERE. Una etiqueta se crea desde el cuadro de
-    ''' etiquetas con el color elegido (Crear) o, si no existe al guardar la tarjeta, con el siguiente color de
-    ''' Etiqueta.Paleta (Asignar); se conserva aunque deje de usarse (sirve de sugerencia).
+    ''' etiquetas con el color elegido (Crear) o, si no existe al guardar la tarjeta, con el siguiente color sólido
+    ''' de ColorEtiqueta (Asignar); se conserva aunque deje de usarse (sirve de sugerencia).
     ''' </summary>
     Public NotInheritable Class EtiquetasDatos
 
@@ -90,7 +90,7 @@ COMMIT;"
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, Etiqueta.LongitudMaxima).Value = nombre
-                cmd.Parameters.Add("@Color", SqlDbType.NVarChar, 7).Value = color.ToLowerInvariant()
+                cmd.Parameters.Add("@Color", SqlDbType.NVarChar, ColorEtiqueta.LongitudMaximaClave).Value = color.ToLowerInvariant()
                 cn.Open()
                 Using rd = cmd.ExecuteReader()
                     If Not rd.Read() Then Return Nothing
@@ -161,7 +161,7 @@ SELECT @Id, @Creada;"
                     cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                     cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
                     cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, Etiqueta.LongitudMaxima).Value = nombre
-                    cmd.Parameters.Add("@Color", SqlDbType.NVarChar, 7).Value = Etiqueta.ColorPorIndice(total)
+                    cmd.Parameters.Add("@Color", SqlDbType.NVarChar, ColorEtiqueta.LongitudMaximaClave).Value = Etiqueta.ColorPorIndice(total)
                     Using rd = cmd.ExecuteReader()
                         rd.Read()
                         ids.Add(rd.GetInt32(0))

@@ -84,7 +84,7 @@ Public Class TableroPagina
             Case "MoverDerecha"
                 ListasDatos.Mover(listaId, TableroId, 1)
             Case "EliminarLista"
-                ListasDatos.Eliminar(listaId, TableroId)
+                AdjuntosTarjeta.EliminarArchivos(ListasDatos.Eliminar(listaId, TableroId))
             Case "OcultarLista"
                 ListasDatos.Ocultar(listaId, TableroId, UsuarioId, True)
         End Select
@@ -168,7 +168,7 @@ Public Class TableroPagina
     End Sub
 
     Protected Sub btnEliminarTarjeta_Click(sender As Object, e As EventArgs) Handles btnEliminarTarjeta.Click
-        TarjetasDatos.Eliminar(TarjetaAbiertaId, TableroId)
+        AdjuntosTarjeta.EliminarArchivos(TarjetasDatos.Eliminar(TarjetaAbiertaId, TableroId))
         CerrarDetalle()
         CargarTablero()
     End Sub
@@ -193,24 +193,39 @@ Public Class TableroPagina
     ' ----- Etiquetas -----
 
     ''' <summary>
-    ''' Etiquetas del tablero para las sugerencias de Scripts/etiquetas.js (n, c = color, t = tinta, u = usos).
+    ''' Etiquetas del tablero para las sugerencias de Scripts/etiquetas.js (n, c = color, f = fondo CSS, t = tinta, u = usos).
     ''' Solo las de este tablero: las etiquetas no se comparten entre tableros. Vacío si el detalle está cerrado.
     ''' </summary>
     Protected ReadOnly Property EtiquetasJson As String
         Get
             If Not pnlDetalle.Visible Then Return "[]"
             Dim etiquetas = EtiquetasDatos.ListarDeTablero(TableroId).Select(
-                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .t = e.Tinta, .u = e.Usos})
+                Function(e) New With {.n = e.Nombre, .c = e.ColorSeguro, .f = e.FondoCss, .t = e.Tinta, .u = e.Usos})
             Dim json = New JavaScriptSerializer().Serialize(etiquetas.ToList())
             Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
         End Get
     End Property
 
-    ''' <summary>Colores que se pueden elegir al crear una etiqueta (c = color, t = tinta, n = nombre del color).</summary>
+    ''' <summary>
+    ''' Adjuntos de la tarjeta abierta para Scripts/adjuntos.js (ver AdjuntosHandler.DatosParaCliente). Vacío si el
+    ''' detalle está cerrado o se está creando la tarjeta. Los signos menor, mayor y ampersand van escapados.
+    ''' </summary>
+    Protected ReadOnly Property AdjuntosJson As String
+        Get
+            If Not pnlDetalle.Visible OrElse CreandoTarjeta OrElse TarjetaAbiertaId <= 0 Then Return "[]"
+            Dim json = New JavaScriptSerializer().Serialize(AdjuntosHandler.DatosParaCliente(AdjuntosDatos.Listar(TarjetaAbiertaId, TableroId)))
+            Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Colores que se pueden elegir al crear una etiqueta (lista blanca ColorEtiqueta): k = clave que se envía,
+    ''' c = color de muestra, f = fondo CSS, t = tinta, n = nombre, g = degradado. Primero van los sólidos.
+    ''' </summary>
     Protected Shared ReadOnly Property PaletaJson As String
         Get
-            Dim colores = Etiqueta.Paleta.Select(
-                Function(c, i) New With {.c = c, .t = Etiqueta.TintaPara(c), .n = Etiqueta.NombresPaleta(i)})
+            Dim colores = ColorEtiqueta.Todos.Select(
+                Function(c) New With {.k = c.Clave, .c = c.Desde, .f = c.FondoCss, .t = c.Tinta, .n = c.Nombre, .g = c.EsDegradado})
             Return New JavaScriptSerializer().Serialize(colores.ToList())
         End Get
     End Property
@@ -289,6 +304,11 @@ Public Class TableroPagina
     ''' <summary>Rellena y muestra el modal, en modo creación (esNueva) o edición.</summary>
     Private Sub MostrarDetalle(tarjeta As Tarjeta, esNueva As Boolean)
         litDetallePrefijo.Text = If(esNueva, "Nueva tarjeta en la lista", "En la lista")
+        phDetalleId.Visible = Not esNueva
+        ' Los adjuntos necesitan el Id de la tarjeta: al crearla solo se explica que se podrán añadir después.
+        phAdjuntos.Visible = Not esNueva
+        phAdjuntosNueva.Visible = esNueva
+        litDetalleId.Text = tarjeta.Id.ToString(CultureInfo.InvariantCulture)
         btnGuardarTarjeta.Text = If(esNueva, "Crear tarjeta", "Guardar")
         btnEliminarTarjeta.Visible = Not esNueva
         phHistorial.Visible = Not esNueva
@@ -377,6 +397,14 @@ Public Class TableroPagina
                 Return "eliminó la subtarea " & Valor(despues)
             Case HistorialTarjeta.Comentada
                 Return "comentó " & Valor(despues)
+            Case HistorialTarjeta.AdjuntoAgregado
+                Return "adjuntó " & Valor(despues)
+            Case HistorialTarjeta.AdjuntoEliminado
+                Return "eliminó el adjunto " & Valor(despues)
+            Case HistorialTarjeta.FotoAgregada
+                Return "añadió una foto"
+            Case HistorialTarjeta.FotoEliminada
+                Return "eliminó una foto"
             Case HistorialTarjeta.Editada
                 Return DescribirEdicion(cambio.Campo, antes, despues)
             Case Else

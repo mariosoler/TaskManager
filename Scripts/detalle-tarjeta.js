@@ -7,7 +7,8 @@
  * - Marcar una subtarea no recarga la página: al editar se guarda con Tarjeta.ashx (accion=subtarea);
  *   al crear, el estado viaja con el siguiente envío del formulario (CheckedChanged en el servidor).
  * - Tras un postback dentro del detalle (añadir/eliminar subtarea) se recupera su desplazamiento.
- * - Avisa (icono + texto) de la fecha límite superada y de la tarjeta sin asignar.
+ * - Avisa (icono + texto) de la tarjeta sin prioridad, de la fecha límite superada y de la tarjeta sin asignar;
+ *   el selector de prioridad toma el color de la prioridad elegida.
  * Sin JavaScript todo sigue funcionando con el botón Guardar (postback).
  */
 (function () {
@@ -189,14 +190,23 @@
         });
     });
 
-    // ----- Avisos: fecha límite superada y sin asignar (clases en el .campo; el CSS muestra icono y texto) -----
+    // ----- Avisos: sin prioridad, fecha límite superada y sin asignar (clases en el .campo; el CSS muestra
+    //       icono y texto) y color del selector de prioridad -----
+    var CLASES_PRIORIDAD = { '1': 'prioridad-alta', '2': 'prioridad-media', '3': 'prioridad-baja' };
+
     function hoyIso() {
         var d = new Date();
         return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
     }
 
     function marcarAvisos() {
-        var fecha = campos.fechaLimite, asignado = campos.asignado;
+        var fecha = campos.fechaLimite, asignado = campos.asignado, prioridad = campos.prioridad;
+        if (prioridad && prioridad.closest('.campo')) {
+            prioridad.closest('.campo').classList.toggle('sin-prioridad', prioridad.value === '');
+            Object.keys(CLASES_PRIORIDAD).forEach(function (v) {
+                prioridad.classList.toggle(CLASES_PRIORIDAD[v], prioridad.value === v);
+            });
+        }
         if (fecha && fecha.closest('.campo')) {
             fecha.closest('.campo').classList.toggle('vencida', fecha.value !== '' && fecha.value < hoyIso());
         }
@@ -208,6 +218,7 @@
     ['input', 'change'].forEach(function (tipo) {
         if (campos.fechaLimite) { campos.fechaLimite.addEventListener(tipo, marcarAvisos); }
         if (campos.asignado) { campos.asignado.addEventListener(tipo, marcarAvisos); }
+        if (campos.prioridad) { campos.prioridad.addEventListener(tipo, marcarAvisos); }
     });
     marcarAvisos();
 

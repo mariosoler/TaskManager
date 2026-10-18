@@ -19,6 +19,7 @@ Namespace Datos
        c.FechaModificacion, um.Nombre AS NombreModificador,
        CAST(CASE WHEN c.Codigo IS NULL OR c.Codigo = N'' THEN 0 ELSE 1 END AS BIT) AS TieneCodigo,
        (SELECT COUNT(*) FROM Comentarios co WHERE co.TarjetaId = c.Id) AS NumComentarios,
+       (SELECT COUNT(*) FROM AdjuntosTarjeta ad WHERE ad.TarjetaId = c.Id) AS NumAdjuntos,
        (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id) AS SubtareasTotal,
        (SELECT COUNT(*) FROM Subtareas s WHERE s.TarjetaId = c.Id AND s.Completada = 1) AS SubtareasHechas"
 
@@ -253,23 +254,30 @@ SELECT c.AsignadoA, u.Nombre AS NombreAsignado FROM Tarjetas c LEFT JOIN Usuario
                 If(datos.Prioridad.HasValue AndAlso Prioridad.EsValida(datos.Prioridad.Value), CObj(CByte(datos.Prioridad.Value)), DBNull.Value)
         End Sub
 
-        Public Shared Sub Eliminar(tarjetaId As Integer, tableroId As Integer)
+        ''' <summary>
+        ''' Elimina la tarjeta (sus adjuntos, subtareas, etc. caen en cascada) y devuelve los archivos de sus adjuntos,
+        ''' para que quien llama los borre (Utilidades.AdjuntosTarjeta.EliminarArchivos).
+        ''' </summary>
+        Public Shared Function Eliminar(tarjetaId As Integer, tableroId As Integer) As List(Of String)
             Dim sql = "
 SET XACT_ABORT ON;
 BEGIN TRAN;
 DECLARE @ListaId INT = (SELECT c.ListaId FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId
                         WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId);
+" & AdjuntosDatos.SqlDeclararAdjuntos & "
+INSERT INTO @Adjuntos SELECT f.Archivo FROM AdjuntosTarjeta f WHERE f.TarjetaId = @TarjetaId AND @ListaId IS NOT NULL;
 DELETE FROM Tarjetas WHERE Id = @TarjetaId AND ListaId = @ListaId;" &
                 Db.SqlRenumerarTarjetas & "
-COMMIT;"
+COMMIT;
+SELECT Archivo FROM @Adjuntos;"
 
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cn.Open()
-                cmd.ExecuteNonQuery()
+                Return AdjuntosDatos.LeerArchivos(cmd)
             End Using
-        End Sub
+        End Function
 
         ''' <summary>
         ''' Mueve la tarjeta a la lista destino, en la posición <paramref name="indice"/> (0 = primera),
@@ -344,6 +352,7 @@ SELECT (SELECT Titulo FROM Listas WHERE Id = @Origen) AS Origen,
                 .Prioridad = Db.Entero(rd, "Prioridad"),
                 .TieneCodigo = rd.GetBoolean(rd.GetOrdinal("TieneCodigo")),
                 .NumComentarios = rd.GetInt32(rd.GetOrdinal("NumComentarios")),
+                .NumAdjuntos = rd.GetInt32(rd.GetOrdinal("NumAdjuntos")),
                 .SubtareasTotal = rd.GetInt32(rd.GetOrdinal("SubtareasTotal")),
                 .SubtareasHechas = rd.GetInt32(rd.GetOrdinal("SubtareasHechas")),
                 .FechaModificacion = rd.GetDateTime(rd.GetOrdinal("FechaModificacion")),

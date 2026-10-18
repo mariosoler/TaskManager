@@ -356,6 +356,24 @@ Partial Public Class TableroPagina
     Protected WithEvents litDetallePrefijo As Global.System.Web.UI.WebControls.Literal
 
     '''<summary>
+    '''Control phDetalleId.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phDetalleId As Global.System.Web.UI.WebControls.PlaceHolder
+
+    '''<summary>
+    '''Control litDetalleId.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents litDetalleId As Global.System.Web.UI.WebControls.Literal
+
+    '''<summary>
     '''Control btnCerrarDetalle.
     '''</summary>
     '''<remarks>
@@ -516,6 +534,24 @@ Partial Public Class TableroPagina
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
     Protected WithEvents btnAgregarSubtarea As Global.System.Web.UI.WebControls.Button
+
+    '''<summary>
+    '''Control phAdjuntosNueva.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phAdjuntosNueva As Global.System.Web.UI.WebControls.PlaceHolder
+
+    '''<summary>
+    '''Control phAdjuntos.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents phAdjuntos As Global.System.Web.UI.WebControls.PlaceHolder
 
     '''<summary>
     '''Control txtCodigo.

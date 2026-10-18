@@ -74,15 +74,39 @@ SELECT @Id;"
             End Using
         End Function
 
-        ''' <summary>Elimina el tablero (y en cascada su contenido). Solo el propietario puede hacerlo.</summary>
-        Public Shared Function Eliminar(tableroId As Integer, propietarioId As Integer) As Boolean
-            Const sql = "DELETE FROM Tableros WHERE Id = @TableroId AND PropietarioId = @PropietarioId"
+        ''' <summary>
+        ''' Elimina el tablero (solo su propietario) con todo su contenido. En <paramref name="archivosAdjuntos"/> devuelve
+        ''' los archivos de los adjuntos de sus tarjetas, para borrarlos después.
+        ''' </summary>
+        Public Shared Function Eliminar(tableroId As Integer, propietarioId As Integer, ByRef archivosAdjuntos As List(Of String)) As Boolean
+            Const sql = "
+SET XACT_ABORT ON;
+BEGIN TRAN;
+" & AdjuntosDatos.SqlDeclararAdjuntos & "
+INSERT INTO @Adjuntos
+SELECT f.Archivo FROM AdjuntosTarjeta f JOIN Tarjetas c ON c.Id = f.TarjetaId JOIN Listas l ON l.Id = c.ListaId
+JOIN Tableros t ON t.Id = l.TableroId
+WHERE t.Id = @TableroId AND t.PropietarioId = @PropietarioId;
+DELETE FROM Tableros WHERE Id = @TableroId AND PropietarioId = @PropietarioId;
+DECLARE @Borrado BIT = CASE WHEN @@ROWCOUNT > 0 THEN 1 ELSE 0 END;
+COMMIT;
+SELECT @Borrado;
+SELECT Archivo FROM @Adjuntos;"
 
+            archivosAdjuntos = New List(Of String)
             Using cn = Db.CrearConexion(), cmd As New SqlCommand(sql, cn)
                 cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                 cmd.Parameters.Add("@PropietarioId", SqlDbType.Int).Value = propietarioId
                 cn.Open()
-                Return cmd.ExecuteNonQuery() > 0
+                Using rd = cmd.ExecuteReader()
+                    rd.Read()
+                    Dim borrado = rd.GetBoolean(0)
+                    rd.NextResult()
+                    While rd.Read()
+                        archivosAdjuntos.Add(rd.GetString(0))
+                    End While
+                    Return borrado
+                End Using
             End Using
         End Function
 
