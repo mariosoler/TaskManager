@@ -925,7 +925,7 @@ textarea { resize: vertical; }
 .visor-eliminar:hover, .visor-eliminar:focus-visible { background: var(--rojo); }
 
 /* ----- Subtareas ----- */
-.subtareas { list-style: none; margin: 0 0 8px; padding: 0; }
+.subtareas { list-style: none; margin: 0 0 8px -6px; padding: 0; }   /* -6px: el asa (o la casilla) alineada con el título «Subtareas» */
 .subtarea { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; transition: background-color var(--transicion); }
 .subtarea:hover { background: var(--lista); }
 .subtarea input[type=checkbox] { width: 16px; height: 16px; margin: 0; cursor: pointer; }
@@ -934,26 +934,26 @@ textarea { resize: vertical; }
 .subtarea-eliminar { visibility: hidden; color: var(--texto-suave); font-size: 16px; text-decoration: none; }
 .subtarea:hover .subtarea-eliminar { visibility: visible; }
 .subtarea-eliminar:hover { color: var(--rojo); }
-/* Asa para reordenar arrastrando y ✎ para editar el texto (Scripts/subtareas.js) */
-.subtarea-asa, .subtarea-editar {
+/* Asa para reordenar arrastrando y texto editable al pulsarlo (Scripts/subtareas.js) */
+.subtarea-asa {
     flex-shrink: 0;
-    padding: 0 3px;
-    border: 0;
+    margin-right: -4px;
+    padding: 0 3px 0 0;
     border-radius: 4px;
-    background: none;
     color: var(--texto-suave);
-    font: inherit;
+    font-size: 14px;
     line-height: 1.2;
-    cursor: pointer;
+    opacity: .45;
+    cursor: grab;
+    user-select: none;
 }
-.subtarea-asa { cursor: grab; font-size: 14px; opacity: .45; user-select: none; }
-.subtarea-editar { visibility: hidden; font-size: 14px; }
 .subtarea:hover .subtarea-asa, .subtarea-asa:focus-visible { opacity: 1; }
-.subtarea:hover .subtarea-editar, .subtarea-editar:focus-visible, .subtarea-eliminar:focus-visible { visibility: visible; }
-.subtarea-asa:hover, .subtarea-editar:hover { background: rgba(0, 40, 41, .1); color: var(--texto); }
-.subtarea-asa:focus-visible, .subtarea-editar:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+.subtarea-asa:hover { color: var(--texto); }
+.subtarea-asa:focus-visible, .subtarea-texto-editable:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+.subtarea-eliminar:focus-visible { visibility: visible; }
+.subtarea .subtarea-texto-editable { cursor: text; border-radius: 4px; }
+.subtarea .subtarea-texto-editable:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
 .subtarea.arrastrando { opacity: .45; background: var(--primario-claro); }
-.subtarea.editando .subtarea-editar { visibility: hidden; }
 .subtarea-edicion { flex: 1; min-width: 0; padding: 3px 6px; }
 .nueva-subtarea input[type=text] { flex: 1; width: auto; }
 /* Subtarea enlazada a otra tarjeta: su título subrayado (Scripts/subtareas-enlace.js para enlazarla) */

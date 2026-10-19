@@ -2,12 +2,13 @@
  * Subtareas del detalle de tarjeta: editar el texto y reordenarlas.
  * - Cada subtarea recibe un asa (⠿) a la izquierda: se arrastra para cambiarla de sitio; con el foco en el asa,
  *   ↑/↓ la mueven con el teclado.
- * - ✎ (junto a la ✕) cambia el texto por un cuadro: Enter o salir del cuadro guarda, Esc cancela. Las subtareas
- *   enlazadas (data-enlazada="1") muestran el título de su tarjeta y no se editan.
+ * - Pulsar el texto (o Enter con el foco en él) lo cambia por un cuadro: Enter o salir del cuadro guarda, Esc cancela.
+ *   La casilla sigue marcando la subtarea. Las enlazadas (data-enlazada="1") muestran el título de su tarjeta y
+ *   no se editan: su texto sigue siendo el enlace a esa tarjeta.
  * - Al editar una tarjeta existente se guarda sin recargar (Tarjeta.ashx: accion=subtarea-texto / subtareas-orden).
  *   Al crearla, las subtareas solo existen en el servidor (ViewState): se envía un postback con la acción en un
  *   campo oculto ("texto|índice|nuevo texto" u "orden|2,0,1").
- * Sin JavaScript no hay asa ni ✎: las subtareas se pueden añadir, marcar y eliminar como siempre.
+ * Sin JavaScript no hay asa ni edición (pulsar el texto marca la casilla): se pueden añadir, marcar y eliminar.
  */
 (function () {
     'use strict';
@@ -83,7 +84,7 @@
         cuadro.select();
 
         var terminado = false;
-        // devolverFoco: al acabar con Enter o Esc el foco vuelve a ✎ (al salir del cuadro, no).
+        // devolverFoco: al acabar con Enter o Esc el foco vuelve al texto (al salir del cuadro, no).
         function terminar(guardar, devolverFoco) {
             if (terminado) { return; }
             terminado = true;
@@ -91,8 +92,7 @@
             cuadro.remove();
             etiqueta.hidden = false;
             fila.classList.remove('editando');
-            var boton = fila.querySelector('.subtarea-editar');
-            if (boton && devolverFoco) { boton.focus(); }
+            if (devolverFoco) { etiqueta.focus(); }
             if (!guardar || nuevo === '' || nuevo === original) { return; }
             if (!editando) {
                 postback('texto|' + fila.getAttribute('data-subtarea-id') + '|' + nuevo);
@@ -234,14 +234,22 @@
         });
 
         if (fila.getAttribute('data-enlazada') === '1') { return; }
-        var lapiz = document.createElement('button');
-        lapiz.type = 'button';
-        lapiz.className = 'subtarea-editar';
-        lapiz.textContent = '✎';
-        lapiz.title = 'Editar el texto';
-        lapiz.setAttribute('aria-label', 'Editar el texto de la subtarea');
-        var eliminar = fila.querySelector('.subtarea-eliminar');
-        fila.insertBefore(lapiz, eliminar || null);
-        lapiz.addEventListener('click', function () { editar(fila); });
+        // Pulsar el texto lo edita (sin esto, la etiqueta marcaría la casilla).
+        var texto = fila.querySelector('label');
+        if (!texto) { return; }
+        texto.classList.add('subtarea-texto-editable');
+        texto.tabIndex = 0;
+        texto.title = 'Pulsa para editar el texto';
+        texto.addEventListener('click', function (e) {
+            e.preventDefault();
+            editar(fila);
+        });
+        texto.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === 'F2') {
+                e.preventDefault();
+                e.stopPropagation();
+                editar(fila);
+            }
+        });
     });
 }());
