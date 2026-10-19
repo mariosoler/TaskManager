@@ -40,9 +40,16 @@ Namespace Datos
                     condiciones.Add("t.Id = @TableroId")
                     cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = filtro.TableroId.Value
                 End If
-                If filtro.ListaId.HasValue Then
-                    condiciones.Add("c.ListaId = @ListaId")
-                    cmd.Parameters.Add("@ListaId", SqlDbType.Int).Value = filtro.ListaId.Value
+                ' Varias listas: alguna de ellas. Nombres de parámetro generados por el código (@Lista0, @Lista1...).
+                Dim listas = If(filtro.ListaIds, New List(Of Integer)).Distinct().Take(FiltroBusqueda.MaximoListas).ToList()
+                If listas.Count > 0 Then
+                    Dim parametrosLista As New List(Of String)
+                    For i = 0 To listas.Count - 1
+                        Dim p = "@Lista" & i.ToString(CultureInfo.InvariantCulture)
+                        cmd.Parameters.Add(p, SqlDbType.Int).Value = listas(i)
+                        parametrosLista.Add(p)
+                    Next
+                    condiciones.Add("c.ListaId IN (" & String.Join(", ", parametrosLista) & ")")
                 End If
 
                 Dim asignado As Integer

@@ -39,7 +39,9 @@ Partial Public Class BuscarPagina
 
     Protected WithEvents chkEnSubtareas As Global.System.Web.UI.WebControls.CheckBox
 
-    Protected WithEvents ddlLista As Global.System.Web.UI.WebControls.DropDownList
+    Protected WithEvents cblListas As Global.System.Web.UI.WebControls.CheckBoxList
+
+    Protected WithEvents litResumenListas As Global.System.Web.UI.WebControls.Literal
 
     Protected WithEvents txtCaso As Global.System.Web.UI.WebControls.TextBox
 
@@ -66,6 +68,10 @@ Partial Public Class BuscarPagina
     Protected WithEvents ddlOrden As Global.System.Web.UI.WebControls.DropDownList
 
     Protected WithEvents litResumen As Global.System.Web.UI.WebControls.Literal
+
+    Protected WithEvents cblColumnas As Global.System.Web.UI.WebControls.CheckBoxList
+
+    Protected WithEvents btnAplicarColumnas As Global.System.Web.UI.WebControls.Button
 
     Protected WithEvents btnExportar As Global.System.Web.UI.WebControls.Button
 

@@ -120,6 +120,9 @@
                 <section class="lista">
                     <header class="lista-cabecera">
                         <h2><%#: Eval("Titulo") %></h2>
+                        <%-- Crear una tarjeta en esta lista (abre el detalle en modo creación) --%>
+                        <asp:LinkButton ID="lnkAgregarTarjeta" runat="server" CssClass="nueva-tarjeta" CausesValidation="false"
+                            CommandName="AgregarTarjeta" CommandArgument='<%# Eval("Id") %>' ToolTip="Crear una tarea en esta lista">+ Crear Tarea</asp:LinkButton>
                         <span class="lista-contador" data-total='<%# Eval("Tarjetas.Count") %>'><%# Eval("Tarjetas.Count") %></span>
                         <asp:PlaceHolder runat="server" Visible='<%# Not CType(Eval("Orden"), TaskManager.Models.OrdenLista).EsManual %>'>
                             <span class="lista-orden" title='<%#: "Ordenada para ti por: " & CType(Eval("Orden"), TaskManager.Models.OrdenLista).Texto %>'><%#: CType(Eval("Orden"), TaskManager.Models.OrdenLista).Corto %></span>
@@ -197,9 +200,6 @@
                             </ItemTemplate>
                         </asp:Repeater>
                     </div>
-
-                    <asp:LinkButton ID="lnkAgregarTarjeta" runat="server" CssClass="nueva-tarjeta" CausesValidation="false"
-                        CommandName="AgregarTarjeta" CommandArgument='<%# Eval("Id") %>'>+ Añadir una tarjeta</asp:LinkButton>
                 </section>
             </ItemTemplate>
         </asp:Repeater>
@@ -235,6 +235,8 @@
                     <asp:RequiredFieldValidator ID="rfvTituloTarjeta" runat="server" ControlToValidate="txtTituloTarjeta" ValidationGroup="Detalle"
                         ErrorMessage="El título es obligatorio." Display="Dynamic" CssClass="validacion" />
                 </div>
+                <%-- Solo al crear: «Crear tarea» a la derecha del título (al editar se guarda solo) --%>
+                <asp:Button ID="btnCrearTarjeta" runat="server" Text="Crear tarea" CssClass="boton boton-crear-tarjeta" ValidationGroup="Detalle" Visible="false" />
                 <asp:LinkButton ID="btnCerrarDetalle" runat="server" CssClass="modal-cerrar" ToolTip="Cerrar (Esc)" CausesValidation="false">&times;</asp:LinkButton>
             </div>
             <p class="modal-subtitulo"><asp:Literal ID="litDetallePrefijo" runat="server" /> <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
@@ -286,8 +288,11 @@
                 <asp:Repeater ID="rptSubtareas" runat="server">
                     <HeaderTemplate><ul class="subtareas"></HeaderTemplate>
                     <ItemTemplate>
-                        <%-- Scripts/detalle-tarjeta.js marca/desmarca sin recargar (data-subtarea-id); sin JS, AutoPostBack --%>
-                        <li class='<%# If(CBool(Eval("Completada")), "subtarea completada", "subtarea") %>' data-subtarea-id='<%# Eval("Id") %>'>
+                        <%-- Scripts/detalle-tarjeta.js marca/desmarca sin recargar (data-subtarea-id); sin JS, AutoPostBack.
+                             Scripts/subtareas.js añade el asa para reordenar arrastrando y ✎ para editar el texto
+                             (las enlazadas, data-enlazada, muestran el título de su tarjeta y no se editan) --%>
+                        <li class='<%# If(CBool(Eval("Completada")), "subtarea completada", "subtarea") %>' data-subtarea-id='<%# Eval("Id") %>'
+                            data-enlazada='<%# If(Eval("TarjetaEnlazadaId") Is Nothing, "0", "1") %>'>
                             <asp:HiddenField ID="hfSubtareaId" runat="server" Value='<%# Eval("Id") %>' />
                             <asp:CheckBox ID="chkSubtarea" runat="server" Checked='<%# Eval("Completada") %>'
                                 AutoPostBack="true" OnCheckedChanged="chkSubtarea_CheckedChanged" />
@@ -305,6 +310,10 @@
                     <asp:HiddenField ID="hfSubtareaEnlace" runat="server" />
                     <asp:Button ID="btnAgregarSubtarea" runat="server" Text="Añadir" CssClass="boton boton-claro" CausesValidation="false" />
                 </asp:Panel>
+                <%-- Editar el texto o reordenar las subtareas de una tarjeta que se está creando (Scripts/subtareas.js):
+                     "texto|índice|nuevo texto" u "orden|2,0,1". Al editar una existente se usa Tarjeta.ashx. --%>
+                <asp:HiddenField ID="hfSubtareaAccion" runat="server" />
+                <asp:LinkButton ID="lnkSubtareaAccion" runat="server" CssClass="oculto" CausesValidation="false" />
             </div>
 
             <%-- Adjuntos (Scripts/adjuntos.js): arrastrarlos a la tarjeta, pegar del portapapeles o elegir archivos;
@@ -508,6 +517,18 @@
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/subtareas-enlace.js") %>"></script>
+    <script>
+        window.TaskManagerSubtareas = {
+            url: '<%= ResolveUrl("~/Tarjeta.ashx") %>',
+            token: '<%= TokenChat %>',
+            tablero: <%= TableroIdTexto %>,
+            tarjeta: <%= TarjetaEdicionTexto %>,
+            accion: '<%= hfSubtareaAccion.ClientID %>',
+            enviarAccion: '<%= lnkSubtareaAccion.UniqueID %>',
+            estado: 'estadoGuardado'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/subtareas.js") %>"></script>
     <%-- Adjuntos de la tarjeta abierta; "<", ">" y "&" van escapados --%>
     <script type="application/json" id="adjuntos-datos"><%= AdjuntosJson %></script>
     <script>

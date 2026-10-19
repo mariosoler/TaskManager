@@ -1,4 +1,5 @@
 Imports System.Data.SqlClient
+Imports System.Globalization
 Imports TaskManager.Models
 
 Namespace Datos
@@ -115,6 +116,95 @@ WHERE s.Id = @SubtareaId AND l.TableroId = @TableroId AND s.Completada <> @Compl
             Dim accion = If(completada, HistorialTarjeta.SubtareaCompletada, HistorialTarjeta.SubtareaReabierta)
             EjecutarYRegistrar(sql, subtareaId, tableroId, usuarioId, accion,
                                Sub(cmd) cmd.Parameters.Add("@Completada", SqlDbType.Bit).Value = completada)
+        End Sub
+
+        ''' <summary>
+        ''' Cambia el texto de una subtarea normal (las enlazadas muestran el título de su tarjeta y no se editan).
+        ''' Registra en el historial el texto anterior y el nuevo; devuelve False si no ha cambiado nada.
+        ''' </summary>
+        Public Shared Function CambiarTexto(subtareaId As Integer, tableroId As Integer, texto As String, usuarioId As Integer) As Boolean
+            Const sql = "
+UPDATE s SET Texto = @Texto
+OUTPUT INSERTED.TarjetaId, DELETED.Texto
+FROM Subtareas s
+JOIN Tarjetas c ON c.Id = s.TarjetaId
+JOIN Listas l ON l.Id = c.ListaId
+WHERE s.Id = @SubtareaId AND l.TableroId = @TableroId AND s.TarjetaEnlazadaId IS NULL
+  AND s.Texto COLLATE Latin1_General_BIN2 <> @Texto COLLATE Latin1_General_BIN2"
+
+            Using cn = Db.CrearConexion()
+                cn.Open()
+                Using tx = cn.BeginTransaction()
+                    Dim tarjetaId As Integer
+                    Dim anterior As String
+                    Using cmd As New SqlCommand(sql, cn, tx)
+                        cmd.Parameters.Add("@SubtareaId", SqlDbType.Int).Value = subtareaId
+                        cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                        cmd.Parameters.Add("@Texto", SqlDbType.NVarChar, 300).Value = texto
+                        Using rd = cmd.ExecuteReader()
+                            If Not rd.Read() Then Return False
+                            tarjetaId = rd.GetInt32(0)
+                            anterior = rd.GetString(1)
+                        End Using
+                    End Using
+                    HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
+                                             HistorialTarjeta.Nuevo(HistorialTarjeta.SubtareaEditada, valorAnterior:=anterior, valorNuevo:=texto))
+                    tx.Commit()
+                End Using
+            End Using
+            Return True
+        End Function
+
+        ''' <summary>Máximo de Ids aceptados al reordenar (una tarjeta no tiene tantas subtareas).</summary>
+        Public Const MaximoAlReordenar As Integer = 500
+
+        ''' <summary>"5,3,9" → lista de enteros; Nothing si el texto no es válido o vacío.</summary>
+        Public Shared Function LeerOrden(texto As String) As List(Of Integer)
+            Dim ids As New List(Of Integer)
+            For Each parte In If(texto, "").Split(","c)
+                Dim n As Integer
+                If Not Integer.TryParse(parte, NumberStyles.None, CultureInfo.InvariantCulture, n) Then Return Nothing
+                ids.Add(n)
+            Next
+            If ids.Count = 0 OrElse ids.Count > MaximoAlReordenar Then Return Nothing
+            Return ids
+        End Function
+
+        ''' <summary>
+        ''' Pone las subtareas de la tarjeta en el orden indicado (Ids); las que no vengan en la lista (p. ej. añadidas
+        ''' por otro usuario mientras tanto) quedan detrás, en su orden. Ids de otras tarjetas no tienen efecto.
+        ''' Reordenar no se registra en el historial (como reordenar tarjetas dentro de una lista).
+        ''' </summary>
+        Public Shared Sub Reordenar(tarjetaId As Integer, tableroId As Integer, orden As IEnumerable(Of Integer))
+            If orden Is Nothing Then Return
+            Dim ids = orden.Distinct().ToList()
+            If ids.Count = 0 OrElse ids.Count > MaximoAlReordenar Then Return
+
+            Using cn = Db.CrearConexion(), cmd As New SqlCommand()
+                cmd.Connection = cn
+                cmd.Parameters.Add("@TarjetaId", SqlDbType.Int).Value = tarjetaId
+                cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
+                ' Nombres de parámetro generados por el código (@Id0, @Id1...); los valores, como parámetros.
+                Dim filas As New List(Of String)
+                For i = 0 To ids.Count - 1
+                    Dim p = "@Id" & i.ToString(CultureInfo.InvariantCulture)
+                    cmd.Parameters.Add(p, SqlDbType.Int).Value = ids(i)
+                    filas.Add("(" & p & ", " & i.ToString(CultureInfo.InvariantCulture) & ")")
+                Next
+                cmd.CommandText = "
+WITH o AS (
+    SELECT s.Id, ROW_NUMBER() OVER (ORDER BY CASE WHEN v.Pos IS NULL THEN 1 ELSE 0 END, v.Pos, s.Posicion, s.Id) - 1 AS NuevaPos
+    FROM Subtareas s
+    LEFT JOIN (VALUES " & String.Join(", ", filas) & ") v(Id, Pos) ON v.Id = s.Id
+    WHERE s.TarjetaId = @TarjetaId
+      AND EXISTS (SELECT 1 FROM Tarjetas c JOIN Listas l ON l.Id = c.ListaId WHERE c.Id = @TarjetaId AND l.TableroId = @TableroId)
+)
+UPDATE s SET Posicion = o.NuevaPos
+FROM Subtareas s JOIN o ON o.Id = s.Id
+WHERE s.Posicion <> o.NuevaPos"
+                cn.Open()
+                cmd.ExecuteNonQuery()
+            End Using
         End Sub
 
         Public Shared Sub Eliminar(subtareaId As Integer, tableroId As Integer, usuarioId As Integer)

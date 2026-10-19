@@ -143,11 +143,13 @@
     <Content Include="Login.aspx" />
     <Content Include="Perfil.aspx" />
     <Content Include="Registro.aspx" />
+    <Content Include="Scripts\buscar.js" />
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
     <Content Include="Scripts\detalle-tarjeta.js" />
     <Content Include="Scripts\adjuntos.js" />
     <Content Include="Scripts\subtareas-enlace.js" />
+    <Content Include="Scripts\subtareas.js" />
     <Content Include="Scripts\etiquetas.js" />
     <Content Include="Scripts\graficas.js" />
     <Content Include="Scripts\markdown.js" />
@@ -216,6 +218,7 @@
       <SubType>ASPXCodebehind</SubType>
     </Compile>
     <Compile Include="Models\BusquedaGuardada.vb" />
+    <Compile Include="Models\ColumnaBusqueda.vb" />
     <Compile Include="Models\Etiqueta.vb" />
     <Compile Include="Models\FormatoFecha.vb" />
     <Compile Include="Models\AdjuntoTarjeta.vb" />

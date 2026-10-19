@@ -50,7 +50,8 @@ Namespace Models
         Public Property EnEtiquetas As Boolean = True     ' nombre de las etiquetas (sin "#")
 
         Public Property TableroId As Integer?
-        Public Property ListaId As Integer?
+        ' Listas elegidas (alguna de ellas); vacía = todas. Solo tienen efecto las de tableros del usuario.
+        Public Property ListaIds As New List(Of Integer)
         Public Property Asignado As String
         Public Property EstadoFecha As String
         Public Property Prioridad As String
@@ -73,6 +74,13 @@ Namespace Models
         Public Property ModoEtiquetas As String = EtiquetasTodas
         Public Property ConCodigo As Boolean?
         Public Property Orden As String = OrdenModificada
+
+        ' Columnas visibles de los resultados (claves de ColumnaBusqueda); Nothing = las predeterminadas.
+        ' No afecta a qué tarjetas se encuentran.
+        Public Property Columnas As List(Of String)
+
+        ' Máximo de listas en el filtro (cada una es un parámetro de la consulta).
+        Public Const MaximoListas As Integer = 100
 
         ' ----- Serialización para las búsquedas guardadas -----
         ' Formato de cadena de consulta (clave=valor&...) con claves fijas; los valores vacíos no se guardan.
@@ -97,7 +105,7 @@ Namespace Models
             agregar("enSubtareas", logico(EnSubtareas))
             agregar("enEtiquetas", logico(EnEtiquetas))
             agregar("tablero", entero(TableroId))
-            agregar("lista", entero(ListaId))
+            agregar("listas", String.Join(",", If(ListaIds, New List(Of Integer)).Select(Function(n) n.ToString(CultureInfo.InvariantCulture))))
             agregar("asignado", Asignado)
             agregar("estadoFecha", EstadoFecha)
             agregar("prioridad", Prioridad)
@@ -114,6 +122,7 @@ Namespace Models
             agregar("modoEtiquetas", ModoEtiquetas)
             agregar("codigo", If(ConCodigo.HasValue, logico(ConCodigo.Value), Nothing))
             agregar("orden", Orden)
+            If Columnas IsNot Nothing Then agregar("columnas", ColumnaBusqueda.ATexto(ColumnaBusqueda.Validar(Columnas)))
 
             Return String.Join("&", valores.Select(Function(v) v.Key & "=" & HttpUtility.UrlEncode(v.Value)))
         End Function
@@ -142,7 +151,7 @@ Namespace Models
                 .EnSubtareas = logico("enSubtareas", False),
                 .EnEtiquetas = logico("enEtiquetas", True),
                 .TableroId = entero("tablero"),
-                .ListaId = entero("lista"),
+                .ListaIds = Enteros(If(v("listas"), v("lista"))),
                 .Asignado = v("asignado"),
                 .EstadoFecha = v("estadoFecha"),
                 .Prioridad = v("prioridad"),
@@ -159,8 +168,19 @@ Namespace Models
                              Where(AddressOf Etiqueta.EsNombreValido).Take(Etiqueta.MaximoPorTarjeta).ToList(),
                 .ModoEtiquetas = If(v("modoEtiquetas"), EtiquetasTodas),
                 .ConCodigo = If(v("codigo") Is Nothing, CType(Nothing, Boolean?), v("codigo") = "1"),
-                .Orden = If(v("orden"), OrdenModificada)
+                .Orden = If(v("orden"), OrdenModificada),
+                .Columnas = ColumnaBusqueda.DesdeTexto(v("columnas"))
             }
+        End Function
+
+        ''' <summary>"3,7,12" → enteros sin repetir (como mucho MaximoListas). La clave antigua "lista" tenía un solo número.</summary>
+        Private Shared Function Enteros(texto As String) As List(Of Integer)
+            Dim lista As New List(Of Integer)
+            For Each parte In If(texto, "").Split(","c)
+                Dim n As Integer
+                If Integer.TryParse(parte, NumberStyles.None, CultureInfo.InvariantCulture, n) AndAlso Not lista.Contains(n) Then lista.Add(n)
+            Next
+            Return lista.Take(MaximoListas).ToList()
         End Function
     End Class
 

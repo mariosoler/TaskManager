@@ -374,6 +374,15 @@ Partial Public Class TableroPagina
     Protected WithEvents litDetalleId As Global.System.Web.UI.WebControls.Literal
 
     '''<summary>
+    '''Control btnCrearTarjeta.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents btnCrearTarjeta As Global.System.Web.UI.WebControls.Button
+
+    '''<summary>
     '''Control btnCerrarDetalle.
     '''</summary>
     '''<remarks>
@@ -534,6 +543,24 @@ Partial Public Class TableroPagina
     '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
     '''</remarks>
     Protected WithEvents btnAgregarSubtarea As Global.System.Web.UI.WebControls.Button
+
+    '''<summary>
+    '''Control hfSubtareaAccion.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents hfSubtareaAccion As Global.System.Web.UI.WebControls.HiddenField
+
+    '''<summary>
+    '''Control lnkSubtareaAccion.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents lnkSubtareaAccion As Global.System.Web.UI.WebControls.LinkButton
 
     '''<summary>
     '''Control phAdjuntosNueva.

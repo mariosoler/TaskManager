@@ -10,7 +10,7 @@ Namespace Datos
         Private Shared ReadOnly TiposDeCambio As New List(Of KeyValuePair(Of String, String())) From {
             New KeyValuePair(Of String, String())("Edición de campos", {HistorialTarjeta.Editada}),
             New KeyValuePair(Of String, String())("Subtareas", {HistorialTarjeta.SubtareaAgregada, HistorialTarjeta.SubtareaCompletada,
-                                                                 HistorialTarjeta.SubtareaReabierta, HistorialTarjeta.SubtareaEliminada}),
+                                                                 HistorialTarjeta.SubtareaReabierta, HistorialTarjeta.SubtareaEditada, HistorialTarjeta.SubtareaEliminada}),
             New KeyValuePair(Of String, String())("Cambio de lista", {HistorialTarjeta.Movida}),
             New KeyValuePair(Of String, String())("Comentarios", {HistorialTarjeta.Comentada}),
             New KeyValuePair(Of String, String())("Creación", {HistorialTarjeta.Creada})

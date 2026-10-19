@@ -9,6 +9,7 @@ Namespace Models
         Public Const SubtareaAgregada As String = "SubtareaAgregada"
         Public Const SubtareaCompletada As String = "SubtareaCompletada"
         Public Const SubtareaReabierta As String = "SubtareaReabierta"
+        Public Const SubtareaEditada As String = "SubtareaEditada"      ' valores = texto anterior y nuevo
         Public Const SubtareaEliminada As String = "SubtareaEliminada"
         Public Const Comentada As String = "Comentario"
         Public Const AdjuntoAgregado As String = "AdjuntoAgregado"    ' valor nuevo = nombre del archivo

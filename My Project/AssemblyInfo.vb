@@ -27,8 +27,8 @@ Imports System.Runtime.InteropServices
 '      Revision
 '
 
-<Assembly: AssemblyVersion("0.18.7.0")>
-<Assembly: AssemblyFileVersion("0.18.7.0")>
+<Assembly: AssemblyVersion("0.19.0.0")>
+<Assembly: AssemblyFileVersion("0.19.0.0")>
 
 ' Versión que se muestra en la aplicación (Formato.VersionApp); "beta" hasta la 1.0.
-<Assembly: AssemblyInformationalVersion("0.18.7-beta")>
+<Assembly: AssemblyInformationalVersion("0.19.0-beta")>

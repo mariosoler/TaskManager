@@ -145,7 +145,8 @@ Public Class TableroPagina
         If Integer.TryParse(hfTarjetaId.Value, tarjetaId) Then AbrirTarjeta(tarjetaId)
     End Sub
 
-    Protected Sub btnGuardarTarjeta_Click(sender As Object, e As EventArgs) Handles btnGuardarTarjeta.Click
+    ' Guardar (editar) y «Crear tarea» (junto al título, al crear) hacen lo mismo.
+    Protected Sub btnGuardarTarjeta_Click(sender As Object, e As EventArgs) Handles btnGuardarTarjeta.Click, btnCrearTarjeta.Click
         If Not IsValid Then Return
         ' Misma lectura y validación que el guardado automático (Tarjeta.ashx).
         Dim errorTexto As String = Nothing
@@ -309,7 +310,10 @@ Public Class TableroPagina
         phAdjuntos.Visible = Not esNueva
         phAdjuntosNueva.Visible = esNueva
         litDetalleId.Text = tarjeta.Id.ToString(CultureInfo.InvariantCulture)
-        btnGuardarTarjeta.Text = If(esNueva, "Crear tarjeta", "Guardar")
+        ' Al crear, el botón es «Crear tarea», a la derecha del título; al editar, Guardar (abajo; el script lo oculta).
+        btnCrearTarjeta.Visible = esNueva
+        btnGuardarTarjeta.Visible = Not esNueva
+        pnlDetalle.DefaultButton = If(esNueva, btnCrearTarjeta.ID, btnGuardarTarjeta.ID)
         btnEliminarTarjeta.Visible = Not esNueva
         phHistorial.Visible = Not esNueva
         phChat.Visible = Not esNueva
@@ -393,6 +397,8 @@ Public Class TableroPagina
                 Return "completó la subtarea " & Valor(despues)
             Case HistorialTarjeta.SubtareaReabierta
                 Return "desmarcó la subtarea " & Valor(despues)
+            Case HistorialTarjeta.SubtareaEditada
+                Return "cambió la subtarea " & Valor(antes) & " por " & Valor(despues)
             Case HistorialTarjeta.SubtareaEliminada
                 Return "eliminó la subtarea " & Valor(despues)
             Case HistorialTarjeta.Comentada
@@ -576,6 +582,47 @@ Public Class TableroPagina
             SubtareasDatos.CambiarEstado(id, TableroId, chk.Checked, UsuarioId)
             CargarTablero()
             CargarActividad()
+        End If
+        CargarSubtareas()
+    End Sub
+
+    ''' <summary>
+    ''' Editar el texto o reordenar las subtareas (Scripts/subtareas.js). Se usa al crear una tarjeta, con las
+    ''' subtareas pendientes (el Id es su índice); al editar una existente el script usa Tarjeta.ashx, pero esto
+    ''' también sirve. Valor de hfSubtareaAccion: "texto|índice o Id|nuevo texto" u "orden|2,0,1".
+    ''' </summary>
+    Protected Sub lnkSubtareaAccion_Click(sender As Object, e As EventArgs) Handles lnkSubtareaAccion.Click
+        Dim partes = If(hfSubtareaAccion.Value, "").Split({"|"c}, 3)
+        hfSubtareaAccion.Value = ""
+        Dim id As Integer
+        If partes.Length = 3 AndAlso partes(0) = "texto" AndAlso
+           Integer.TryParse(partes(1), NumberStyles.None, CultureInfo.InvariantCulture, id) Then
+            Dim nuevo = Texto(partes(2), 300)
+            If nuevo.Length > 0 Then
+                If CreandoTarjeta Then
+                    Dim pendientes = SubtareasPendientes
+                    ' Las enlazadas muestran el título de su tarjeta: no se editan.
+                    If id < pendientes.Count AndAlso Not pendientes(id).TarjetaEnlazadaId.HasValue Then pendientes(id).Texto = nuevo
+                    SubtareasPendientes = pendientes
+                ElseIf SubtareasDatos.CambiarTexto(id, TableroId, nuevo, UsuarioId) Then
+                    CargarTablero()
+                    CargarActividad()
+                End If
+            End If
+        ElseIf partes.Length = 2 AndAlso partes(0) = "orden" Then
+            Dim orden = SubtareasDatos.LeerOrden(partes(1))
+            If orden IsNot Nothing Then
+                If CreandoTarjeta Then
+                    ' Debe ser una permutación de los índices de las pendientes.
+                    Dim pendientes = SubtareasPendientes
+                    If orden.Count = pendientes.Count AndAlso orden.Distinct().Count() = orden.Count AndAlso
+                       orden.All(Function(i) i < pendientes.Count) Then
+                        SubtareasPendientes = orden.Select(Function(i) pendientes(i)).ToList()
+                    End If
+                Else
+                    SubtareasDatos.Reordenar(TarjetaAbiertaId, TableroId, orden)
+                End If
+            End If
         End If
         CargarSubtareas()
     End Sub

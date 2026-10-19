@@ -32,6 +32,10 @@ Public Class BuscarPagina
         If IsPostBack Then Return
 
         CargarDesplegables()
+        ' Columnas: las últimas elegidas en este navegador (cookie) o las predeterminadas; una búsqueda guardada
+        ' que las incluya las sustituye.
+        CargarColumnas()
+        SeleccionarColumnas(If(ColumnaBusqueda.DesdeTexto(Request.Cookies(CookieColumnas)?.Value), ColumnaBusqueda.ClavesPorDefecto))
         Dim busquedaId As Integer
         If Integer.TryParse(Request.QueryString("busqueda"), busquedaId) Then
             ' Buscar.aspx?busqueda=N: aplica una búsqueda guardada propia o compartida por un compañero.
@@ -55,6 +59,11 @@ Public Class BuscarPagina
 
     Protected Sub btnBuscar_Click(sender As Object, e As EventArgs) Handles btnBuscar.Click
         If IsValid Then Buscar()
+    End Sub
+
+    ' Sin JavaScript: aplicar las columnas elegidas (con JS se aplican al momento y el botón no se ve).
+    Protected Sub btnAplicarColumnas_Click(sender As Object, e As EventArgs) Handles btnAplicarColumnas.Click
+        Buscar()
     End Sub
 
     Protected Sub btnLimpiar_Click(sender As Object, e As EventArgs) Handles btnLimpiar.Click
@@ -151,7 +160,11 @@ Public Class BuscarPagina
 
         elegir(ddlTablero, entero(filtro.TableroId))
         CargarListas()
-        elegir(ddlLista, entero(filtro.ListaId))
+        For Each listaId In If(filtro.ListaIds, New List(Of Integer))
+            Dim item = cblListas.Items.FindByValue(listaId.ToString(CultureInfo.InvariantCulture))
+            If item Is Nothing Then completo = False Else item.Selected = True
+        Next
+        If filtro.Columnas IsNot Nothing Then SeleccionarColumnas(filtro.Columnas)
         elegir(ddlAsignado, filtro.Asignado)
         elegir(ddlEstadoFecha, filtro.EstadoFecha)
         elegir(ddlPrioridad, filtro.Prioridad)
@@ -224,7 +237,12 @@ Public Class BuscarPagina
 
     Protected Overrides Sub OnPreRender(e As EventArgs)
         MyBase.OnPreRender(e)
-        AvanzadaAbierta = ddlLista.SelectedValue <> "" OrElse txtCaso.Text.Trim() <> "" OrElse ddlCambiadaPor.SelectedValue <> "" OrElse
+        Dim listasElegidas = cblListas.Items.Cast(Of ListItem)().Where(Function(i) i.Selected).ToList()
+        litResumenListas.Text = If(cblListas.Items.Count = 0, "Elige primero un tablero",
+                                If(listasElegidas.Count = 0, "Todas las listas",
+                                If(listasElegidas.Count = 1, listasElegidas(0).Text,
+                                   listasElegidas.Count.ToString(CultureInfo.InvariantCulture) & " listas")))
+        AvanzadaAbierta = listasElegidas.Count > 0 OrElse txtCaso.Text.Trim() <> "" OrElse ddlCambiadaPor.SelectedValue <> "" OrElse
                           txtLimiteDesde.Text <> "" OrElse txtLimiteHasta.Text <> "" OrElse txtCreadaDesde.Text <> "" OrElse
                           txtCreadaHasta.Text <> "" OrElse txtModificadaDesde.Text <> "" OrElse txtModificadaHasta.Text <> "" OrElse
                           ddlSubtareas.SelectedValue <> "" OrElse ddlCodigo.SelectedValue <> "" OrElse
@@ -254,21 +272,60 @@ Public Class BuscarPagina
         Next
     End Sub
 
+    ''' <summary>Casillas de las listas del tablero elegido (sin tablero no hay listas que elegir).</summary>
     Private Sub CargarListas()
-        ddlLista.Items.Clear()
-        ddlLista.Items.Add(New ListItem("Todas las listas", ""))
+        cblListas.Items.Clear()
         Dim tableroId = TableroSeleccionado()
         If tableroId.HasValue AndAlso TablerosDatos.Obtener(tableroId.Value, UsuarioId) IsNot Nothing Then
             For Each lista In ListasDatos.Listar(tableroId.Value)
-                ddlLista.Items.Add(New ListItem(lista.Titulo, lista.Id.ToString(CultureInfo.InvariantCulture)))
+                cblListas.Items.Add(New ListItem(lista.Titulo, lista.Id.ToString(CultureInfo.InvariantCulture)))
             Next
         End If
-        ddlLista.Enabled = ddlLista.Items.Count > 1
-        ddlLista.ToolTip = If(ddlLista.Enabled, "", "Elige primero un tablero")
+    End Sub
+
+    ' ----- Columnas de los resultados -----
+
+    ''' <summary>Cookie con las columnas elegidas (claves de ColumnaBusqueda separadas por punto). La escribe también Scripts/buscar.js.</summary>
+    Protected Const CookieColumnas As String = "TaskManagerColumnasBusqueda"
+
+    Private Sub CargarColumnas()
+        cblColumnas.Items.Clear()
+        For Each columna In ColumnaBusqueda.Todas
+            cblColumnas.Items.Add(New ListItem(columna.Nombre, columna.Clave))
+        Next
+    End Sub
+
+    Private Sub SeleccionarColumnas(claves As IEnumerable(Of String))
+        Dim elegidas = New HashSet(Of String)(ColumnaBusqueda.Validar(claves))
+        For Each item As ListItem In cblColumnas.Items
+            item.Selected = elegidas.Contains(item.Value)
+        Next
+    End Sub
+
+    Private Function ColumnasElegidas() As List(Of String)
+        Return ColumnaBusqueda.Validar(cblColumnas.Items.Cast(Of ListItem)().Where(Function(i) i.Selected).Select(Function(i) i.Value))
+    End Function
+
+    ''' <summary>Claves de las columnas que no se muestran, separadas por espacios (atributo data-ocultas de la tabla).</summary>
+    Protected ReadOnly Property ColumnasOcultas As String
+        Get
+            Dim elegidas = ColumnasElegidas()
+            Return String.Join(" ", ColumnaBusqueda.Todas.Where(Function(c) Not elegidas.Contains(c.Clave)).Select(Function(c) c.Clave))
+        End Get
+    End Property
+
+    ''' <summary>Recuerda las columnas en este navegador (solo claves de la lista blanca).</summary>
+    Private Sub RecordarColumnas()
+        Response.Cookies.Add(New HttpCookie(CookieColumnas, ColumnaBusqueda.ATexto(ColumnasElegidas())) With {
+            .Expires = DateTime.Now.AddYears(1),
+            .Secure = Request.IsSecureConnection,
+            .Path = "/"
+        })
     End Sub
 
     Private Sub Buscar()
         Dim resultado = BusquedaDatos.Buscar(UsuarioId, LeerFiltro(), MaxEnPantalla)
+        RecordarColumnas()
         rptResultados.DataSource = resultado.Tarjetas
         rptResultados.DataBind()
         rptResultados.Visible = resultado.Tarjetas.Count > 0
@@ -303,7 +360,10 @@ Public Class BuscarPagina
             .ModoEtiquetas = If({FiltroBusqueda.EtiquetasAlguna, FiltroBusqueda.EtiquetasSin}.Contains(ddlModoEtiquetas.SelectedValue),
                                 ddlModoEtiquetas.SelectedValue, FiltroBusqueda.EtiquetasTodas),
             .TableroId = TableroSeleccionado(),
-            .ListaId = Entero(ddlLista.SelectedValue),
+            .ListaIds = cblListas.Items.Cast(Of ListItem)().Where(Function(i) i.Selected).
+                        Select(Function(i) Entero(i.Value)).Where(Function(n) n.HasValue).Select(Function(n) n.Value).
+                        Take(FiltroBusqueda.MaximoListas).ToList(),
+            .Columnas = ColumnasElegidas(),
             .Asignado = ddlAsignado.SelectedValue,
             .EstadoFecha = ddlEstadoFecha.SelectedValue,
             .Prioridad = ddlPrioridad.SelectedValue,
@@ -337,7 +397,9 @@ Public Class BuscarPagina
             Dim campos = {chkEnTitulo, chkEnDescripcion, chkEnCodigo, chkEnComentarios, chkEnSubtareas, chkEnEtiquetas}.Where(Function(c) c.Checked).Select(Function(c) c.Text)
             agregar("Buscar en", String.Join(", ", campos))
         End If
-        For Each ddl In {ddlTablero, ddlLista, ddlAsignado, ddlEstadoFecha, ddlPrioridad, ddlCambiadaPor, ddlSubtareas, ddlCodigo}
+        agregar("Tablero", If(ddlTablero.SelectedValue <> "", ddlTablero.SelectedItem.Text, Nothing))
+        agregar("Listas", String.Join(", ", cblListas.Items.Cast(Of ListItem)().Where(Function(i) i.Selected).Select(Function(i) i.Text)))
+        For Each ddl In {ddlAsignado, ddlEstadoFecha, ddlPrioridad, ddlCambiadaPor, ddlSubtareas, ddlCodigo}
             If ddl.SelectedValue <> "" Then agregar(EtiquetaDe(ddl), ddl.SelectedItem.Text)
         Next
         If ddlModoEtiquetas.SelectedValue = FiltroBusqueda.EtiquetasSin Then
@@ -358,8 +420,6 @@ Public Class BuscarPagina
 
     Private Function EtiquetaDe(ddl As DropDownList) As String
         Select Case ddl.ID
-            Case "ddlTablero" : Return "Tablero"
-            Case "ddlLista" : Return "Lista"
             Case "ddlAsignado" : Return "Asignada a"
             Case "ddlEstadoFecha" : Return "Fecha límite"
             Case "ddlPrioridad" : Return "Prioridad"

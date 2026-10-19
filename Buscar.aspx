@@ -99,9 +99,15 @@
                             <asp:ListItem Value="sin" Text="Sin ninguna etiqueta" />
                         </asp:DropDownList>
                     </div>
+                    <%-- Listas: desplegable con casillas (varias a la vez = alguna de ellas); Scripts/buscar.js actualiza el resumen --%>
                     <div class="campo">
-                        <asp:Label runat="server" AssociatedControlID="ddlLista" Text="Lista" />
-                        <asp:DropDownList ID="ddlLista" runat="server" />
+                        <span class="campo-titulo" id="tituloListas">Listas</span>
+                        <details id="desplegableListas" class='<%= If(cblListas.Items.Count > 0, "desplegable-checks", "desplegable-checks deshabilitado") %>'>
+                            <summary aria-labelledby="tituloListas resumenListas"><span id="resumenListas"><asp:Literal ID="litResumenListas" runat="server" Mode="Encode" /></span></summary>
+                            <div class="desplegable-checks-panel">
+                                <asp:CheckBoxList ID="cblListas" runat="server" RepeatLayout="UnorderedList" CssClass="checks-lista" />
+                            </div>
+                        </details>
                     </div>
                     <div class="campo">
                         <asp:Label runat="server" AssociatedControlID="txtCaso" Text="Nº de caso exacto" />
@@ -173,6 +179,16 @@
                         <asp:Button ID="btnGuardarBusqueda" runat="server" Text="Guardar" CssClass="boton" ValidationGroup="GuardarBusqueda" />
                     </asp:Panel>
                 </details>
+                <%-- Columnas de los resultados: Scripts/buscar.js las muestra/oculta al momento y las recuerda (cookie) --%>
+                <details class="guardar-busqueda selector-columnas">
+                    <summary class="boton boton-claro">&#9638; Columnas</summary>
+                    <div class="guardar-busqueda-panel">
+                        <span class="fondo-seccion">Columnas de los resultados</span>
+                        <asp:CheckBoxList ID="cblColumnas" runat="server" RepeatLayout="UnorderedList" CssClass="checks-lista" />
+                        <small>El título se muestra siempre. Se recuerdan en este navegador y se guardan con la búsqueda.</small>
+                        <asp:Button ID="btnAplicarColumnas" runat="server" Text="Aplicar" CssClass="boton boton-claro solo-sin-js" CausesValidation="false" />
+                    </div>
+                </details>
                 <asp:Button ID="btnExportar" runat="server" Text="Exportar a Excel" CssClass="boton boton-claro" ValidationGroup="Busqueda" />
             </div>
         </div>
@@ -180,31 +196,39 @@
         <asp:Repeater ID="rptResultados" runat="server">
             <HeaderTemplate>
                 <div class="tabla-contenedor">
-                <table class="tabla-datos">
+                <%-- data-ocultas: columnas que no se muestran (el CSS oculta sus celdas data-col) --%>
+                <table class="tabla-datos tabla-resultados" id="tablaResultados" data-ocultas='<%#: ColumnasOcultas %>'>
                     <thead>
-                        <tr><th>Caso</th><th>Título</th><th>Prioridad</th><th>Tablero · lista</th><th>Asignada a</th><th>Fecha límite</th><th class="num">Subtareas</th><th>Modificada</th></tr>
+                        <tr><th data-col="id" class="num">ID</th><th data-col="caso">Caso</th><th>Título</th><th data-col="etiquetas">Etiquetas</th><th data-col="prioridad">Prioridad</th>
+                            <th data-col="tablero">Tablero · lista</th><th data-col="asignado">Asignada a</th><th data-col="limite">Fecha límite</th>
+                            <th data-col="subtareas" class="num">Subtareas</th><th data-col="adjuntos" class="num">Adjuntos</th><th data-col="creada">Creada</th><th data-col="modificada">Modificada</th></tr>
                     </thead>
                     <tbody>
             </HeaderTemplate>
             <ItemTemplate>
                         <tr>
-                            <td class="col-caso"><%#: If(Eval("Tarjeta.Caso") Is Nothing, "", "#" & CStr(Eval("Tarjeta.Caso"))) %></td>
+                            <td data-col="id" class="num"><%# Eval("Tarjeta.Id") %></td>
+                            <td data-col="caso" class="col-caso"><%#: If(Eval("Tarjeta.Caso") Is Nothing, "", "#" & CStr(Eval("Tarjeta.Caso"))) %></td>
                             <td class="col-titulo">
                                 <a href='<%#: UrlTarjeta(CType(Container.DataItem, TaskManager.Models.TarjetaEncontrada)) %>'><%#: Eval("Tarjeta.Titulo") %></a>
                                 <asp:PlaceHolder runat="server" Visible='<%# CBool(Eval("Tarjeta.TieneCodigo")) %>'><span class="info info-codigo" title="Tiene código">&lt;/&gt;</span></asp:PlaceHolder>
                                 <asp:PlaceHolder runat="server" Visible='<%# CInt(Eval("Tarjeta.NumComentarios")) > 0 %>'><span class="info" title="Mensajes de chat">&#128172; <%# Eval("Tarjeta.NumComentarios") %></span></asp:PlaceHolder>
+                            </td>
+                            <td data-col="etiquetas">
                                 <asp:Repeater ID="rptEtiquetasResultado" runat="server" DataSource='<%# Eval("Tarjeta.Etiquetas") %>'>
                                     <HeaderTemplate><span class="tarjeta-etiquetas"></HeaderTemplate>
                                     <ItemTemplate><span class="etiqueta-tag" style='<%#: Eval("EstiloCss") %>'><%#: Eval("Nombre") %></span></ItemTemplate>
                                     <FooterTemplate></span></FooterTemplate>
                                 </asp:Repeater>
                             </td>
-                            <td><%# Formato.HtmlPrioridad(Eval("Tarjeta.Prioridad")) %></td>
-                            <td><%#: Eval("NombreTablero") %><span class="secundario"><%#: Eval("Tarjeta.NombreLista") %></span></td>
-                            <td><%#: If(Eval("Tarjeta.NombreAsignado"), "—") %></td>
-                            <td><%# Formato.HtmlFechaLimite(Eval("Tarjeta.FechaLimite")) %></td>
-                            <td class="num"><%# If(CInt(Eval("Tarjeta.SubtareasTotal")) = 0, "—", Eval("Tarjeta.SubtareasHechas").ToString() & "/" & Eval("Tarjeta.SubtareasTotal").ToString()) %></td>
-                            <td class="col-fecha"><%#: Formato.FechaLocal(Eval("Tarjeta.FechaModificacion")) %><span class="secundario"><%#: Eval("Tarjeta.NombreModificador") %></span></td>
+                            <td data-col="prioridad"><%# Formato.HtmlPrioridad(Eval("Tarjeta.Prioridad")) %></td>
+                            <td data-col="tablero"><%#: Eval("NombreTablero") %><span class="secundario"><%#: Eval("Tarjeta.NombreLista") %></span></td>
+                            <td data-col="asignado"><%#: If(Eval("Tarjeta.NombreAsignado"), "—") %></td>
+                            <td data-col="limite"><%# Formato.HtmlFechaLimite(Eval("Tarjeta.FechaLimite")) %></td>
+                            <td data-col="subtareas" class="num"><%# If(CInt(Eval("Tarjeta.SubtareasTotal")) = 0, "—", Eval("Tarjeta.SubtareasHechas").ToString() & "/" & Eval("Tarjeta.SubtareasTotal").ToString()) %></td>
+                            <td data-col="adjuntos" class="num"><%# If(CInt(Eval("Tarjeta.NumAdjuntos")) = 0, "—", Eval("Tarjeta.NumAdjuntos").ToString()) %></td>
+                            <td data-col="creada" class="col-fecha"><%#: Formato.FechaLocal(Eval("Tarjeta.FechaCreacion")) %></td>
+                            <td data-col="modificada" class="col-fecha"><%#: Formato.FechaLocal(Eval("Tarjeta.FechaModificacion")) %><span class="secundario"><%#: Eval("Tarjeta.NombreModificador") %></span></td>
                         </tr>
             </ItemTemplate>
             <FooterTemplate>
@@ -225,4 +249,14 @@
     <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
     <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetasFiltro.ClientID %>', datos: 'etiquetas-datos', modo: 'filtro' };</script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
+    <script>
+        window.TaskManagerBuscar = {
+            listas: 'desplegableListas',
+            resumenListas: 'resumenListas',
+            columnas: '<%= cblColumnas.ClientID %>',
+            tabla: 'tablaResultados',
+            cookie: '<%= CookieColumnas %>'
+        };
+    </script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/buscar.js") %>"></script>
 </asp:Content>

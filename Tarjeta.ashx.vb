@@ -11,6 +11,10 @@ Imports TaskManager.Utilidades
 '''        -> guarda los campos con TarjetasDatos.Actualizar (historial incluido)
 '''   POST accion=subtarea, tablero, tarjeta, subtarea, completada (1/0)
 '''        -> marca o desmarca la subtarea con SubtareasDatos.CambiarEstado
+'''   POST accion=subtarea-texto, tablero, tarjeta, subtarea, texto
+'''        -> cambia el texto de una subtarea no enlazada (SubtareasDatos.CambiarTexto, con historial); devuelve el texto guardado
+'''   POST accion=subtareas-orden, tablero, tarjeta, orden (Ids separados por comas)
+'''        -> pone las subtareas en ese orden (SubtareasDatos.Reordenar; no va al historial)
 '''   POST accion=etiqueta, tablero, tarjeta (0 al crear una tarjeta), nombre, color
 '''        -> crea en el tablero la etiqueta con el color elegido (EtiquetasDatos.Crear) y la devuelve
 '''           ({ etiqueta: { n, c, f, t, u } }); color = clave de ColorEtiqueta (sólido o degradado); no modifica la tarjeta: se asigna al guardarla.
@@ -96,6 +100,32 @@ Public Class TarjetaHandler
             Return
         End If
 
+        If String.Equals(valores("accion"), "subtarea-texto", StringComparison.Ordinal) Then
+            Dim subtareaId As Integer
+            Dim texto = If(valores("texto"), "").Trim()
+            If Not Integer.TryParse(valores("subtarea"), subtareaId) OrElse texto.Length = 0 Then
+                Terminar(respuesta, 400, "Escribe el texto de la subtarea.")
+                Return
+            End If
+            If texto.Length > 300 Then texto = texto.Substring(0, 300)
+            ' CambiarTexto incluye el TableroId en el WHERE, no toca las enlazadas y solo registra si el texto cambia.
+            SubtareasDatos.CambiarTexto(subtareaId, tableroId, texto, usuarioId)
+            Responder(respuesta, tarjetaId, tableroId, Nothing, texto)
+            Return
+        End If
+
+        If String.Equals(valores("accion"), "subtareas-orden", StringComparison.Ordinal) Then
+            Dim orden = SubtareasDatos.LeerOrden(valores("orden"))
+            If orden Is Nothing Then
+                Terminar(respuesta, 400, "Petición incorrecta.")
+                Return
+            End If
+            ' Reordenar comprueba que la tarjeta es del tablero; Ids de otras tarjetas no tienen efecto.
+            SubtareasDatos.Reordenar(tarjetaId, tableroId, orden)
+            Responder(respuesta, tarjetaId, tableroId, Nothing)
+            Return
+        End If
+
         Dim errorTexto As String = Nothing
         Dim ignoradas As List(Of String) = Nothing
         Dim datos = EdicionTarjeta.Leer(valores("titulo"), valores("caso"), valores("fechaLimite"), valores("asignado"),
@@ -111,7 +141,8 @@ Public Class TarjetaHandler
         Responder(respuesta, tarjetaId, tableroId, EdicionTarjeta.AvisoEtiquetas(ignoradas))
     End Sub
 
-    Private Shared Sub Responder(respuesta As HttpResponse, tarjetaId As Integer, tableroId As Integer, aviso As String)
+    Private Shared Sub Responder(respuesta As HttpResponse, tarjetaId As Integer, tableroId As Integer, aviso As String,
+                                 Optional texto As String = Nothing)
         Dim tarjeta = TarjetasDatos.Obtener(tarjetaId, tableroId)
         If tarjeta Is Nothing Then
             Terminar(respuesta, 404, "La tarjeta ya no existe.")
@@ -120,6 +151,7 @@ Public Class TarjetaHandler
         respuesta.Write(New JavaScriptSerializer().Serialize(New With {
             .ok = True,
             .aviso = aviso,
+            .texto = texto,
             .modificacion = Formato.TextoModificacion(tarjeta.FechaModificacion, tarjeta.NombreModificador)
         }))
     End Sub
