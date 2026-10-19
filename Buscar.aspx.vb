@@ -229,7 +229,7 @@ Public Class BuscarPagina
         Dim resultado = BusquedaDatos.Buscar(UsuarioId, filtro, MaxExportacion)
 
         Dim libro As New LibroExcel()
-        ExportacionExcel.AgregarHojaTarjetas(libro, "Tareas", resultado.Tarjetas)
+        ExportacionExcel.AgregarHojaTarjetas(libro, "Tareas", resultado.Tarjetas, ColumnasElegidas())
         libro.AgregarHoja("Criterios", {"Criterio", "Valor"}, DescribirCriterios(resultado))
         EnviarArchivo(libro.ABytes(), "tareas-" & DateTime.Now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture) & ".xlsx",
                       LibroExcel.TipoMime)
@@ -415,6 +415,7 @@ Public Class BuscarPagina
         agregar("Creada entre", Rango(txtCreadaDesde.Text, txtCreadaHasta.Text))
         agregar("Modificada entre", Rango(txtModificadaDesde.Text, txtModificadaHasta.Text))
         agregar("Ordenar por", ddlOrden.SelectedItem.Text)
+        agregar("Columnas", String.Join(", ", {"Título"}.Concat(ColumnaBusqueda.Todas.Where(Function(c) ColumnasElegidas().Contains(c.Clave)).Select(Function(c) c.Nombre))))
         Return filas
     End Function
 

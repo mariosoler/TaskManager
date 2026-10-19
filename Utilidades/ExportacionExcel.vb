@@ -8,23 +8,55 @@ Namespace Utilidades
         Private Sub New()
         End Sub
 
-        Public Shared Sub AgregarHojaTarjetas(libro As LibroExcel, nombre As String, tarjetas As IEnumerable(Of TarjetaEncontrada))
-            Dim hoy = DateTime.Today
-            Dim encabezados = {"Caso", "Título", "Etiquetas", "Prioridad", "Tablero", "Lista", "Asignada a", "Fecha límite", "Estado fecha",
-                               "Subtareas hechas", "Subtareas total", "Mensajes de chat", "Tiene código", "Descripción",
-                               "Creada", "Modificada", "Modificada por"}
+        ''' <summary>Columna de la hoja de tarjetas. Clave = columna del buscador a la que corresponde (ColumnaBusqueda);
+        ''' "titulo" = siempre; Nothing = solo en la exportación completa (no hay columna así en pantalla).</summary>
+        Private NotInheritable Class ColumnaExcel
+            Public Property Clave As String
+            Public Property Encabezado As String
+            Public Property Valor As Func(Of TarjetaEncontrada, Object)
+        End Class
 
-            Dim filas = tarjetas.Select(Function(e)
-                                            Dim t = e.Tarjeta
-                                            Return New Object() {
-                                                t.Caso, t.Titulo, String.Join(", ", t.Etiquetas.Select(Function(et) et.Nombre)), Prioridad.Nombre(t.Prioridad), e.NombreTablero, t.NombreLista, t.NombreAsignado,
-                                                If(t.FechaLimite.HasValue, CObj(t.FechaLimite.Value.Date), Nothing),
-                                                EstadoFecha(t.FechaLimite, hoy),
-                                                t.SubtareasHechas, t.SubtareasTotal, t.NumComentarios, t.TieneCodigo,
-                                                t.Descripcion,
-                                                ALocal(t.FechaCreacion), ALocal(t.FechaModificacion), t.NombreModificador}
-                                        End Function)
-            libro.AgregarHoja(nombre, encabezados, filas)
+        Private Shared Function Columna(clave As String, encabezado As String, valor As Func(Of TarjetaEncontrada, Object)) As ColumnaExcel
+            Return New ColumnaExcel With {.Clave = clave, .Encabezado = encabezado, .Valor = valor}
+        End Function
+
+        ''' <summary>
+        ''' Hoja con una fila por tarjeta. Con <paramref name="columnas"/> (claves de ColumnaBusqueda: las visibles en el
+        ''' buscador) solo salen el título y las columnas de Excel de esas claves; sin ellas (Nothing), todas.
+        ''' </summary>
+        Public Shared Sub AgregarHojaTarjetas(libro As LibroExcel, nombre As String, tarjetas As IEnumerable(Of TarjetaEncontrada),
+                                              Optional columnas As IEnumerable(Of String) = Nothing)
+            Dim hoy = DateTime.Today
+            Dim todas = New List(Of ColumnaExcel) From {
+                Columna("id", "ID", Function(e) e.Tarjeta.Id),
+                Columna("caso", "Caso", Function(e) e.Tarjeta.Caso),
+                Columna("titulo", "Título", Function(e) e.Tarjeta.Titulo),
+                Columna("etiquetas", "Etiquetas", Function(e) String.Join(", ", e.Tarjeta.Etiquetas.Select(Function(et) et.Nombre))),
+                Columna("prioridad", "Prioridad", Function(e) Prioridad.Nombre(e.Tarjeta.Prioridad)),
+                Columna("tablero", "Tablero", Function(e) e.NombreTablero),
+                Columna("tablero", "Lista", Function(e) e.Tarjeta.NombreLista),
+                Columna("asignado", "Asignada a", Function(e) e.Tarjeta.NombreAsignado),
+                Columna("limite", "Fecha límite", Function(e) If(e.Tarjeta.FechaLimite.HasValue, CObj(e.Tarjeta.FechaLimite.Value.Date), Nothing)),
+                Columna("limite", "Estado fecha", Function(e) EstadoFecha(e.Tarjeta.FechaLimite, hoy)),
+                Columna("subtareas", "Subtareas hechas", Function(e) e.Tarjeta.SubtareasHechas),
+                Columna("subtareas", "Subtareas total", Function(e) e.Tarjeta.SubtareasTotal),
+                Columna("adjuntos", "Adjuntos", Function(e) e.Tarjeta.NumAdjuntos),
+                Columna(Nothing, "Mensajes de chat", Function(e) e.Tarjeta.NumComentarios),
+                Columna(Nothing, "Tiene código", Function(e) e.Tarjeta.TieneCodigo),
+                Columna(Nothing, "Descripción", Function(e) e.Tarjeta.Descripcion),
+                Columna("creada", "Creada", Function(e) ALocal(e.Tarjeta.FechaCreacion)),
+                Columna("modificada", "Modificada", Function(e) ALocal(e.Tarjeta.FechaModificacion)),
+                Columna("modificada", "Modificada por", Function(e) e.Tarjeta.NombreModificador)
+            }
+
+            Dim elegidas = todas
+            If columnas IsNot Nothing Then
+                Dim visibles = New HashSet(Of String)(ColumnaBusqueda.Validar(columnas))
+                elegidas = todas.Where(Function(c) c.Clave = "titulo" OrElse (c.Clave IsNot Nothing AndAlso visibles.Contains(c.Clave))).ToList()
+            End If
+
+            Dim filas = tarjetas.Select(Function(e) elegidas.Select(Function(c) c.Valor(e)).ToArray())
+            libro.AgregarHoja(nombre, elegidas.Select(Function(c) c.Encabezado).ToArray(), filas)
         End Sub
 
         Public Shared Function EstadoFecha(fechaLimite As DateTime?, hoy As DateTime) As String

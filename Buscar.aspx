@@ -185,7 +185,7 @@
                     <div class="guardar-busqueda-panel">
                         <span class="fondo-seccion">Columnas de los resultados</span>
                         <asp:CheckBoxList ID="cblColumnas" runat="server" RepeatLayout="UnorderedList" CssClass="checks-lista" />
-                        <small>El título se muestra siempre. Se recuerdan en este navegador y se guardan con la búsqueda.</small>
+                        <small>El título se muestra siempre. El Excel exporta solo estas columnas. Se recuerdan en este navegador y se guardan con la búsqueda.</small>
                         <asp:Button ID="btnAplicarColumnas" runat="server" Text="Aplicar" CssClass="boton boton-claro solo-sin-js" CausesValidation="false" />
                     </div>
                 </details>
