@@ -7,8 +7,9 @@ Imports TaskManager.Utilidades
 
 ''' <summary>
 ''' Guardado sin recargar del detalle de una tarjeta (JSON), usado por Scripts/detalle-tarjeta.js.
-'''   POST tablero, tarjeta, titulo, caso, descripcion, prioridad, fechaLimite, asignado, etiquetas, codigo
-'''        -> guarda los campos con TarjetasDatos.Actualizar (historial incluido)
+'''   POST tablero, tarjeta, titulo, caso, descripcion, prioridad, fechaLimite, asignado, etiquetas, codigo, lista
+'''        -> guarda los campos con TarjetasDatos.Actualizar (historial incluido); si lista es otra del tablero,
+'''           mueve la tarjeta al final de ella (TarjetasDatos.CambiarLista)
 '''   POST accion=subtarea, tablero, tarjeta, subtarea, completada (1/0)
 '''        -> marca o desmarca la subtarea con SubtareasDatos.CambiarEstado
 '''   POST accion=subtarea-texto, tablero, tarjeta, subtarea, texto
@@ -138,6 +139,11 @@ Public Class TarjetaHandler
 
         ' Actualizar incluye el TableroId en el WHERE: una tarjeta de otro tablero no se modifica.
         TarjetasDatos.Actualizar(tarjetaId, tableroId, datos, usuarioId)
+        ' Desplegable «Lista»: CambiarLista comprueba que la lista es de este tablero y no hace nada si no cambia.
+        Dim listaId As Integer
+        If Integer.TryParse(valores("lista"), NumberStyles.None, CultureInfo.InvariantCulture, listaId) Then
+            TarjetasDatos.CambiarLista(tarjetaId, listaId, tableroId, usuarioId)
+        End If
         Responder(respuesta, tarjetaId, tableroId, EdicionTarjeta.AvisoEtiquetas(ignoradas))
     End Sub
 
@@ -152,6 +158,7 @@ Public Class TarjetaHandler
             .ok = True,
             .aviso = aviso,
             .texto = texto,
+            .lista = tarjeta.NombreLista,
             .modificacion = Formato.TextoModificacion(tarjeta.FechaModificacion, tarjeta.NombreModificador)
         }))
     End Sub

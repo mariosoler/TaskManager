@@ -2,6 +2,8 @@
  * Detalle de tarjeta (modal):
  * - Al editar una tarjeta existente, los cambios se guardan solos mientras se escribe
  *   (POST a Tarjeta.ashx tras una breve pausa); el botón Guardar se oculta.
+ * - El desplegable «Lista» (encima del chat) mueve la tarjeta al final de la lista elegida al momento.
+ * - «Crear tarea» crea la tarjeta y el detalle sigue abierto con ella, ya en modo edición (lo hace el servidor).
  * - Pulsar fuera del modal lo cierra (como la ✕ o Esc). Antes de cerrar se guarda lo pendiente;
  *   si se está creando una tarjeta con datos escritos, se pide confirmación para descartarla.
  * - Marcar una subtarea no recarga la página: al editar se guarda con Tarjeta.ashx (accion=subtarea);
@@ -240,6 +242,18 @@
             sessionStorage.setItem(CLAVE_SCROLL, JSON.stringify({ clave: claveDetalle, top: fondo.scrollTop }));
         } catch (e) { /* sin sessionStorage */ }
     });
+
+    // ----- Desplegable «Lista» (encima del chat, fuera de .modal-principal) -----
+    // Muestra la lista elegida en el subtítulo; al editar, la tarjeta se mueve al momento (Tarjeta.ashx, campo lista);
+    // al crear, se usa al pulsar «Crear tarea».
+    var nombreLista = document.getElementById(cfg.nombreLista);
+    if (campos.lista) {
+        campos.lista.addEventListener('change', function () {
+            var opcion = campos.lista.options[campos.lista.selectedIndex];
+            if (nombreLista && opcion) { nombreLista.textContent = opcion.text; }
+            if (editando) { guardar(false); }
+        });
+    }
 
     if (!editando) { return; }
 

@@ -3,6 +3,8 @@
  * - Envía con fetch a Chat.ashx sin recargar la página (Enter envía, Mayús+Enter salta de línea).
  * - Mientras el detalle está abierto pide los mensajes nuevos cada pocos segundos.
  * - Si el envío por AJAX falla, recurre al botón "Enviar" normal (postback).
+ * - [#ID] en el texto (botón de enlace del chat, Scripts/chat-enlace.js) se muestra como enlace a esa tarjeta del
+ *   tablero, con su ID y su título actual (igual que TableroPagina.HtmlMensaje); si no es del tablero, como texto.
  * Los textos de los mensajes se insertan con textContent.
  */
 (function () {
@@ -23,6 +25,15 @@
     var enviando = false;
     var fallos = 0;
     var usarPostback = false;
+
+    // Títulos de las tarjetas del tablero por Id, para los enlaces [#ID] (TableroPagina.TarjetasEnlazablesJson).
+    var titulos = {};
+    var nodoTarjetas = cfg.datos && document.getElementById(cfg.datos);
+    if (nodoTarjetas) {
+        try {
+            (JSON.parse(nodoTarjetas.textContent) || []).forEach(function (t) { titulos[t.i] = t.t; });
+        } catch (e) { titulos = {}; }
+    }
 
     function mensajes() { return lista.querySelectorAll('.chat-mensaje'); }
 
@@ -52,6 +63,27 @@
         return e;
     }
 
+    /* Párrafo del mensaje: texto con cada [#ID] de una tarjeta del tablero convertido en enlace. */
+    function parrafo(contenido) {
+        var p = el('p');
+        var patron = /\[#([0-9]{1,9})\]/g;
+        var desde = 0, encontrado;
+        while ((encontrado = patron.exec(contenido)) !== null) {
+            var id = parseInt(encontrado[1], 10);
+            if (!Object.prototype.hasOwnProperty.call(titulos, id)) { continue; }
+            p.appendChild(document.createTextNode(contenido.slice(desde, encontrado.index)));
+            var enlace = el('a', 'chat-enlace-tarjeta');
+            enlace.href = cfg.urlTablero + '&tarjeta=' + id;
+            enlace.title = 'Abrir la tarjeta ' + id;
+            enlace.appendChild(el('span', 'tarjeta-id', String(id)));
+            enlace.appendChild(document.createTextNode(titulos[id]));
+            p.appendChild(enlace);
+            desde = patron.lastIndex;
+        }
+        p.appendChild(document.createTextNode(contenido.slice(desde)));
+        return p;
+    }
+
     function pintar(m) {
         if (lista.querySelector('.chat-mensaje[data-id="' + Number(m.id) + '"]')) { return; }   // ya está
         var fila = el('div', 'chat-mensaje' + (m.propio ? ' propio' : ''));
@@ -64,7 +96,7 @@
         meta.appendChild(document.createTextNode(' '));
         meta.appendChild(el('span', 'fecha', m.fecha));
         burbuja.appendChild(meta);
-        burbuja.appendChild(el('p', null, m.texto));
+        burbuja.appendChild(parrafo(String(m.texto || '')));
         fila.appendChild(avatar);
         fila.appendChild(burbuja);
         lista.appendChild(fila);

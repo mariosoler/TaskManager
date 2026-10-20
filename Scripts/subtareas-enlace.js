@@ -5,22 +5,22 @@
  *   distinguir mayúsculas ni acentos; si un número es justo el ID de una tarjeta, esa sale la primera); ↑/↓ eligen, Enter o clic enlazan, Esc vuelve a la subtarea normal;
  * - enlazar pone el Id en el HiddenField y pulsa «Añadir» (postback normal: el servidor comprueba que la tarjeta
  *   es de este tablero y usa su título). La subtarea muestra el título actual de la tarjeta, subrayado.
- * Datos en <script type="application/json" id="tarjetas-enlazables"> (TableroPagina.TarjetasEnlazablesJson).
+ * Datos en <script type="application/json" id="tarjetas-enlazables"> (TableroPagina.TarjetasEnlazablesJson);
+ * la búsqueda es la de buscador-tarjetas.js (compartida con los enlaces del chat).
  * Los textos se insertan con textContent. Sin JavaScript solo se pueden añadir subtareas normales.
  */
 (function () {
     'use strict';
 
     var cfg = window.TaskManagerEnlaceSubtarea;
-    if (!cfg) { return; }
+    var buscador = window.TaskManagerBuscadorTarjetas;
+    if (!cfg || !buscador) { return; }
     var campo = document.getElementById(cfg.campo);
     var boton = document.getElementById(cfg.boton);
     var enlace = document.getElementById(cfg.enlace);
-    var nodoDatos = document.getElementById(cfg.datos);
-    if (!campo || !boton || !enlace || !nodoDatos) { return; }
+    if (!campo || !boton || !enlace) { return; }
 
-    var tarjetas = [];
-    try { tarjetas = JSON.parse(nodoDatos.textContent) || []; } catch (e) { tarjetas = []; }
+    var tarjetas = buscador.cargar(cfg.datos);
     if (tarjetas.length === 0) { return; }   // no hay otras tarjetas que enlazar
 
     var MAXIMO = 8;
@@ -28,12 +28,6 @@
     var buscando = false;
     var opciones = [];
     var activa = -1;
-
-    // Sin mayúsculas ni acentos (los acentos se separan con NFD y se quitan las marcas).
-    function normalizar(texto) {
-        return String(texto || '').normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
-    }
-    tarjetas.forEach(function (t) { t.buscable = normalizar(t.i + ' ' + t.t + ' ' + t.c + ' ' + t.l); });
 
     // ----- Elementos -----
     var enlazar = document.createElement('button');
@@ -94,32 +88,12 @@
     }
 
     function sugerir() {
-        var palabras = normalizar(campo.value).replace(/^#/, '').split(/\s+/).filter(Boolean);
-        var coinciden = tarjetas.filter(function (t) {
-            return palabras.every(function (p) { return t.buscable.indexOf(p) >= 0; });
-        });
-        // La tarjeta cuyo ID es exactamente uno de los números escritos va la primera.
-        var exacta = coinciden.filter(function (t) { return palabras.indexOf(String(t.i)) >= 0; });
-        opciones = exacta.concat(coinciden.filter(function (t) { return exacta.indexOf(t) < 0; })).slice(0, MAXIMO);
+        opciones = buscador.filtrar(tarjetas, campo.value, MAXIMO);
 
         lista.textContent = '';
-        if (opciones.length === 0) {
-            var vacia = document.createElement('li');
-            vacia.className = 'vacia';
-            vacia.textContent = 'Ninguna tarjeta coincide.';
-            lista.appendChild(vacia);
-        }
+        if (opciones.length === 0) { lista.appendChild(buscador.crearVacia()); }
         opciones.forEach(function (t, i) {
-            var li = document.createElement('li');
-            li.id = lista.id + '_' + i;
-            li.setAttribute('role', 'option');
-            var titulo = document.createElement('span');
-            titulo.className = 'subtarea-sugerencia-titulo';
-            titulo.textContent = t.t;
-            var nota = document.createElement('small');
-            nota.textContent = 'ID ' + t.i + ' · ' + (t.c ? '#' + t.c + ' · ' : '') + t.l;
-            li.appendChild(titulo);
-            li.appendChild(nota);
+            var li = buscador.crearOpcion(t, lista.id + '_' + i);
             li.addEventListener('mousedown', function (e) {
                 e.preventDefault();   // que el cuadro no pierda el foco
                 elegir(i);

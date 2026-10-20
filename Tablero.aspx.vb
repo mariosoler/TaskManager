@@ -1,4 +1,5 @@
 ﻿Imports System.Globalization
+Imports System.Text.RegularExpressions
 Imports System.Web.Script.Serialization
 Imports TaskManager.Datos
 Imports TaskManager.Models
@@ -159,12 +160,26 @@ Public Class TableroPagina
         Dim aviso = EdicionTarjeta.AvisoEtiquetas(ignoradas)
         If aviso IsNot Nothing Then MostrarMensaje(aviso, True)
 
-        If ListaNuevaId > 0 Then
-            TarjetasDatos.Crear(ListaNuevaId, TableroId, datos, SubtareasPendientes, UsuarioId)
+        ' Desplegable «Lista» (encima del chat); Crear y CambiarLista comprueban que la lista es de este tablero.
+        Dim listaElegida As Integer
+        If Not Integer.TryParse(ddlLista.SelectedValue, NumberStyles.None, CultureInfo.InvariantCulture, listaElegida) Then listaElegida = 0
+
+        If CreandoTarjeta Then
+            Dim nuevaId = TarjetasDatos.Crear(If(listaElegida > 0, listaElegida, ListaNuevaId), TableroId, datos, SubtareasPendientes, UsuarioId)
+            If nuevaId = 0 Then
+                CerrarDetalle()
+            Else
+                ' El detalle sigue abierto con la tarjeta recién creada (ya en modo edición: guardado automático,
+                ' chat y adjuntos), sin volver a animarse.
+                SubtareasPendientes = Nothing
+                AbrirTarjeta(nuevaId)
+                _detalleAlCargar = ClaveDetalle()
+            End If
         Else
             TarjetasDatos.Actualizar(TarjetaAbiertaId, TableroId, datos, UsuarioId)
+            If listaElegida > 0 Then TarjetasDatos.CambiarLista(TarjetaAbiertaId, listaElegida, TableroId, UsuarioId)
+            CerrarDetalle()
         End If
-        CerrarDetalle()
         CargarTablero()
     End Sub
 
@@ -299,7 +314,7 @@ Public Class TableroPagina
         TarjetaAbiertaId = 0
         ListaNuevaId = listaId
         SubtareasPendientes = New List(Of Subtarea)
-        MostrarDetalle(New Tarjeta With {.NombreLista = nombreLista, .Titulo = ""}, esNueva:=True)
+        MostrarDetalle(New Tarjeta With {.ListaId = listaId, .NombreLista = nombreLista, .Titulo = ""}, esNueva:=True)
     End Sub
 
     ''' <summary>Rellena y muestra el modal, en modo creación (esNueva) o edición.</summary>
@@ -344,6 +359,14 @@ Public Class TableroPagina
             Dim item = ddlAsignado.Items.FindByValue(tarjeta.AsignadoA.Value.ToString(CultureInfo.InvariantCulture))
             If item IsNot Nothing Then item.Selected = True
         End If
+
+        ' Lista de la tarjeta (al crearla, aquella en la que se pulsó «+ Crear Tarea»).
+        ddlLista.Items.Clear()
+        For Each lista In ListasDatos.Listar(TableroId)
+            ddlLista.Items.Add(New ListItem(lista.Titulo, lista.Id.ToString(CultureInfo.InvariantCulture)))
+        Next
+        Dim opcionLista = ddlLista.Items.FindByValue(tarjeta.ListaId.ToString(CultureInfo.InvariantCulture))
+        If opcionLista IsNot Nothing Then opcionLista.Selected = True
 
         CargarSubtareas()
         pnlDetalle.Visible = True
@@ -672,11 +695,49 @@ Public Class TableroPagina
     Protected ReadOnly Property TarjetasEnlazablesJson As String
         Get
             If Not pnlDetalle.Visible Then Return "[]"
-            Dim tarjetas = TarjetasDatos.ListarParaEnlazar(TableroId).
-                Where(Function(t) t.Id <> TarjetaAbiertaId).
+            Dim tarjetas = TarjetasEnlazables().
                 Select(Function(t) New With {.i = t.Id, .t = t.Titulo, .c = If(t.Caso, ""), .l = t.NombreLista})
             Dim json = New JavaScriptSerializer().Serialize(tarjetas.ToList())
             Return json.Replace("<", "\u003c").Replace(">", "\u003e").Replace("&", "\u0026")
+        End Get
+    End Property
+
+    ' Tarjetas del tablero (ListarParaEnlazar), leídas una vez por petición: las usan las subtareas y el chat.
+    Private _tarjetasTablero As List(Of Tarjeta)
+
+    ''' <summary>Tarjetas del tablero que se pueden enlazar (subtareas y chat): todas menos la abierta.</summary>
+    Private Function TarjetasEnlazables() As IEnumerable(Of Tarjeta)
+        If _tarjetasTablero Is Nothing Then _tarjetasTablero = TarjetasDatos.ListarParaEnlazar(TableroId)
+        Return _tarjetasTablero.Where(Function(t) t.Id <> TarjetaAbiertaId)
+    End Function
+
+    ' Tarjeta enlazada en un mensaje del chat: [#123] (lo inserta el botón de enlace del chat, Scripts/chat-enlace.js).
+    Private Shared ReadOnly EnlaceChat As New Regex("\[#([0-9]{1,9})\]", RegexOptions.CultureInvariant)
+
+    ''' <summary>
+    ''' Texto de un mensaje del chat ya codificado; cada [#N] de una tarjeta de este tablero se convierte en un enlace
+    ''' con su ID y su título actual (lo mismo hace Scripts/chat.js con los mensajes nuevos). Los demás quedan como texto.
+    ''' </summary>
+    Protected Function HtmlMensaje(texto As Object) As String
+        Dim codificado = HttpUtility.HtmlEncode(If(TryCast(texto, String), ""))
+        If codificado.IndexOf("[#", StringComparison.Ordinal) < 0 Then Return codificado
+        Dim titulos = TarjetasEnlazables().ToDictionary(Function(t) t.Id, Function(t) t.Titulo)
+        Return EnlaceChat.Replace(codificado,
+            Function(m)
+                Dim id As Integer
+                If Not Integer.TryParse(m.Groups(1).Value, NumberStyles.None, CultureInfo.InvariantCulture, id) OrElse
+                   Not titulos.ContainsKey(id) Then Return m.Value
+                Dim idTexto = id.ToString(CultureInfo.InvariantCulture)
+                Dim url = ResolveUrl("~/Tablero.aspx?id=" & TableroIdTexto & "&tarjeta=" & idTexto)
+                Return "<a class=""chat-enlace-tarjeta"" href=""" & HttpUtility.HtmlAttributeEncode(url) & """ title=""Abrir la tarjeta " &
+                       idTexto & """><span class=""tarjeta-id"">" & idTexto & "</span>" & HttpUtility.HtmlEncode(titulos(id)) & "</a>"
+            End Function)
+    End Function
+
+    ''' <summary>URL del tablero para los enlaces a tarjetas de Scripts/chat.js (se le añade "&amp;tarjeta=N").</summary>
+    Protected ReadOnly Property UrlTableroTexto As String
+        Get
+            Return ResolveUrl("~/Tablero.aspx?id=" & TableroIdTexto)
         End Get
     End Property
 

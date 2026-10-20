@@ -89,10 +89,10 @@ SELECT Codigo FROM Tarjetas WHERE Id = @TarjetaId;" &
         ''' <summary>
         ''' Crea la tarjeta al final de la lista (si la lista pertenece al tablero) junto con sus subtareas,
         ''' y sus etiquetas, en una transacción. Usa Titulo, Descripcion, FechaLimite, AsignadoA, Caso, Codigo,
-        ''' Prioridad y Etiquetas de <paramref name="datos"/>.
+        ''' Prioridad y Etiquetas de <paramref name="datos"/>. Devuelve el Id de la tarjeta nueva (0 si la lista no es del tablero).
         ''' </summary>
-        Public Shared Sub Crear(listaId As Integer, tableroId As Integer, datos As Tarjeta, subtareas As IEnumerable(Of Subtarea),
-                                usuarioId As Integer)
+        Public Shared Function Crear(listaId As Integer, tableroId As Integer, datos As Tarjeta, subtareas As IEnumerable(Of Subtarea),
+                                usuarioId As Integer) As Integer
             Dim sql = "
 DECLARE @Nueva TABLE (Id INT);
 INSERT INTO Tarjetas (ListaId, Titulo, Descripcion, Posicion, FechaLimite, AsignadoA, Caso, Codigo, Prioridad)
@@ -114,7 +114,7 @@ SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
                         cmd.Parameters.Add("@TableroId", SqlDbType.Int).Value = tableroId
                         AgregarCampos(cmd, datos)
                         Using rd = cmd.ExecuteReader()
-                            If Not rd.Read() Then Return  ' la lista no es de este tablero (rollback al salir)
+                            If Not rd.Read() Then Return 0  ' la lista no es de este tablero (rollback al salir)
                             tarjetaId = rd.GetInt32(0)
                             nombreLista = rd.GetString(1)
                         End Using
@@ -129,9 +129,10 @@ SELECT n.Id, l.Titulo FROM @Nueva n CROSS JOIN Listas l WHERE l.Id = @ListaId;"
                     HistorialDatos.Registrar(cn, tx, tarjetaId, usuarioId,
                                              HistorialTarjeta.Nuevo(HistorialTarjeta.Creada, valorNuevo:=nombreLista))
                     tx.Commit()
+                    Return tarjetaId
                 End Using
             End Using
-        End Sub
+        End Function
 
         ''' <summary>
         ''' Actualiza los datos editables y registra en el historial cada campo que cambie
@@ -333,6 +334,16 @@ SELECT (SELECT Titulo FROM Listas WHERE Id = @Origen) AS Origen,
                     tx.Commit()
                 End Using
             End Using
+        End Sub
+
+        ''' <summary>
+        ''' Desplegable «Lista» del detalle: mueve la tarjeta al final de otra lista del tablero (con historial, como
+        ''' <see cref="Mover"/>). Si ya está en esa lista no hace nada (no la manda al final).
+        ''' </summary>
+        Public Shared Sub CambiarLista(tarjetaId As Integer, listaId As Integer, tableroId As Integer, usuarioId As Integer)
+            Dim actual = Obtener(tarjetaId, tableroId)
+            If actual Is Nothing OrElse actual.ListaId = listaId Then Return
+            Mover(tarjetaId, listaId, Integer.MaxValue, tableroId, usuarioId)
         End Sub
 
         Friend Shared Function LeerTarjeta(rd As SqlDataReader) As Tarjeta

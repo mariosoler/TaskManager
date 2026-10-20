@@ -662,6 +662,15 @@ Partial Public Class TableroPagina
     Protected WithEvents txtComentario As Global.System.Web.UI.WebControls.TextBox
 
     '''<summary>
+    '''Control ddlLista.
+    '''</summary>
+    '''<remarks>
+    '''Campo generado automáticamente.
+    '''Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+    '''</remarks>
+    Protected WithEvents ddlLista As Global.System.Web.UI.WebControls.DropDownList
+
+    '''<summary>
     '''Control btnComentar.
     '''</summary>
     '''<remarks>

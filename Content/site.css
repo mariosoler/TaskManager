@@ -1428,8 +1428,50 @@ a.graf-etiqueta:hover, a.graf-etiqueta:focus-visible { color: var(--tinta); text
 .chat-mensaje.propio .chat-meta strong { display: none; }   /* los propios no repiten el nombre */
 .chat-burbuja p { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; }
 .chat-aviso { margin: 0 16px 8px; padding: 6px 10px; border-radius: 6px; background: #fbeceb; color: #a11b12; font-size: 12px; }
-.chat-escribir { display: flex; gap: 8px; align-items: flex-end; padding: 10px 16px 4px; border-top: 1px solid var(--borde); background: #fff; }
+.chat-escribir { position: relative; display: flex; gap: 8px; align-items: flex-end; padding: 10px 16px 4px; border-top: 1px solid var(--borde); background: #fff; }
 .chat-escribir textarea { resize: none; max-height: 140px; }
+/* Botón de enlace (Scripts/chat-enlace.js) encima de Enviar, alineado a la derecha */
+.chat-botones { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.chat-enlazar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--texto-suave);
+    cursor: pointer;
+    transition: color var(--transicion), border-color var(--transicion), background var(--transicion);
+}
+.chat-enlazar:hover { color: var(--primario); border-color: var(--primario); }
+.chat-enlazar.activo { color: var(--primario); border-color: var(--primario); background: var(--primario-claro); }
+.icono-enlace { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Buscador de tarjetas del chat: flota sobre los mensajes, encima del cuadro de escribir */
+.chat-enlace-panel {
+    position: absolute;
+    z-index: 30;
+    left: 12px;
+    right: 12px;
+    bottom: 100%;
+    margin-bottom: 6px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 8px 24px rgba(0, 40, 41, .2);
+}
+.chat-enlace-panel .chat-enlace-sugerencias { position: static; max-height: 240px; margin: 6px 0 0; padding: 0; border: 0; box-shadow: none; }
+/* Tarjeta enlazada en un mensaje ([#ID]): su ID y su título actual */
+.chat-enlace-tarjeta { color: var(--primario); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.chat-enlace-tarjeta:hover { color: var(--primario-oscuro); text-decoration-thickness: 2px; }
+.chat-enlace-tarjeta .tarjeta-id { text-decoration: none; }
+/* Desplegable «Lista» de la tarjeta, encima del chat */
+.detalle-lista { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--borde); background: #fff; }
+.detalle-lista label { flex-shrink: 0; margin: 0; font-size: 13px; font-weight: 600; color: var(--texto); }
+.detalle-lista select { flex: 1 1 auto; min-width: 0; }
 .chat-ayuda { margin: 0; padding: 0 16px 10px; font-size: 11px; color: var(--texto-suave); background: #fff; }
 
 @media (max-width: 900px) {

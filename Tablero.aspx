@@ -239,7 +239,7 @@
                 <asp:Button ID="btnCrearTarjeta" runat="server" Text="Crear tarea" CssClass="boton boton-crear-tarjeta" ValidationGroup="Detalle" Visible="false" />
                 <asp:LinkButton ID="btnCerrarDetalle" runat="server" CssClass="modal-cerrar" ToolTip="Cerrar (Esc)" CausesValidation="false">&times;</asp:LinkButton>
             </div>
-            <p class="modal-subtitulo"><asp:Literal ID="litDetallePrefijo" runat="server" /> <strong><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
+            <p class="modal-subtitulo"><asp:Literal ID="litDetallePrefijo" runat="server" /> <strong id="detalleNombreLista"><asp:Literal ID="litDetalleLista" runat="server" Mode="Encode" /></strong>
                 <asp:Literal ID="litFechasTarjeta" runat="server" Mode="Encode" /></p>
 
             <%-- Avisos (Scripts/detalle-tarjeta.js): sin prioridad, fecha límite superada y sin asignar, con icono y texto;
@@ -400,6 +400,12 @@
 
           <%-- Chat de la tarjeta: envío y actualización sin recargar en Scripts/chat.js (Chat.ashx). --%>
           <aside class="chat" aria-label="Chat de la tarjeta">
+            <%-- Lista de la tarjeta: al crearla, la de «+ Crear Tarea»; al editarla, cambiarla la mueve al final de la
+                 elegida (guardado automático de Scripts/detalle-tarjeta.js, o con Guardar sin JavaScript) --%>
+            <div class="detalle-lista">
+                <asp:Label runat="server" AssociatedControlID="ddlLista" Text="Lista" />
+                <asp:DropDownList ID="ddlLista" runat="server" />
+            </div>
             <div class="chat-cabecera">
                 <h3>Chat</h3>
                 <span class="seccion-nota" id="chatContador"></span>
@@ -413,7 +419,8 @@
                                 <span class="avatar avatar-pequeno" title='<%#: Eval("NombreUsuario") %>'><%#: Formato.Iniciales(Eval("NombreUsuario")) %></span>
                                 <div class="chat-burbuja">
                                     <div class="chat-meta"><strong><%#: Eval("NombreUsuario") %></strong> <span class="fecha"><%#: Formato.FechaLocal(Eval("Fecha")) %></span></div>
-                                    <p><%#: Eval("Texto") %></p>
+                                    <%-- HtmlMensaje codifica el texto y convierte [#N] en enlace a la tarjeta N --%>
+                                    <p><%# HtmlMensaje(Eval("Texto")) %></p>
                                 </div>
                             </div>
                         </ItemTemplate>
@@ -422,7 +429,10 @@
                 <p class="chat-aviso" id="chatAviso" hidden="hidden"></p>
                 <div class="chat-escribir">
                     <asp:TextBox ID="txtComentario" runat="server" TextMode="MultiLine" Rows="2" MaxLength="2000" placeholder="Escribe un mensaje…" aria-label="Mensaje" />
-                    <asp:Button ID="btnComentar" runat="server" Text="Enviar" CssClass="boton" CausesValidation="false" />
+                    <%-- Scripts/chat-enlace.js añade encima de Enviar el botón para enlazar una tarjeta en el texto --%>
+                    <div class="chat-botones">
+                        <asp:Button ID="btnComentar" runat="server" Text="Enviar" CssClass="boton" CausesValidation="false" />
+                    </div>
                 </div>
                 <p class="chat-ayuda">Enter para enviar · Mayús+Enter para saltar de línea</p>
             </asp:PlaceHolder>
@@ -501,13 +511,16 @@
                 fechaLimite: '<%= txtFechaLimite.ClientID %>',
                 asignado: '<%= ddlAsignado.ClientID %>',
                 etiquetas: '<%= txtEtiquetas.ClientID %>',
-                codigo: '<%= txtCodigo.ClientID %>'
-            }
+                codigo: '<%= txtCodigo.ClientID %>',
+                lista: '<%= ddlLista.ClientID %>'
+            },
+            nombreLista: 'detalleNombreLista'
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/detalle-tarjeta.js") %>"></script>
     <%-- Tarjetas que se pueden enlazar desde una subtarea; "<", ">" y "&" van escapados --%>
     <script type="application/json" id="tarjetas-enlazables"><%= TarjetasEnlazablesJson %></script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/buscador-tarjetas.js") %>"></script>
     <script>
         window.TaskManagerEnlaceSubtarea = {
             campo: '<%= txtNuevaSubtarea.ClientID %>',
@@ -557,8 +570,11 @@
             tablero: <%= TableroIdTexto %>,
             tarjeta: <%= TarjetaChatTexto %>,
             texto: '<%= txtComentario.ClientID %>',
-            boton: '<%= btnComentar.ClientID %>'
+            boton: '<%= btnComentar.ClientID %>',
+            urlTablero: '<%= UrlTableroTexto %>',
+            datos: 'tarjetas-enlazables'
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/chat.js") %>"></script>
+    <script src="<%= Formato.UrlConVersion("~/Scripts/chat-enlace.js") %>"></script>
 </asp:Content>

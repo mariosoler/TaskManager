@@ -146,6 +146,8 @@
     <Content Include="Scripts\buscar.js" />
     <Content Include="Scripts\busqueda-rapida.js" />
     <Content Include="Scripts\chat.js" />
+    <Content Include="Scripts\chat-enlace.js" />
+    <Content Include="Scripts\buscador-tarjetas.js" />
     <Content Include="Scripts\detalle-tarjeta.js" />
     <Content Include="Scripts\adjuntos.js" />
     <Content Include="Scripts\subtareas-enlace.js" />
