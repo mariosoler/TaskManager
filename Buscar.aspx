@@ -189,6 +189,8 @@
                         <asp:Button ID="btnAplicarColumnas" runat="server" Text="Aplicar" CssClass="boton boton-claro solo-sin-js" CausesValidation="false" />
                     </div>
                 </details>
+                <%-- Copia las columnas visibles de los resultados, lista para pegar en Excel (Scripts/buscar.js la muestra si hay resultados) --%>
+                <button type="button" id="btnCopiar" class="boton boton-claro" hidden="hidden">&#128203; Copiar en portapapeles</button>
                 <asp:Button ID="btnExportar" runat="server" Text="Exportar a Excel" CssClass="boton boton-claro" ValidationGroup="Busqueda" />
             </div>
         </div>
@@ -206,7 +208,8 @@
                     <tbody>
             </HeaderTemplate>
             <ItemTemplate>
-                        <tr>
+                        <%-- data-copia: valores para «Copiar en portapapeles», en el orden de ColumnasCopiaJson --%>
+                        <tr data-copia='<%#: FilaCopia(Container.DataItem) %>'>
                             <td data-col="id" class="num"><%# Eval("Tarjeta.Id") %></td>
                             <td data-col="caso" class="col-caso"><%#: If(Eval("Tarjeta.Caso") Is Nothing, "", "#" & CStr(Eval("Tarjeta.Caso"))) %></td>
                             <td class="col-titulo">
@@ -249,13 +252,17 @@
     <script type="application/json" id="etiquetas-datos"><%= EtiquetasJson %></script>
     <script>window.TaskManagerEtiquetas = { campo: '<%= txtEtiquetasFiltro.ClientID %>', datos: 'etiquetas-datos', modo: 'filtro' };</script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/etiquetas.js") %>"></script>
+    <%-- Columnas de «Copiar en portapapeles» (textos fijos del código) --%>
+    <script type="application/json" id="copia-columnas"><%= ColumnasCopiaJson %></script>
     <script>
         window.TaskManagerBuscar = {
             listas: 'desplegableListas',
             resumenListas: 'resumenListas',
             columnas: '<%= cblColumnas.ClientID %>',
             tabla: 'tablaResultados',
-            cookie: '<%= CookieColumnas %>'
+            cookie: '<%= CookieColumnas %>',
+            copiar: 'btnCopiar',
+            copiaColumnas: 'copia-columnas'
         };
     </script>
     <script src="<%= Formato.UrlConVersion("~/Scripts/buscar.js") %>"></script>

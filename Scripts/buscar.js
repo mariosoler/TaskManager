@@ -4,6 +4,8 @@
  * - «Columnas»: muestra u oculta al momento las columnas de los resultados (atributo data-ocultas de la tabla;
  *   el CSS oculta las celdas data-col) y las recuerda en una cookie, que el servidor lee al cargar la página.
  *   Las casillas viajan con el siguiente envío, así que también se guardan con la búsqueda.
+ * - «Copiar en portapapeles»: copia las columnas visibles de los resultados (valores de data-copia de cada fila,
+ *   columnas en #copia-columnas) como HTML y como texto con tabuladores, listos para pegar en Excel.
  * - Los desplegables se cierran al pulsar fuera o con Esc.
  * Sin JavaScript las casillas siguen funcionando: las listas al buscar y las columnas con el botón «Aplicar».
  */
@@ -56,6 +58,98 @@
     }
 
     if (columnas) { columnas.addEventListener('change', aplicarColumnas); }
+
+    // ----- Copiar en portapapeles (columnas visibles, lista para pegar en Excel) -----
+    var copiar = document.getElementById(cfg.copiar);
+    var filas = tabla && tabla.tBodies.length ? Array.prototype.slice.call(tabla.tBodies[0].rows) : [];
+    var columnasCopia = [];
+    try { columnasCopia = JSON.parse(document.getElementById(cfg.copiaColumnas).textContent) || []; } catch (e) { columnasCopia = []; }
+
+    function escaparHtml(texto) {
+        return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Texto plano (valores separados por tabuladores): sin saltos de línea dentro de una celda y, en las columnas de
+    // texto, con apóstrofo delante si empieza como una fórmula (Excel lo toma como texto y no lo muestra).
+    function celdaTexto(valor, esTexto) {
+        var v = String(valor == null ? '' : valor).replace(/[\t\r\n]+/g, ' ');
+        return esTexto && /^[=+\-@]/.test(v) ? "'" + v : v;
+    }
+
+    // HTML: Excel respeta mso-number-format "@" (texto) al pegar: conserva los ceros del caso y nunca evalúa fórmulas.
+    function celdaHtml(etiqueta, valor, esTexto) {
+        return '<' + etiqueta + (esTexto ? ' style="mso-number-format:\'\\@\'"' : '') + '>' +
+            escaparHtml(String(valor == null ? '' : valor)) + '</' + etiqueta + '>';
+    }
+
+    function contenidoCopia() {
+        var ocultas = (tabla.getAttribute('data-ocultas') || '').split(/\s+/).filter(Boolean);
+        // El título siempre; el resto, si su columna está visible.
+        var indices = [];
+        columnasCopia.forEach(function (c, i) {
+            if (c.k === 'titulo' || ocultas.indexOf(c.k) < 0) { indices.push(i); }
+        });
+        var datos = filas.map(function (tr) {
+            try { return JSON.parse(tr.getAttribute('data-copia') || '[]'); } catch (e) { return []; }
+        });
+
+        var texto = [indices.map(function (i) { return celdaTexto(columnasCopia[i].n, true); }).join('\t')];
+        var html = ['<tr>' + indices.map(function (i) { return celdaHtml('th', columnasCopia[i].n, true); }).join('') + '</tr>'];
+        datos.forEach(function (valores) {
+            texto.push(indices.map(function (i) { return celdaTexto(valores[i], columnasCopia[i].t); }).join('\t'));
+            html.push('<tr>' + indices.map(function (i) { return celdaHtml('td', valores[i], columnasCopia[i].t); }).join('') + '</tr>');
+        });
+        return {
+            texto: texto.join('\r\n'),
+            html: '<html><head><meta charset="utf-8"></head><body><table>' + html.join('') + '</table></body></html>'
+        };
+    }
+
+    // Sin la API del portapapeles (p. ej. por http://): evento copy con los dos formatos.
+    function copiarConEvento(contenido) {
+        var alCopiar = function (e) {
+            e.clipboardData.setData('text/plain', contenido.texto);
+            e.clipboardData.setData('text/html', contenido.html);
+            e.preventDefault();
+        };
+        document.addEventListener('copy', alCopiar);
+        try {
+            return document.execCommand('copy') ? Promise.resolve() : Promise.reject(new Error('copy'));
+        } finally {
+            document.removeEventListener('copy', alCopiar);
+        }
+    }
+
+    var textoCopiar = copiar ? copiar.textContent : '';
+    var temporizadorCopia = null;
+
+    function avisoCopia(mensaje) {
+        copiar.textContent = mensaje;
+        clearTimeout(temporizadorCopia);
+        temporizadorCopia = setTimeout(function () { copiar.textContent = textoCopiar; }, 2500);
+    }
+
+    if (copiar && filas.length && columnasCopia.length) {
+        copiar.hidden = false;
+        copiar.setAttribute('aria-live', 'polite');
+        copiar.addEventListener('click', function () {
+            var contenido = contenidoCopia();
+            var promesa;
+            if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+                promesa = navigator.clipboard.write([new ClipboardItem({
+                    'text/plain': new Blob([contenido.texto], { type: 'text/plain' }),
+                    'text/html': new Blob([contenido.html], { type: 'text/html' })
+                })]).catch(function () { return copiarConEvento(contenido); });
+            } else {
+                promesa = copiarConEvento(contenido);
+            }
+            promesa.then(function () {
+                avisoCopia('✓ Copiadas ' + filas.length + (filas.length === 1 ? ' tarea' : ' tareas'));
+            }, function () {
+                avisoCopia('No se ha podido copiar');
+            });
+        });
+    }
 
     // ----- Cerrar desplegables al pulsar fuera o con Esc -----
     var SELECTOR = 'details.desplegable-checks, details.selector-columnas';

@@ -209,6 +209,23 @@ Public Class BuscarPagina
         End Get
     End Property
 
+    ' ----- «Copiar en portapapeles» (Scripts/buscar.js) -----
+
+    ''' <summary>Columnas que se pueden copiar (ExportacionExcel.ColumnasPortapapeles: k = clave, n = encabezado, t = texto).</summary>
+    Protected Shared ReadOnly Property ColumnasCopiaJson As String
+        Get
+            Return New JavaScriptSerializer().Serialize(ExportacionExcel.ColumnasPortapapeles())
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Valores de la fila para copiar (atributo data-copia del resultado; codificar al escribirlo). Van en la propia
+    ''' fila para que se guarden con ella en el ViewState aunque un postback no repita la búsqueda.
+    ''' </summary>
+    Protected Shared Function FilaCopia(dato As Object) As String
+        Return New JavaScriptSerializer().Serialize(ExportacionExcel.FilaPortapapeles(CType(dato, TarjetaEncontrada)))
+    End Function
+
     Protected Function TituloGuardada(guardada As BusquedaGuardada) As String
         Dim texto = If(guardada.EsPropia, "Tuya", "De " & guardada.NombreUsuario)
         If guardada.Compartida Then texto &= " · compartida con tus compañeros"
